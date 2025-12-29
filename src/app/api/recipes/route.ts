@@ -1,0 +1,235 @@
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/db';
+import { cached, recipesCache, cacheKeys } from '@/lib/cache';
+import { generateSlug } from '@/lib/utils';
+import type { Recipe, RecipeFilters, PaginatedResponse, ApiResponse } from '@/types';
+
+export const dynamic = 'force-dynamic';
+
+// GET /api/recipes - Get recipes with filters and pagination
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+
+    // Parse query parameters
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '12', 10), 50);
+    const difficulty = searchParams.get('difficulty');
+    const maxCost = searchParams.get('maxCost');
+    const maxTime = searchParams.get('maxTime');
+    const tags = searchParams.get('tags');
+    const search = searchParams.get('search');
+    const sortBy = searchParams.get('sortBy') || 'created';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
+
+    const skip = (page - 1) * pageSize;
+
+    // Build where clause
+    const where: any = {};
+
+    if (difficulty) {
+      where.difficulty = {
+        in: difficulty.split(',') as ('USOR' | 'MEDIU' | 'DIFICIL')[],
+      };
+    }
+
+    if (maxCost) {
+      where.estimatedCost = { lte: parseFloat(maxCost) };
+    }
+
+    if (maxTime) {
+      where.totalTime = { lte: parseInt(maxTime, 10) };
+    }
+
+    if (tags) {
+      where.tags = { hasSome: tags.split(',') };
+    }
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Build orderBy
+    const orderBy: any = {};
+    switch (sortBy) {
+      case 'cost':
+        orderBy.estimatedCost = sortOrder;
+        break;
+      case 'time':
+        orderBy.totalTime = sortOrder;
+        break;
+      case 'views':
+        orderBy.viewCount = sortOrder;
+        break;
+      case 'favorites':
+        orderBy.favoriteCount = sortOrder;
+        break;
+      case 'created':
+      default:
+        orderBy.createdAt = sortOrder;
+    }
+
+    // Create cache key based on params
+    const cacheKey = `recipes:${JSON.stringify({ where, orderBy, skip, pageSize })}`;
+
+    // Fetch data with caching
+    const result = await cached(
+      cacheKey,
+      600, // 10 minutes cache
+      async () => {
+        const [recipes, total] = await Promise.all([
+          prisma.recipe.findMany({
+            where,
+            orderBy,
+            skip,
+            take: pageSize,
+          }),
+          prisma.recipe.count({ where }),
+        ]);
+
+        return {
+          recipes: recipes.map((r) => ({
+            ...r,
+            estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
+            costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
+            instructions: r.instructions as Recipe['instructions'],
+            tips: r.tips as string[] | null,
+            tags: r.tags as string[] | null,
+            nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
+          })),
+          total,
+        };
+      },
+      recipesCache
+    );
+
+    const response: ApiResponse<PaginatedResponse<Recipe>> = {
+      success: true,
+      data: {
+        data: result.recipes,
+        total: result.total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(result.total / pageSize),
+      },
+    };
+
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching recipes:', error);
+
+    const response: ApiResponse = {
+      success: false,
+      error: 'Failed to fetch recipes',
+    };
+
+    return NextResponse.json(response, { status: 500 });
+  }
+}
+
+// POST /api/recipes - Create a new recipe (for internal use)
+export async function POST(request: NextRequest) {
+  try {
+    // Check for API key authorization
+    const authHeader = request.headers.get('authorization');
+    const apiKey = process.env.INTERNAL_API_KEY;
+
+    if (!apiKey || authHeader !== `Bearer ${apiKey}`) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+
+    // Validate required fields
+    const requiredFields = ['title', 'description', 'servings', 'difficulty', 'instructions'];
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        return NextResponse.json(
+          { success: false, error: `Missing required field: ${field}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Generate slug if not provided
+    const slug = body.slug || generateSlug(body.title);
+
+    // Check if slug exists
+    const existingRecipe = await prisma.recipe.findUnique({
+      where: { slug },
+    });
+
+    if (existingRecipe) {
+      return NextResponse.json(
+        { success: false, error: 'Recipe with this slug already exists' },
+        { status: 400 }
+      );
+    }
+
+    // Calculate total time
+    const totalTime = (body.prepTime || 0) + (body.cookTime || 0);
+
+    // Calculate cost per serving
+    const costPerServing = body.estimatedCost
+      ? body.estimatedCost / body.servings
+      : null;
+
+    const recipe = await prisma.recipe.create({
+      data: {
+        title: body.title,
+        description: body.description,
+        servings: body.servings,
+        prepTime: body.prepTime,
+        cookTime: body.cookTime,
+        totalTime: body.totalTime || totalTime,
+        difficulty: body.difficulty,
+        instructions: body.instructions,
+        tips: body.tips,
+        ingredientIds: body.ingredientIds || [],
+        estimatedCost: body.estimatedCost,
+        costPerServing,
+        totalCalories: body.totalCalories,
+        nutritionPerServing: body.nutritionPerServing,
+        slug,
+        metaDescription: body.metaDescription || body.description.substring(0, 160),
+        tags: body.tags,
+      },
+    });
+
+    // Invalidate cache
+    recipesCache.flushAll();
+
+    const response: ApiResponse<Recipe> = {
+      success: true,
+      data: {
+        ...recipe,
+        estimatedCost: recipe.estimatedCost ? Number(recipe.estimatedCost) : null,
+        costPerServing: recipe.costPerServing ? Number(recipe.costPerServing) : null,
+        instructions: recipe.instructions as Recipe['instructions'],
+        tips: recipe.tips as string[] | null,
+        tags: recipe.tags as string[] | null,
+        nutritionPerServing: recipe.nutritionPerServing as Recipe['nutritionPerServing'],
+      },
+      message: 'Recipe created successfully',
+    };
+
+    return NextResponse.json(response, { status: 201 });
+  } catch (error) {
+    console.error('Error creating recipe:', error);
+
+    return NextResponse.json(
+      { success: false, error: 'Failed to create recipe' },
+      { status: 500 }
+    );
+  }
+}

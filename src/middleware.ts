@@ -1,0 +1,92 @@
+/**
+ * Next.js Middleware - Security & Rate Limiting
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Security headers (suplimentar la next.config.js)
+  const response = NextResponse.next();
+
+  // Rate limiting pentru API routes
+  if (pathname.startsWith('/api/')) {
+    // Determine rate limit config based on endpoint
+    let rateLimitConfig = RATE_LIMITS.api;
+
+    if (pathname.includes('/search')) {
+      rateLimitConfig = RATE_LIMITS.search;
+    } else if (pathname.includes('/generate') || pathname.includes('/ai')) {
+      rateLimitConfig = RATE_LIMITS.aiGeneration;
+    } else if (pathname.includes('/auth') || pathname.includes('/login')) {
+      rateLimitConfig = RATE_LIMITS.auth;
+    }
+
+    // Check rate limit
+    const rateLimit = await checkRateLimit(request, rateLimitConfig);
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Too many requests',
+          message: 'Rate limit exceeded. Please try again later.',
+          retryAfter: Math.ceil((rateLimit.resetAt.getTime() - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimit.resetAt.toISOString(),
+            'Retry-After': Math.ceil((rateLimit.resetAt.getTime() - Date.now()) / 1000).toString(),
+          },
+        }
+      );
+    }
+
+    // Add rate limit headers to response
+    response.headers.set('X-RateLimit-Limit', rateLimitConfig.maxRequests.toString());
+    response.headers.set('X-RateLimit-Remaining', rateLimit.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimit.resetAt.toISOString());
+  }
+
+  // Block known bad user agents
+  const userAgent = request.headers.get('user-agent') || '';
+  const blockedAgents = ['curl', 'wget', 'python-requests', 'scrapy'];
+
+  const isBlockedAgent = blockedAgents.some(agent =>
+    userAgent.toLowerCase().includes(agent)
+  );
+
+  if (isBlockedAgent && !pathname.startsWith('/api/')) {
+    return NextResponse.json(
+      { error: 'Access denied' },
+      { status: 403 }
+    );
+  }
+
+  // Prevent directory traversal
+  if (pathname.includes('..') || pathname.includes('//')) {
+    return NextResponse.json(
+      { error: 'Invalid path' },
+      { status: 400 }
+    );
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+};

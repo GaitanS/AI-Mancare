@@ -1,0 +1,221 @@
+// Prisma Schema pentru Retete Ieftine
+// SQLite pentru dezvoltare locală
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// PRODUCTS TABLE
+// ==========================================
+model Product {
+  id        String   @id @default(uuid())
+  name      String
+  category  String
+  subcategory String?
+  brand     String?
+
+  // Price Info
+  price              Decimal
+  originalPrice      Decimal? @map("original_price")
+  discountPercentage Int?     @map("discount_percentage")
+  unit               String   // kg, L, buc, 100g
+
+  // Offer Details
+  store      String
+  validFrom  DateTime @map("valid_from")
+  validUntil DateTime @map("valid_until")
+
+  // AI Extracted Data (JSON)
+  nutritionalInfo String? @map("nutritional_info")
+  allergens       String?
+
+  // Source Tracking
+  sourceUrl             String? @map("source_url")
+  catalogPageNumber     Int?    @map("catalog_page_number")
+  extractionConfidence  Decimal? @map("extraction_confidence")
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Indexes
+  @@index([category])
+  @@index([store])
+  @@index([validFrom, validUntil])
+  @@index([price])
+  @@index([createdAt])
+
+  @@map("products")
+}
+
+// ==========================================
+// CATALOGS TABLE
+// ==========================================
+model Catalog {
+  id           String   @id @default(uuid())
+  store        String
+  title        String
+  pdfUrl       String   @unique @map("pdf_url")
+  pdfLocalPath String?  @map("pdf_local_path")
+
+  // Validity
+  validFrom  DateTime @map("valid_from")
+  validUntil DateTime @map("valid_until")
+
+  // Processing Status
+  status         String @default("PENDING")
+  totalPages     Int?   @map("total_pages")
+  processedPages Int           @default(0) @map("processed_pages")
+
+  // AI Processing
+  processingStartedAt   DateTime? @map("processing_started_at")
+  processingCompletedAt DateTime? @map("processing_completed_at")
+  processingErrors      String?   @map("processing_errors")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([store])
+  @@index([status])
+  @@index([validFrom, validUntil])
+
+  @@map("catalogs")
+}
+
+// CatalogStatus: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED"
+
+// ==========================================
+// RECIPES TABLE
+// ==========================================
+model Recipe {
+  id          String @id @default(uuid())
+  title       String
+  description String
+
+  // Recipe Details
+  servings   Int            @default(4)
+  prepTime   Int?           @map("prep_time")
+  cookTime   Int?           @map("cook_time")
+  totalTime  Int?   @map("total_time")
+  difficulty String @default("USOR")
+
+  // AI Generated Content (JSON stored as String)
+  instructions String
+  tips         String?
+
+  // Ingredients (JSON array stored as String)
+  ingredientIds   String   @map("ingredient_ids")
+  estimatedCost   Decimal? @map("estimated_cost")
+  costPerServing  Decimal? @map("cost_per_serving")
+
+  // Nutrition
+  totalCalories       Int?    @map("total_calories")
+  nutritionPerServing String? @map("nutrition_per_serving")
+
+  // SEO
+  slug            String  @unique
+  metaDescription String? @map("meta_description")
+  tags            String?
+
+  // Stats
+  viewCount     Int @default(0) @map("view_count")
+  favoriteCount Int @default(0) @map("favorite_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([estimatedCost])
+  @@index([createdAt])
+  @@index([difficulty])
+
+  @@map("recipes")
+}
+
+// RecipeDifficulty: "USOR" | "MEDIU" | "DIFICIL"
+
+// ==========================================
+// WEEKLY MENUS TABLE
+// ==========================================
+model WeeklyMenu {
+  id     String  @id @default(uuid())
+  userId String? @map("user_id")
+
+  // Menu Config
+  budgetLimit          Decimal @map("budget_limit")
+  peopleCount          Int     @default(4) @map("people_count")
+  preferredStores      String? @map("preferred_stores")
+  dietaryRestrictions  String? @map("dietary_restrictions")
+
+  // Generated Menu (JSON stored as String)
+  menuData     String  @map("menu_data")
+  totalCost    Decimal? @map("total_cost")
+  shoppingList String?  @map("shopping_list")
+
+  // SEO
+  slug  String? @unique
+  title String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([budgetLimit])
+  @@index([slug])
+  @@index([createdAt])
+
+  @@map("weekly_menus")
+}
+
+// ==========================================
+// SCRAPING SOURCES TABLE
+// ==========================================
+model ScrapingSource {
+  id       String @id @default(uuid())
+  name     String @unique
+  baseUrl  String @map("base_url")
+
+  // Scraping Config (JSON stored as String)
+  selectorConfig     String   @map("selector_config")
+  scrapingFrequency  String   @default("weekly") @map("scraping_frequency")
+  lastScrapedAt      DateTime? @map("last_scraped_at")
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("scraping_sources")
+}
+
+// ==========================================
+// USERS TABLE
+// ==========================================
+model User {
+  id           String @id @default(uuid())
+  email        String @unique
+  passwordHash String? @map("password_hash")
+
+  // Preferences (JSON stored as String)
+  preferredStores      String?  @map("preferred_stores")
+  dietaryRestrictions  String?  @map("dietary_restrictions")
+  budgetPreference     Decimal? @map("budget_preference")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+// ==========================================
+// CACHE TABLE
+// ==========================================
+model Cache {
+  cacheKey   String   @id @map("cache_key")
+  cacheValue String   @map("cache_value")
+  expiresAt  DateTime @map("expires_at")
+
+  @@index([expiresAt])
+  @@map("cache")
+}

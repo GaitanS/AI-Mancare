@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(timeout /t 120 /nobreak)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 15 /nobreak)",
+      "Bash(npx prisma:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(mysql:*)",
+      "Bash(sc query:*)",
+      "Bash(net start)",
+      "Bash(findstr:*)",
+      "Bash(ping:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(taskkill:*)",
+      "Bash(rd /s /q \"node_modules\\.prisma\")",
+      "Bash(node scripts/seed-real-data.js:*)",
+      "Bash(curl:*)",
+      "Bash(node scripts/test-ai.js:*)",
+      "Bash(node scripts/scrape-real-offers.js:*)",
+      "Bash(node scripts/download-and-process-catalog.js:*)",
+      "Bash(node -e:*)",
+      "Bash(node scripts/scrape-catalogs-ai.js:*)",
+      "Bash(node scripts/scrape-kaufland-direct.js:*)",
+      "Bash(node scripts/explore-catalomat.js:*)",
+      "Bash(node scripts/scrape-kaufland-v2.js:*)",
+      "Bash(node scripts/show-products.js:*)"
+    ]
+  }
+}
