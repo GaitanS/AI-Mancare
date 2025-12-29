@@ -38,6 +38,7 @@ model Product {
   // Source Tracking
   sourceUrl             String? @map("source_url")
   catalogPageNumber     Int?    @map("catalog_page_number")
+  catalogPageImage      String? @map("catalog_page_image")  // Path to catalog page screenshot
   extractionConfidence  Decimal? @map("extraction_confidence")
 
   // Metadata

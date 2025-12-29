@@ -27,7 +27,11 @@
       "Bash(node scripts/scrape-kaufland-direct.js:*)",
       "Bash(node scripts/explore-catalomat.js:*)",
       "Bash(node scripts/scrape-kaufland-v2.js:*)",
-      "Bash(node scripts/show-products.js:*)"
+      "Bash(node scripts/show-products.js:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(node:*)",
+      "Bash(git add:*)"
     ]
   }
 }
