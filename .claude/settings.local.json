@@ -31,7 +31,17 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(node:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(dir:*)",
+      "Bash(npx next dev --port 3001)",
+      "Bash(npx next dev --port 3003)",
+      "Bash(tasklist:*)",
+      "Bash(cmd /c \"taskkill /F /IM node.exe\")",
+      "Bash(test:*)",
+      "Bash(exit 0)",
+      "Bash(netstat:*)",
+      "Bash(cmd /c \"taskkill /F /PID 24292\")",
+      "Skill(example-skills:frontend-design)"
     ]
   }
 }

@@ -3,8 +3,17 @@ import prisma from '@/lib/db';
 import { cached, recipesCache, cacheKeys } from '@/lib/cache';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
 import FilterSidebar, { RecipeFilterConfig } from '@/components/FilterSidebar';
+import SortSelect from '@/components/SortSelect';
 import type { Recipe, RecipeFilters } from '@/types';
 import type { Metadata } from 'next';
+
+// Sort options for recipes page
+const recipeSortOptions = [
+  { value: 'created-desc', label: 'Cele mai noi' },
+  { value: 'views-desc', label: 'Cele mai populare' },
+  { value: 'cost-asc', label: 'Cost (mic -> mare)' },
+  { value: 'time-asc', label: 'Timp (rapid -> lent)' },
+];
 
 export const metadata: Metadata = {
   title: 'Retete Economice - Gateste delicios la preturi mici',
@@ -230,6 +239,7 @@ export default async function RetetePage({ searchParams }: PageProps) {
                     Sorteaza dupa:
                   </label>
                   <SortSelect
+                    options={recipeSortOptions}
                     currentSort={filters.sortBy}
                     currentOrder={filters.sortOrder}
                   />
@@ -268,72 +278,51 @@ export default async function RetetePage({ searchParams }: PageProps) {
         {/* Recipe Categories Section */}
         <section className="bg-white py-12 border-t border-gray-100">
           <div className="container-custom">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">
+            <h2 className="text-xl font-bold text-foreground mb-6 font-heading">
               Categorii populare
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {[
-                { name: 'Retete rapide', filter: 'maxTime=30', icon: '⚡' },
-                { name: 'Sub 20 lei', filter: 'maxCost=20', icon: '💰' },
-                { name: 'Retete usoare', filter: 'difficulty=USOR', icon: '👌' },
-                { name: 'Cina simpla', filter: 'tags=cina', icon: '🍽️' },
-                { name: 'Mic dejun', filter: 'tags=mic-dejun', icon: '🍳' },
-                { name: 'Vegetarian', filter: 'tags=vegetarian', icon: '🥗' },
-              ].map((category) => (
-                <a
-                  key={category.name}
-                  href={`/retete?${category.filter}`}
-                  className="flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-center"
-                >
-                  <span className="text-2xl mb-2">{category.icon}</span>
-                  <span className="text-sm font-medium text-gray-700">
-                    {category.name}
-                  </span>
-                </a>
-              ))}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+              <CategoryCard
+                name="Retete rapide"
+                filter="maxTime=30"
+                icon={<ClockIcon />}
+                color="from-amber-400 to-orange-500"
+              />
+              <CategoryCard
+                name="Sub 20 lei"
+                filter="maxCost=20"
+                icon={<CoinIcon />}
+                color="from-emerald-400 to-green-500"
+              />
+              <CategoryCard
+                name="Retete usoare"
+                filter="difficulty=USOR"
+                icon={<ThumbUpIcon />}
+                color="from-sky-400 to-blue-500"
+              />
+              <CategoryCard
+                name="Cina simpla"
+                filter="tags=cina"
+                icon={<PlateIcon />}
+                color="from-violet-400 to-purple-500"
+              />
+              <CategoryCard
+                name="Mic dejun"
+                filter="tags=mic-dejun"
+                icon={<SunIcon />}
+                color="from-rose-400 to-pink-500"
+              />
+              <CategoryCard
+                name="Vegetarian"
+                filter="tags=vegetarian"
+                icon={<LeafIcon />}
+                color="from-lime-400 to-green-500"
+              />
             </div>
           </div>
         </section>
       </div>
     </>
-  );
-}
-
-// Sort Select Component - using form action instead of onChange
-function SortSelect({
-  currentSort,
-  currentOrder,
-}: {
-  currentSort?: string;
-  currentOrder?: string;
-}) {
-  const sortOptions = [
-    { value: 'created-desc', label: 'Cele mai noi' },
-    { value: 'views-desc', label: 'Cele mai populare' },
-    { value: 'cost-asc', label: 'Cost (mic -> mare)' },
-    { value: 'time-asc', label: 'Timp (rapid -> lent)' },
-  ];
-
-  const currentValue = `${currentSort || 'created'}-${currentOrder || 'desc'}`;
-
-  return (
-    <form method="get">
-      <select
-        name="sort"
-        id="sortBy"
-        defaultValue={currentValue}
-        className="input py-1.5 text-sm w-auto"
-      >
-        {sortOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <noscript>
-        <button type="submit" className="btn btn-sm ml-2">Aplica</button>
-      </noscript>
-    </form>
   );
 }
 
@@ -480,8 +469,85 @@ function EmptyState({ title, description }: { title: string; description: string
           />
         </svg>
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600">{description}</p>
+      <h3 className="text-lg font-semibold text-foreground mb-2 font-heading">{title}</h3>
+      <p className="text-foreground/60 font-body">{description}</p>
     </div>
+  );
+}
+
+// Category Card Component
+function CategoryCard({
+  name,
+  filter,
+  icon,
+  color,
+}: {
+  name: string;
+  filter: string;
+  icon: React.ReactNode;
+  color: string;
+}) {
+  return (
+    <a
+      href={`/retete?${filter}`}
+      className="group flex flex-col items-center p-4 bg-white rounded-2xl border border-gray-100 hover:border-transparent hover:shadow-lg transition-all duration-300 text-center"
+    >
+      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
+        {icon}
+      </div>
+      <span className="text-sm font-semibold text-foreground font-heading">
+        {name}
+      </span>
+    </a>
+  );
+}
+
+// SVG Icons
+function ClockIcon() {
+  return (
+    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function CoinIcon() {
+  return (
+    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function ThumbUpIcon() {
+  return (
+    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+    </svg>
+  );
+}
+
+function PlateIcon() {
+  return (
+    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+      <circle cx="12" cy="12" r="10" strokeWidth={2} />
+    </svg>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  );
+}
+
+function LeafIcon() {
+  return (
+    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+    </svg>
   );
 }

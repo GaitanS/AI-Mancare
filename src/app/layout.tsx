@@ -1,12 +1,20 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Montserrat, Open_Sans, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const montserrat = Montserrat({
+  variable: '--font-montserrat',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+});
+
+const openSans = Open_Sans({
+  variable: '--font-open-sans',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
 });
 
@@ -99,6 +107,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: 'cover',
 };
 
 // JSON-LD structured data for the website
@@ -133,7 +142,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ro" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="ro" className={`${montserrat.variable} ${openSans.variable} ${geistMono.variable}`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
@@ -148,7 +157,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
       </head>
-      <body className="min-h-screen flex flex-col bg-gray-50">
+      <body className="min-h-screen flex flex-col bg-background font-body text-foreground">
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />

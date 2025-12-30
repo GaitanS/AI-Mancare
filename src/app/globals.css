@@ -128,13 +128,13 @@
     @apply py-12 md:py-16 lg:py-20;
   }
 
-  /* Grid layouts */
+  /* Grid layouts - Optimized for mobile */
   .grid-products {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6;
+    @apply grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6;
   }
 
   .grid-recipes {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
   }
 
   /* Skeleton loading */
@@ -203,6 +203,23 @@
   .focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
   }
+
+  /* Safe areas for notch/home indicator on mobile devices */
+  .safe-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+
+  .safe-bottom {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+
+  .safe-left {
+    padding-left: max(0px, env(safe-area-inset-left));
+  }
+
+  .safe-right {
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
 }
 
 /* Custom animations */
@@ -247,6 +264,126 @@
 
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Modal animations */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-modal-fade {
+  animation: modalFadeIn 0.2s ease-out forwards;
+}
+
+.animate-modal-slide-up {
+  animation: modalSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.animate-modal-scale {
+  animation: modalScaleIn 0.25s ease-out forwards;
+}
+
+/* Modal fade out */
+@keyframes modalFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-modal-fade-out {
+  animation: modalFadeOut 0.3s ease-out forwards;
+}
+
+/* Modal scale out */
+@keyframes modalScaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+.animate-modal-scale-out {
+  animation: modalScaleOut 0.25s ease-out forwards;
+}
+
+/* Drawer slide up */
+@keyframes drawerSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-drawer-slide-up {
+  animation: drawerSlideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Drawer slide down */
+@keyframes drawerSlideDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+.animate-drawer-slide-down {
+  animation: drawerSlideDown 0.3s ease-out forwards;
+}
+
+/* Fade out */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-fade-out {
+  animation: fadeOut 0.2s ease-out forwards;
 }
 
 /* Store brand colors */
