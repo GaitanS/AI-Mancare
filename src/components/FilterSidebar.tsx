@@ -38,6 +38,16 @@ interface FilterSidebarProps {
   className?: string;
 }
 
+// Store colors for visual indicators
+const storeColors: Record<string, string> = {
+  kaufland: 'from-[#e10915] to-[#c00812]',
+  lidl: 'from-[#0050aa] to-[#003d82]',
+  penny: 'from-[#cd1719] to-[#a81315]',
+  carrefour: 'from-[#004e9e] to-[#003a76]',
+  'mega-image': 'from-[#e31837] to-[#b8142d]',
+  auchan: 'from-[#e2001a] to-[#b80016]',
+};
+
 export default function FilterSidebar({
   type,
   config,
@@ -86,6 +96,9 @@ export default function FilterSidebar({
   // Check if any filters are active
   const hasActiveFilters = searchParams.toString().length > 0;
 
+  // Count active filters
+  const activeFilterCount = Array.from(searchParams.keys()).length;
+
   // Toggle checkbox filter
   const toggleCheckbox = useCallback(
     (key: string, value: string) => {
@@ -115,65 +128,137 @@ export default function FilterSidebar({
     return (
       <>
         {/* Store Filter */}
-        <FilterSection title="Magazine">
-          <div className="space-y-2">
-            {productConfig.stores.map((store) => (
-              <label
-                key={store.value}
-                className="flex items-center gap-3 cursor-pointer group p-2 rounded-xl hover:bg-primary-50/50 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={
-                    Array.isArray(getFilterValue('store'))
-                      ? getFilterValue('store').includes(store.value)
-                      : getFilterValue('store') === store.value
-                  }
-                  onChange={() => toggleCheckbox('store', store.value)}
-                  className="w-4 h-4 rounded-md border-gray-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
-                />
-                <span className="text-sm text-foreground/80 group-hover:text-foreground font-body flex-1">
-                  {store.label}
-                </span>
-                {store.count !== undefined && (
-                  <span className="text-xs text-foreground/40 bg-gray-100 px-2 py-0.5 rounded-full font-medium">({store.count})</span>
-                )}
-              </label>
-            ))}
+        <FilterSection title="Magazine" icon={
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        }>
+          <div className="space-y-1">
+            {productConfig.stores.map((store) => {
+              const isChecked = Array.isArray(getFilterValue('store'))
+                ? getFilterValue('store').includes(store.value)
+                : getFilterValue('store') === store.value;
+
+              return (
+                <label
+                  key={store.value}
+                  className={cn(
+                    'flex items-center gap-3 cursor-pointer group p-2.5 rounded-xl transition-all duration-200',
+                    isChecked ? 'bg-primary-50 border border-primary-200' : 'hover:bg-neutral-50 border border-transparent'
+                  )}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleCheckbox('store', store.value)}
+                      className="peer sr-only"
+                    />
+                    <div className={cn(
+                      'w-5 h-5 rounded-md border-2 transition-all duration-200',
+                      isChecked
+                        ? 'bg-primary-500 border-primary-500'
+                        : 'border-neutral-300 group-hover:border-neutral-400'
+                    )}>
+                      {isChecked && (
+                        <svg className="w-full h-full text-white p-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className={cn(
+                      'w-2.5 h-2.5 rounded-full bg-gradient-to-r shadow-sm',
+                      storeColors[store.value] || 'from-neutral-400 to-neutral-500'
+                    )} />
+                    <span className={cn(
+                      'text-sm font-medium transition-colors',
+                      isChecked ? 'text-neutral-900' : 'text-neutral-600 group-hover:text-neutral-900'
+                    )}>
+                      {store.label}
+                    </span>
+                  </div>
+                  {store.count !== undefined && (
+                    <span className={cn(
+                      'text-xs px-2 py-0.5 rounded-full font-medium transition-colors',
+                      isChecked ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-500'
+                    )}>
+                      {store.count}
+                    </span>
+                  )}
+                </label>
+              );
+            })}
           </div>
         </FilterSection>
 
         {/* Category Filter */}
-        <FilterSection title="Categorii">
-          <div className="space-y-1 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
-            {productConfig.categories.map((category) => (
-              <label
-                key={category.value}
-                className="flex items-center gap-3 cursor-pointer group p-2 rounded-xl hover:bg-primary-50/50 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={
-                    Array.isArray(getFilterValue('category'))
-                      ? getFilterValue('category').includes(category.value)
-                      : getFilterValue('category') === category.value
-                  }
-                  onChange={() => toggleCheckbox('category', category.value)}
-                  className="w-4 h-4 rounded-md border-gray-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
-                />
-                <span className="text-sm text-foreground/80 group-hover:text-foreground font-body flex-1">
-                  {category.label}
-                </span>
-                {category.count !== undefined && (
-                  <span className="text-xs text-foreground/40 bg-gray-100 px-2 py-0.5 rounded-full font-medium">({category.count})</span>
-                )}
-              </label>
-            ))}
+        <FilterSection title="Categorii" icon={
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+        }>
+          <div className="space-y-1 max-h-56 overflow-y-auto pr-1 scrollbar-thin">
+            {productConfig.categories.map((category) => {
+              const isChecked = Array.isArray(getFilterValue('category'))
+                ? getFilterValue('category').includes(category.value)
+                : getFilterValue('category') === category.value;
+
+              return (
+                <label
+                  key={category.value}
+                  className={cn(
+                    'flex items-center gap-3 cursor-pointer group p-2.5 rounded-xl transition-all duration-200',
+                    isChecked ? 'bg-primary-50 border border-primary-200' : 'hover:bg-neutral-50 border border-transparent'
+                  )}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleCheckbox('category', category.value)}
+                      className="peer sr-only"
+                    />
+                    <div className={cn(
+                      'w-5 h-5 rounded-md border-2 transition-all duration-200',
+                      isChecked
+                        ? 'bg-primary-500 border-primary-500'
+                        : 'border-neutral-300 group-hover:border-neutral-400'
+                    )}>
+                      {isChecked && (
+                        <svg className="w-full h-full text-white p-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className={cn(
+                    'text-sm font-medium transition-colors flex-1',
+                    isChecked ? 'text-neutral-900' : 'text-neutral-600 group-hover:text-neutral-900'
+                  )}>
+                    {category.label}
+                  </span>
+                  {category.count !== undefined && (
+                    <span className={cn(
+                      'text-xs px-2 py-0.5 rounded-full font-medium',
+                      isChecked ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-500'
+                    )}>
+                      {category.count}
+                    </span>
+                  )}
+                </label>
+              );
+            })}
           </div>
         </FilterSection>
 
         {/* Price Range Filter */}
-        <FilterSection title="Pret">
+        <FilterSection title="Pret" icon={
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        }>
           <RangeFilter
             min={productConfig.priceRange.min}
             max={productConfig.priceRange.max}
@@ -186,25 +271,30 @@ export default function FilterSidebar({
         </FilterSection>
 
         {/* Discount Filter */}
-        <FilterSection title="Reducere minima">
-          <div className="space-y-2">
-            {[10, 20, 30, 50].map((discount) => (
-              <label
-                key={discount}
-                className="flex items-center gap-3 cursor-pointer group p-2 rounded-xl hover:bg-primary-50/50 transition-colors"
-              >
-                <input
-                  type="radio"
-                  name="minDiscount"
-                  checked={Number(getFilterValue('minDiscount')) === discount}
-                  onChange={() => updateFilter('minDiscount', discount)}
-                  className="w-4 h-4 border-gray-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
-                />
-                <span className="text-sm text-foreground/80 group-hover:text-foreground font-body">
-                  Minim {discount}%
-                </span>
-              </label>
-            ))}
+        <FilterSection title="Reducere minima" icon={
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+        }>
+          <div className="grid grid-cols-2 gap-2">
+            {[10, 20, 30, 50].map((discount) => {
+              const isSelected = Number(getFilterValue('minDiscount')) === discount;
+
+              return (
+                <button
+                  key={discount}
+                  onClick={() => updateFilter('minDiscount', isSelected ? null : discount)}
+                  className={cn(
+                    'px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
+                    isSelected
+                      ? 'bg-gradient-to-r from-danger-500 to-rose-500 text-white shadow-md'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  )}
+                >
+                  {discount}%+
+                </button>
+              );
+            })}
           </div>
         </FilterSection>
       </>
@@ -218,36 +308,55 @@ export default function FilterSidebar({
     return (
       <>
         {/* Difficulty Filter */}
-        <FilterSection title="Dificultate">
-          <div className="space-y-2">
-            {recipeConfig.difficulties.map((difficulty) => (
-              <label
-                key={difficulty.value}
-                className="flex items-center gap-2 cursor-pointer group"
-              >
-                <input
-                  type="checkbox"
-                  checked={
-                    Array.isArray(getFilterValue('difficulty'))
-                      ? getFilterValue('difficulty').includes(difficulty.value)
-                      : getFilterValue('difficulty') === difficulty.value
-                  }
-                  onChange={() => toggleCheckbox('difficulty', difficulty.value)}
-                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700 group-hover:text-gray-900">
+        <FilterSection title="Dificultate" icon={
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        }>
+          <div className="flex flex-wrap gap-2">
+            {recipeConfig.difficulties.map((difficulty) => {
+              const isSelected = Array.isArray(getFilterValue('difficulty'))
+                ? getFilterValue('difficulty').includes(difficulty.value)
+                : getFilterValue('difficulty') === difficulty.value;
+
+              const colorClass = difficulty.value === 'USOR'
+                ? 'from-success-500 to-emerald-500'
+                : difficulty.value === 'MEDIU'
+                  ? 'from-warning-500 to-amber-500'
+                  : 'from-danger-500 to-rose-500';
+
+              return (
+                <button
+                  key={difficulty.value}
+                  onClick={() => toggleCheckbox('difficulty', difficulty.value)}
+                  className={cn(
+                    'px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200',
+                    isSelected
+                      ? `bg-gradient-to-r ${colorClass} text-white shadow-md`
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  )}
+                >
                   {difficulty.label}
-                </span>
-                {difficulty.count !== undefined && (
-                  <span className="text-xs text-gray-400 ml-auto">({difficulty.count})</span>
-                )}
-              </label>
-            ))}
+                  {difficulty.count !== undefined && (
+                    <span className={cn(
+                      'ml-1.5 text-xs',
+                      isSelected ? 'text-white/80' : 'text-neutral-400'
+                    )}>
+                      ({difficulty.count})
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </FilterSection>
 
         {/* Cost Range Filter */}
-        <FilterSection title="Cost estimat">
+        <FilterSection title="Cost estimat" icon={
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        }>
           <RangeFilter
             min={recipeConfig.costRange.min}
             max={recipeConfig.costRange.max}
@@ -260,31 +369,44 @@ export default function FilterSidebar({
         </FilterSection>
 
         {/* Time Filter */}
-        <FilterSection title="Timp de preparare">
-          <div className="space-y-2">
-            {[15, 30, 60, 120].map((time) => (
-              <label
-                key={time}
-                className="flex items-center gap-2 cursor-pointer group"
-              >
-                <input
-                  type="radio"
-                  name="maxTime"
-                  checked={Number(getFilterValue('maxTime')) === time}
-                  onChange={() => updateFilter('maxTime', time)}
-                  className="w-4 h-4 border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700 group-hover:text-gray-900">
-                  Sub {time >= 60 ? `${time / 60} ${time === 60 ? 'ora' : 'ore'}` : `${time} min`}
-                </span>
-              </label>
-            ))}
+        <FilterSection title="Timp de preparare" icon={
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        }>
+          <div className="grid grid-cols-2 gap-2">
+            {[15, 30, 60, 120].map((time) => {
+              const isSelected = Number(getFilterValue('maxTime')) === time;
+              const label = time >= 60 ? `${time / 60}${time === 60 ? 'h' : 'h'}` : `${time}m`;
+
+              return (
+                <button
+                  key={time}
+                  onClick={() => updateFilter('maxTime', isSelected ? null : time)}
+                  className={cn(
+                    'px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5',
+                    isSelected
+                      ? 'bg-gradient-to-r from-primary-500 to-emerald-500 text-white shadow-md'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  )}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  &lt;{label}
+                </button>
+              );
+            })}
           </div>
         </FilterSection>
 
         {/* Tags Filter */}
         {recipeConfig.tags.length > 0 && (
-          <FilterSection title="Etichete">
+          <FilterSection title="Etichete" icon={
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+          }>
             <div className="flex flex-wrap gap-2">
               {recipeConfig.tags.map((tag) => {
                 const isSelected = Array.isArray(getFilterValue('tags'))
@@ -296,13 +418,13 @@ export default function FilterSidebar({
                     key={tag.value}
                     onClick={() => toggleCheckbox('tags', tag.value)}
                     className={cn(
-                      'px-3 py-1 text-sm rounded-full transition-colors',
+                      'px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200',
                       isSelected
-                        ? 'bg-primary-100 text-primary-700 border border-primary-300'
-                        : 'bg-gray-100 text-gray-600 border border-transparent hover:bg-gray-200'
+                        ? 'bg-primary-500 text-white shadow-sm'
+                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 border border-neutral-200'
                     )}
                   >
-                    {tag.label}
+                    #{tag.label}
                   </button>
                 );
               })}
@@ -315,14 +437,19 @@ export default function FilterSidebar({
 
   return (
     <>
-      {/* Mobile Filter Button - Fixed at bottom on mobile for better UX */}
+      {/* Mobile Filter Button */}
       <div className="lg:hidden">
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all w-auto"
+          className={cn(
+            'flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200',
+            hasActiveFilters
+              ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+              : 'bg-white text-neutral-700 border border-neutral-200 shadow-sm hover:shadow-md'
+          )}
         >
           <svg
-            className="w-4 h-4 text-primary-600"
+            className="w-4 h-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -335,62 +462,75 @@ export default function FilterSidebar({
               d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
             />
           </svg>
-          <span className="font-semibold text-sm text-foreground">Filtre</span>
-          {hasActiveFilters && (
-            <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center font-bold">!</span>
+          Filtre
+          {activeFilterCount > 0 && (
+            <span className={cn(
+              'w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold',
+              hasActiveFilters ? 'bg-white text-primary-600' : 'bg-primary-500 text-white'
+            )}>
+              {activeFilterCount}
+            </span>
           )}
         </button>
       </div>
 
-      {/* Mobile Filter Drawer - Full screen on mobile */}
+      {/* Mobile Filter Drawer */}
       {isOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm animate-fade-in"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute inset-y-0 right-0 w-full max-w-[320px] bg-white shadow-2xl animate-slide-in flex flex-col">
+
+          {/* Drawer */}
+          <div className="absolute inset-y-0 right-0 w-full max-w-[340px] bg-white shadow-2xl flex flex-col animate-slide-in">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-gradient-to-r from-neutral-50 to-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-primary-500/20">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
                 </div>
-                <h2 className="text-base font-bold text-foreground font-heading">Filtre</h2>
+                <div>
+                  <h2 className="font-display text-lg font-bold text-neutral-900">Filtre</h2>
+                  {activeFilterCount > 0 && (
+                    <p className="text-xs text-neutral-500">{activeFilterCount} filtre active</p>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors"
+                className="w-10 h-10 flex items-center justify-center hover:bg-neutral-100 rounded-xl transition-colors"
                 aria-label="Inchide"
               >
-                <svg className="w-5 h-5 text-foreground/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-5 py-5">
               {type === 'products' ? renderProductFilters() : renderRecipeFilters()}
             </div>
 
             {/* Footer Actions */}
-            <div className="p-4 border-t border-gray-100 bg-white safe-area-inset-bottom">
+            <div className="p-5 border-t border-neutral-100 bg-white safe-area-inset-bottom">
               <div className="flex gap-3">
                 <button
                   onClick={clearFilters}
-                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-foreground/70 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-neutral-600 bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!hasActiveFilters}
                 >
                   Reseteaza
                 </button>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-primary-500 to-emerald-500 rounded-xl shadow-md hover:shadow-lg transition-all"
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-500 to-emerald-500 rounded-xl shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 transition-all"
                 >
-                  Aplica
+                  Aplica filtre
                 </button>
               </div>
             </div>
@@ -400,9 +540,10 @@ export default function FilterSidebar({
 
       {/* Desktop Filter Sidebar */}
       <aside className={cn('hidden lg:block', className)}>
-        <div className="sticky top-24 bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-foreground font-heading flex items-center gap-2">
+        <div className="sticky top-24 bg-white rounded-2xl border border-neutral-200/80 shadow-card overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-gradient-to-r from-neutral-50 to-white">
+            <h2 className="font-display text-lg font-bold text-neutral-900 flex items-center gap-2">
               <svg className="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
@@ -420,7 +561,9 @@ export default function FilterSidebar({
               </button>
             )}
           </div>
-          <div className="space-y-6">
+
+          {/* Content */}
+          <div className="p-5 space-y-1">
             {type === 'products' ? renderProductFilters() : renderRecipeFilters()}
           </div>
         </div>
@@ -429,32 +572,43 @@ export default function FilterSidebar({
   );
 }
 
-// Filter Section Component
+// Filter Section Component with Accordion
 function FilterSection({
   title,
+  icon,
   children,
 }: {
   title: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
-    <div className="border-b border-gray-100 pb-5">
+    <div className="pb-5 mb-5 border-b border-neutral-100 last:border-0 last:pb-0 last:mb-0">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full py-2 text-left group"
+        className="flex items-center justify-between w-full py-1 text-left group"
       >
-        <h3 className="text-sm font-bold text-foreground font-heading group-hover:text-primary-600 transition-colors">{title}</h3>
+        <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+          {icon && (
+            <span className={cn(
+              'transition-colors',
+              isExpanded ? 'text-primary-500' : 'text-neutral-400'
+            )}>
+              {icon}
+            </span>
+          )}
+          {title}
+        </h3>
         <div className={cn(
-          'w-6 h-6 rounded-lg flex items-center justify-center transition-all',
-          isExpanded ? 'bg-primary-50 text-primary-500' : 'bg-gray-50 text-gray-400'
+          'w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200',
+          isExpanded
+            ? 'bg-primary-50 text-primary-500 rotate-180'
+            : 'bg-neutral-100 text-neutral-400 group-hover:bg-neutral-200'
         )}>
           <svg
-            className={cn(
-              'w-4 h-4 transition-transform',
-              isExpanded ? 'rotate-180' : ''
-            )}
+            className="w-4 h-4 transition-transform"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -469,7 +623,12 @@ function FilterSection({
           </svg>
         </div>
       </button>
-      {isExpanded && <div className="mt-3">{children}</div>}
+      <div className={cn(
+        'overflow-hidden transition-all duration-300',
+        isExpanded ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'
+      )}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -494,36 +653,77 @@ function RangeFilter({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <input
+            type="number"
+            min={min}
+            max={maxValue}
+            value={minValue}
+            onChange={(e) => onMinChange(Number(e.target.value))}
+            className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm text-neutral-900 font-medium focus:border-primary-400 focus:ring-2 focus:ring-primary-100 focus:bg-white transition-all"
+            placeholder={`Min`}
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 font-medium">
+            {unit}
+          </span>
+        </div>
+        <span className="text-neutral-300 font-medium">—</span>
+        <div className="relative flex-1">
+          <input
+            type="number"
+            min={minValue}
+            max={max}
+            value={maxValue}
+            onChange={(e) => onMaxChange(Number(e.target.value))}
+            className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm text-neutral-900 font-medium focus:border-primary-400 focus:ring-2 focus:ring-primary-100 focus:bg-white transition-all"
+            placeholder={`Max`}
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 font-medium">
+            {unit}
+          </span>
+        </div>
+      </div>
+
+      {/* Custom Range Slider */}
+      <div className="relative pt-1">
         <input
-          type="number"
+          type="range"
           min={min}
-          max={maxValue}
-          value={minValue}
-          onChange={(e) => onMinChange(Number(e.target.value))}
-          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-foreground font-body focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all"
-          placeholder={`Min ${unit}`}
-        />
-        <span className="text-foreground/40 font-body">-</span>
-        <input
-          type="number"
-          min={minValue}
           max={max}
           value={maxValue}
           onChange={(e) => onMaxChange(Number(e.target.value))}
-          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-foreground font-body focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all"
-          placeholder={`Max ${unit}`}
+          className="w-full h-2 bg-neutral-200 rounded-full appearance-none cursor-pointer
+            [&::-webkit-slider-thumb]:appearance-none
+            [&::-webkit-slider-thumb]:w-5
+            [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:rounded-full
+            [&::-webkit-slider-thumb]:bg-gradient-to-br
+            [&::-webkit-slider-thumb]:from-primary-500
+            [&::-webkit-slider-thumb]:to-emerald-500
+            [&::-webkit-slider-thumb]:shadow-lg
+            [&::-webkit-slider-thumb]:shadow-primary-500/30
+            [&::-webkit-slider-thumb]:cursor-pointer
+            [&::-webkit-slider-thumb]:transition-transform
+            [&::-webkit-slider-thumb]:hover:scale-110
+            [&::-moz-range-thumb]:w-5
+            [&::-moz-range-thumb]:h-5
+            [&::-moz-range-thumb]:rounded-full
+            [&::-moz-range-thumb]:bg-gradient-to-br
+            [&::-moz-range-thumb]:from-primary-500
+            [&::-moz-range-thumb]:to-emerald-500
+            [&::-moz-range-thumb]:border-0
+            [&::-moz-range-thumb]:shadow-lg
+            [&::-moz-range-thumb]:cursor-pointer"
+        />
+        {/* Progress bar */}
+        <div
+          className="absolute top-1 left-0 h-2 bg-gradient-to-r from-primary-500 to-emerald-500 rounded-full pointer-events-none"
+          style={{ width: `${((maxValue - min) / (max - min)) * 100}%` }}
         />
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={maxValue}
-        onChange={(e) => onMaxChange(Number(e.target.value))}
-        className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary-500"
-      />
-      <div className="flex justify-between text-xs text-foreground/50 font-body">
+
+      <div className="flex justify-between text-xs text-neutral-400 font-medium">
         <span>{min} {unit}</span>
         <span>{max} {unit}</span>
       </div>

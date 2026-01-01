@@ -134,6 +134,11 @@ async function getStoreProducts(
       ...p,
       price: Number(p.price),
       originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+      extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
+      validFrom: p.validFrom.toISOString(),
+      validUntil: p.validUntil.toISOString(),
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
       nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
       allergens: p.allergens as string[] | null,
     })),
@@ -465,11 +470,10 @@ function Pagination({
         <li>
           <a
             href={currentPage > 1 ? getPageUrl(currentPage - 1) : undefined}
-            className={`flex items-center justify-center w-10 h-10 rounded-lg ${
-              currentPage > 1
-                ? 'text-gray-700 hover:bg-gray-100'
-                : 'text-gray-300 cursor-not-allowed'
-            }`}
+            className={`flex items-center justify-center w-10 h-10 rounded-lg ${currentPage > 1
+              ? 'text-gray-700 hover:bg-gray-100'
+              : 'text-gray-300 cursor-not-allowed'
+              }`}
             aria-disabled={currentPage <= 1}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -484,11 +488,10 @@ function Pagination({
             ) : (
               <a
                 href={getPageUrl(page as number)}
-                className={`flex items-center justify-center w-10 h-10 rounded-lg text-sm font-medium ${
-                  page === currentPage
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                className={`flex items-center justify-center w-10 h-10 rounded-lg text-sm font-medium ${page === currentPage
+                  ? 'bg-primary-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+                  }`}
                 aria-current={page === currentPage ? 'page' : undefined}
               >
                 {page}
@@ -499,11 +502,10 @@ function Pagination({
         <li>
           <a
             href={currentPage < totalPages ? getPageUrl(currentPage + 1) : undefined}
-            className={`flex items-center justify-center w-10 h-10 rounded-lg ${
-              currentPage < totalPages
-                ? 'text-gray-700 hover:bg-gray-100'
-                : 'text-gray-300 cursor-not-allowed'
-            }`}
+            className={`flex items-center justify-center w-10 h-10 rounded-lg ${currentPage < totalPages
+              ? 'text-gray-700 hover:bg-gray-100'
+              : 'text-gray-300 cursor-not-allowed'
+              }`}
             aria-disabled={currentPage >= totalPages}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

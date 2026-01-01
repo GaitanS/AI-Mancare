@@ -85,13 +85,15 @@ export function formatDateTime(date: Date | string): string {
 }
 
 // Check if date is in range
-export function isDateInRange(date: Date, start: Date, end: Date): boolean {
-  const d = date.getTime();
-  return d >= start.getTime() && d <= end.getTime();
+export function isDateInRange(date: Date | string, start: Date | string, end: Date | string): boolean {
+  const d = typeof date === 'string' ? new Date(date).getTime() : date.getTime();
+  const s = typeof start === 'string' ? new Date(start).getTime() : start.getTime();
+  const e = typeof end === 'string' ? new Date(end).getTime() : end.getTime();
+  return d >= s && d <= e;
 }
 
 // Check if offer is valid now
-export function isOfferValid(validFrom: Date, validUntil: Date): boolean {
+export function isOfferValid(validFrom: Date | string, validUntil: Date | string): boolean {
   const now = new Date();
   return isDateInRange(now, validFrom, validUntil);
 }

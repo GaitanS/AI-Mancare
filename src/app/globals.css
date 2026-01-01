@@ -2,18 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   CSS VARIABLES - Warm Culinary Design System
+   ============================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fffbf5;  /* Warm cream */
+  --foreground: #3d2c1e;  /* Warm brown */
+
+  /* Warm Kitchen Shadows */
+  --shadow-warm: 0 8px 24px -4px rgb(229 62 62 / 0.12);
+  --shadow-glow-primary: 0 0 40px rgb(229 62 62 / 0.2);
+  --shadow-glow-accent: 0 0 40px rgb(245 158 11 / 0.25);
+  --shadow-glow-success: 0 0 30px rgb(34 197 94 / 0.2);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ============================================
+   BASE LAYER - Typography & Fundamentals
+   ============================================ */
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -24,150 +29,394 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
+  /* Headings - Fraunces Display Font (Perfect for food/cookbook) */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+    @apply font-display font-semibold tracking-tight text-neutral-900;
   }
 
   h1 {
-    @apply text-3xl md:text-4xl lg:text-5xl;
+    @apply text-fluid-4xl md:text-fluid-5xl leading-[1.1];
   }
 
   h2 {
-    @apply text-2xl md:text-3xl lg:text-4xl;
+    @apply text-fluid-3xl md:text-fluid-4xl leading-[1.15];
   }
 
   h3 {
-    @apply text-xl md:text-2xl;
+    @apply text-fluid-2xl md:text-fluid-3xl leading-[1.2];
+  }
+
+  h4 {
+    @apply text-fluid-xl md:text-fluid-2xl leading-[1.25];
+  }
+
+  /* Body text - DM Sans */
+  p, span, li, a {
+    @apply font-body;
+  }
+
+  /* Selection - Warm tones */
+  ::selection {
+    @apply bg-accent-200 text-accent-900;
+  }
+
+  /* Focus styles for accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
   }
 }
 
+/* ============================================
+   COMPONENTS LAYER - Warm Culinary UI
+   ============================================ */
 @layer components {
-  /* Button styles */
+  /* ========== BUTTONS - Warm & Inviting ========== */
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200;
-    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold;
+    @apply transition-all duration-300 ease-smooth;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+    @apply active:scale-[0.98];
   }
 
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700;
-    @apply focus:ring-primary-500;
+    @apply btn px-6 py-3;
+    @apply bg-gradient-to-r from-primary-600 to-primary-500 text-white;
+    @apply shadow-lg shadow-primary-500/20;
+    @apply hover:shadow-xl hover:shadow-primary-500/25 hover:scale-[1.02];
+    @apply focus-visible:ring-primary-500;
+  }
+
+  .btn-premium {
+    @apply btn px-6 py-3 relative overflow-hidden;
+    @apply bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500 text-white;
+    @apply shadow-lg shadow-primary-500/20;
+    @apply hover:shadow-xl hover:shadow-primary-500/30 hover:scale-[1.02];
+    @apply focus-visible:ring-primary-500;
+  }
+
+  .btn-premium::before {
+    content: '';
+    @apply absolute inset-0;
+    @apply bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    @apply -translate-x-full transition-transform duration-700;
+  }
+
+  .btn-premium:hover::before {
+    @apply translate-x-full;
+  }
+
+  .btn-warm {
+    @apply btn px-6 py-3;
+    @apply bg-gradient-to-r from-accent-500 to-accent-400 text-neutral-900;
+    @apply shadow-lg shadow-accent-500/20;
+    @apply hover:shadow-xl hover:shadow-accent-500/25 hover:scale-[1.02];
+    @apply focus-visible:ring-accent-500;
   }
 
   .btn-secondary {
-    @apply btn bg-gray-100 text-gray-900 hover:bg-gray-200;
-    @apply focus:ring-gray-500;
+    @apply btn px-6 py-3;
+    @apply bg-neutral-100 text-neutral-800;
+    @apply hover:bg-neutral-200 hover:scale-[1.02];
+    @apply focus-visible:ring-neutral-500;
   }
 
   .btn-outline {
-    @apply btn border-2 border-primary-600 text-primary-600;
-    @apply hover:bg-primary-600 hover:text-white;
-    @apply focus:ring-primary-500;
+    @apply btn px-6 py-3;
+    @apply border-2 border-primary-500 text-primary-600 bg-transparent;
+    @apply hover:bg-primary-500 hover:text-white hover:scale-[1.02];
+    @apply focus-visible:ring-primary-500;
   }
 
-  .btn-sm {
-    @apply px-3 py-1.5 text-sm;
+  .btn-outline-warm {
+    @apply btn px-6 py-3;
+    @apply border-2 border-accent-500 text-accent-600 bg-transparent;
+    @apply hover:bg-accent-500 hover:text-neutral-900 hover:scale-[1.02];
+    @apply focus-visible:ring-accent-500;
   }
 
-  .btn-md {
-    @apply px-4 py-2 text-base;
+  .btn-ghost {
+    @apply btn px-4 py-2;
+    @apply text-neutral-600 bg-transparent;
+    @apply hover:bg-neutral-100 hover:text-neutral-900;
+    @apply focus-visible:ring-neutral-500;
   }
 
-  .btn-lg {
-    @apply px-6 py-3 text-lg;
+  .btn-success {
+    @apply btn px-6 py-3;
+    @apply bg-gradient-to-r from-secondary-600 to-secondary-500 text-white;
+    @apply shadow-lg shadow-secondary-500/20;
+    @apply hover:shadow-xl hover:shadow-secondary-500/25 hover:scale-[1.02];
+    @apply focus-visible:ring-secondary-500;
   }
 
-  /* Card styles */
+  /* Button Sizes */
+  .btn-sm { @apply px-4 py-2 text-sm rounded-lg; }
+  .btn-md { @apply px-5 py-2.5 text-base; }
+  .btn-lg { @apply px-8 py-4 text-lg; }
+  .btn-xl { @apply px-10 py-5 text-xl; }
+
+  /* ========== CARDS - Warm & Cozy ========== */
   .card {
-    @apply bg-white rounded-xl border border-gray-100 shadow-soft;
-    @apply transition-all duration-200;
+    @apply bg-white rounded-2xl border border-neutral-200/80;
+    @apply shadow-soft transition-all duration-300;
   }
 
   .card-hover {
-    @apply card hover:shadow-medium hover:-translate-y-0.5;
+    @apply card cursor-pointer;
+    @apply hover:shadow-card hover:-translate-y-1 hover:border-neutral-300;
   }
 
-  /* Badge styles */
+  .card-interactive {
+    @apply card cursor-pointer;
+    @apply hover:shadow-elevated hover:-translate-y-1.5;
+    @apply hover:border-primary-200;
+  }
+
+  .card-warm {
+    @apply card cursor-pointer;
+    @apply hover:shadow-warm hover:-translate-y-1.5;
+    @apply hover:border-accent-200;
+  }
+
+  .card-kitchen {
+    @apply bg-kitchen-cream rounded-2xl border border-neutral-200/60;
+    @apply shadow-soft transition-all duration-300;
+  }
+
+  /* ========== BADGES - Food-Inspired ========== */
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full;
+    @apply text-xs font-semibold uppercase tracking-wide;
+    @apply transition-all duration-200;
   }
 
   .badge-discount {
-    @apply badge bg-danger-500 text-white;
+    @apply badge bg-primary-500 text-white;
+    @apply shadow-sm shadow-primary-500/25;
+  }
+
+  .badge-discount-pulse {
+    @apply badge-discount animate-pulse-warm;
+  }
+
+  .badge-fresh {
+    @apply badge bg-secondary-500 text-white;
+    @apply shadow-sm shadow-secondary-500/25;
+  }
+
+  .badge-hot {
+    @apply badge bg-gradient-to-r from-primary-500 to-accent-500 text-white;
+    @apply shadow-sm;
   }
 
   .badge-success {
-    @apply badge bg-success-500 text-white;
+    @apply badge bg-secondary-500 text-white;
+    @apply shadow-sm shadow-secondary-500/25;
   }
 
   .badge-warning {
     @apply badge bg-warning-500 text-white;
+    @apply shadow-sm shadow-warning-500/25;
   }
 
   .badge-info {
-    @apply badge bg-primary-500 text-white;
+    @apply badge bg-primary-100 text-primary-700;
   }
 
-  /* Input styles */
+  .badge-accent {
+    @apply badge bg-accent-100 text-accent-700;
+  }
+
+  .badge-neutral {
+    @apply badge bg-neutral-200 text-neutral-700;
+  }
+
+  /* ========== INPUTS - Clean & Warm ========== */
   .input {
-    @apply w-full px-4 py-2.5 rounded-lg border border-gray-300;
-    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
-    @apply placeholder:text-gray-400 transition-all duration-200;
+    @apply w-full px-4 py-3 rounded-xl;
+    @apply bg-white border border-neutral-300;
+    @apply text-neutral-900 placeholder:text-neutral-400;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500;
+  }
+
+  .input-lg {
+    @apply input px-5 py-4 text-lg rounded-2xl;
   }
 
   .input-error {
-    @apply input border-danger-500 focus:ring-danger-500;
+    @apply input border-danger-500;
+    @apply focus:ring-danger-500/10 focus:border-danger-500;
   }
 
-  /* Section containers */
+  .input-search {
+    @apply input pl-12 pr-4;
+    @apply bg-neutral-50 border-neutral-200;
+    @apply focus:bg-white focus:border-primary-400;
+  }
+
+  /* ========== GLASSMORPHISM - Subtle ========== */
+  .glass {
+    @apply bg-white/90 backdrop-blur-lg;
+    @apply border border-neutral-200/50;
+  }
+
+  .glass-warm {
+    @apply bg-kitchen-cream/90 backdrop-blur-lg;
+    @apply border border-accent-200/30;
+  }
+
+  /* ========== LAYOUT ========== */
   .container-custom {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 
   .section {
-    @apply py-12 md:py-16 lg:py-20;
+    @apply py-16 md:py-20 lg:py-24;
   }
 
-  /* Grid layouts - Optimized for mobile */
+  .section-sm {
+    @apply py-10 md:py-12 lg:py-16;
+  }
+
+  /* ========== GRIDS ========== */
   .grid-products {
-    @apply grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6;
+    @apply grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+    @apply gap-4 sm:gap-5 md:gap-6;
   }
 
   .grid-recipes {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+    @apply gap-5 sm:gap-6 md:gap-8;
   }
 
-  /* Skeleton loading */
+  /* ========== SKELETON - Warm Tones ========== */
   .skeleton {
-    @apply animate-pulse bg-gray-200 rounded;
+    @apply bg-neutral-200 rounded-lg animate-pulse;
   }
 
-  /* Price display */
+  .skeleton-shimmer {
+    @apply relative overflow-hidden bg-neutral-200 rounded-lg;
+  }
+
+  .skeleton-shimmer::after {
+    content: '';
+    @apply absolute inset-0;
+    @apply bg-gradient-to-r from-transparent via-white/50 to-transparent;
+    @apply -translate-x-full animate-shimmer;
+  }
+
+  /* ========== PRICE DISPLAY - Bold & Appetizing ========== */
   .price-current {
-    @apply text-2xl font-bold text-primary-600;
+    @apply font-display font-bold text-primary-600;
+  }
+
+  .price-current-split {
+    @apply inline-flex items-baseline gap-0.5;
+  }
+
+  .price-current-split .integer {
+    @apply font-display font-bold text-4xl text-primary-600;
+  }
+
+  .price-current-split .decimal {
+    @apply font-display font-bold text-xl text-primary-500;
+  }
+
+  .price-current-split .currency {
+    @apply font-body text-base font-medium text-primary-500 ml-1;
   }
 
   .price-original {
-    @apply text-sm text-gray-500 line-through;
+    @apply text-sm text-neutral-500 line-through decoration-2;
+  }
+
+  /* ========== STORE BADGES ========== */
+  .store-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg;
+    @apply text-xs font-bold uppercase tracking-wider text-white;
+    @apply shadow-sm transition-all duration-200;
+  }
+
+  .store-badge-kaufland {
+    @apply store-badge bg-gradient-to-r from-[#e10915] to-[#c00812];
+  }
+
+  .store-badge-lidl {
+    @apply store-badge bg-gradient-to-r from-[#0050aa] to-[#003d82];
+  }
+
+  .store-badge-penny {
+    @apply store-badge bg-gradient-to-r from-[#cd1719] to-[#a81315];
+  }
+
+  .store-badge-mega {
+    @apply store-badge bg-gradient-to-r from-[#e31837] to-[#b8142d];
+  }
+
+  .store-badge-carrefour {
+    @apply store-badge bg-gradient-to-r from-[#004e9e] to-[#003a76];
+  }
+
+  .store-badge-auchan {
+    @apply store-badge bg-gradient-to-r from-[#e2001a] to-[#b80016];
+  }
+
+  /* ========== RECIPE/FOOD SPECIFIC ========== */
+  .recipe-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full;
+    @apply text-xs font-semibold;
+    @apply bg-kitchen-butter text-neutral-700;
+    @apply border border-accent-200/50;
+  }
+
+  .recipe-badge-easy {
+    @apply recipe-badge bg-secondary-50 text-secondary-700 border-secondary-200/50;
+  }
+
+  .recipe-badge-medium {
+    @apply recipe-badge bg-accent-50 text-accent-700 border-accent-200/50;
+  }
+
+  .recipe-badge-hard {
+    @apply recipe-badge bg-primary-50 text-primary-700 border-primary-200/50;
   }
 }
 
+/* ============================================
+   UTILITIES LAYER - Culinary Utilities
+   ============================================ */
 @layer utilities {
-  /* Text gradient */
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-primary-400;
+  /* ========== TEXT GRADIENTS - Warm & Appetizing ========== */
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary-600 to-primary-500;
   }
 
-  /* Aspect ratios */
-  .aspect-product {
-    aspect-ratio: 4 / 3;
+  .text-gradient-warm {
+    @apply bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary-600 via-accent-500 to-accent-400;
   }
 
-  .aspect-recipe {
-    aspect-ratio: 16 / 9;
+  .text-gradient-fresh {
+    @apply bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-secondary-600 to-secondary-400;
   }
 
-  /* Line clamp */
+  .text-gradient-golden {
+    @apply bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-accent-600 via-accent-500 to-accent-400;
+  }
+
+  /* ========== ASPECT RATIOS ========== */
+  .aspect-product { aspect-ratio: 4 / 3; }
+  .aspect-recipe { aspect-ratio: 16 / 10; }
+  .aspect-card { aspect-ratio: 3 / 4; }
+  .aspect-hero { aspect-ratio: 16 / 7; }
+  .aspect-food { aspect-ratio: 1 / 1; }
+
+  /* ========== LINE CLAMP ========== */
   .line-clamp-1 {
     display: -webkit-box;
     -webkit-line-clamp: 1;
@@ -189,7 +438,7 @@
     overflow: hidden;
   }
 
-  /* Hide scrollbar */
+  /* ========== SCROLLBAR - Warm Style ========== */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -199,18 +448,36 @@
     display: none;
   }
 
-  /* Focus visible */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.neutral.300') transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-neutral-300 rounded-full hover:bg-neutral-400;
+  }
+
+  /* ========== FOCUS ========== */
   .focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
   }
 
-  /* Safe areas for notch/home indicator on mobile devices */
+  /* ========== SAFE AREAS ========== */
   .safe-top {
-    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-top: max(1rem, env(safe-area-inset-top));
   }
 
   .safe-bottom {
-    padding-bottom: max(0px, env(safe-area-inset-bottom));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
 
   .safe-left {
@@ -220,18 +487,75 @@
   .safe-right {
     padding-right: max(0px, env(safe-area-inset-right));
   }
+
+  /* ========== STAGGER ANIMATIONS ========== */
+  .stagger-item {
+    @apply opacity-0;
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+
+  .stagger-item:nth-child(1) { animation-delay: 0ms; }
+  .stagger-item:nth-child(2) { animation-delay: 60ms; }
+  .stagger-item:nth-child(3) { animation-delay: 120ms; }
+  .stagger-item:nth-child(4) { animation-delay: 180ms; }
+  .stagger-item:nth-child(5) { animation-delay: 240ms; }
+  .stagger-item:nth-child(6) { animation-delay: 300ms; }
+  .stagger-item:nth-child(7) { animation-delay: 360ms; }
+  .stagger-item:nth-child(8) { animation-delay: 420ms; }
+  .stagger-item:nth-child(9) { animation-delay: 480ms; }
+  .stagger-item:nth-child(10) { animation-delay: 540ms; }
+  .stagger-item:nth-child(11) { animation-delay: 600ms; }
+  .stagger-item:nth-child(12) { animation-delay: 660ms; }
+
+  /* ========== HOVER UTILITIES ========== */
+  .hover-lift {
+    @apply transition-transform duration-300;
+    @apply hover:-translate-y-1;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-300;
+    @apply hover:scale-[1.02];
+  }
+
+  .hover-warm {
+    @apply transition-all duration-300;
+    @apply hover:shadow-warm hover:-translate-y-1;
+  }
+
+  /* ========== KITCHEN PATTERN OVERLAY ========== */
+  .pattern-kitchen::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    @apply bg-pattern-kitchen opacity-40;
+  }
+
+  .pattern-dots::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    @apply bg-pattern-dots;
+    background-size: 20px 20px;
+    @apply opacity-50;
+  }
 }
 
-/* Custom animations */
-@keyframes fadeIn {
+/* ============================================
+   ANIMATIONS - Keyframes
+   ============================================ */
+@keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideIn {
@@ -246,16 +570,21 @@
 }
 
 @keyframes pulse-soft {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
 }
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
 }
 
 .animate-slide-in {
@@ -266,14 +595,16 @@
   animation: pulse-soft 2s ease-in-out infinite;
 }
 
-/* Modal animations */
+.animate-sway {
+  animation: sway 4s ease-in-out infinite;
+}
+
+/* ============================================
+   MODAL ANIMATIONS
+   ============================================ */
 @keyframes modalFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes modalSlideUp {
@@ -298,6 +629,22 @@
   }
 }
 
+@keyframes modalFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modalScaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
 .animate-modal-fade {
   animation: modalFadeIn 0.2s ease-out forwards;
 }
@@ -310,37 +657,17 @@
   animation: modalScaleIn 0.25s ease-out forwards;
 }
 
-/* Modal fade out */
-@keyframes modalFadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
 .animate-modal-fade-out {
   animation: modalFadeOut 0.3s ease-out forwards;
-}
-
-/* Modal scale out */
-@keyframes modalScaleOut {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.95);
-  }
 }
 
 .animate-modal-scale-out {
   animation: modalScaleOut 0.25s ease-out forwards;
 }
 
-/* Drawer slide up */
+/* ============================================
+   DRAWER ANIMATIONS
+   ============================================ */
 @keyframes drawerSlideUp {
   from {
     opacity: 0;
@@ -352,11 +679,6 @@
   }
 }
 
-.animate-drawer-slide-up {
-  animation: drawerSlideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
-}
-
-/* Drawer slide down */
 @keyframes drawerSlideDown {
   from {
     opacity: 1;
@@ -368,50 +690,53 @@
   }
 }
 
+.animate-drawer-slide-up {
+  animation: drawerSlideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
 .animate-drawer-slide-down {
   animation: drawerSlideDown 0.3s ease-out forwards;
 }
 
-/* Fade out */
+/* ============================================
+   FADE OUT ANIMATIONS
+   ============================================ */
 @keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 .animate-fade-out {
   animation: fadeOut 0.2s ease-out forwards;
 }
 
-/* Store brand colors */
-.store-kaufland {
-  --store-color: #e10915;
+/* ============================================
+   STORE BRAND COLORS (CSS Variables)
+   ============================================ */
+.store-kaufland { --store-color: #e10915; }
+.store-lidl { --store-color: #0050aa; }
+.store-penny { --store-color: #cd1719; }
+.store-mega-image { --store-color: #e31837; }
+.store-carrefour { --store-color: #004e9e; }
+.store-auchan { --store-color: #e2001a; }
+
+/* ============================================
+   REDUCED MOTION - Accessibility
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-.store-lidl {
-  --store-color: #0050aa;
-}
-
-.store-penny {
-  --store-color: #cd1719;
-}
-
-.store-mega-image {
-  --store-color: #e31837;
-}
-
-.store-carrefour {
-  --store-color: #004e9e;
-}
-
-.store-auchan {
-  --store-color: #e2001a;
-}
-
-/* Print styles */
+/* ============================================
+   PRINT STYLES
+   ============================================ */
 @media print {
   .no-print {
     display: none !important;
@@ -419,6 +744,10 @@
 
   .card {
     box-shadow: none;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e4ddd2;
+  }
+
+  body {
+    @apply text-black bg-white;
   }
 }

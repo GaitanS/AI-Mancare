@@ -64,6 +64,11 @@ export async function GET(request: NextRequest) {
             ...p,
             price: Number(p.price),
             originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+            extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
+            validFrom: p.validFrom.toISOString(),
+            validUntil: p.validUntil.toISOString(),
+            createdAt: p.createdAt.toISOString(),
+            updatedAt: p.updatedAt.toISOString(),
             nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
             allergens: p.allergens as string[] | null,
           }));

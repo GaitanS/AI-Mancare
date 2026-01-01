@@ -1,18 +1,20 @@
 import type { Metadata, Viewport } from 'next';
-import { Montserrat, Open_Sans, Geist_Mono } from 'next/font/google';
+import { Fraunces, DM_Sans, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-const montserrat = Montserrat({
-  variable: '--font-montserrat',
+// Display font - Serif for headlines
+const fraunces = Fraunces({
+  variable: '--font-fraunces',
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['400', '500', '600', '700', '800', '900'],
   display: 'swap',
 });
 
-const openSans = Open_Sans({
-  variable: '--font-open-sans',
+// Body font - Modern sans-serif
+const dmSans = DM_Sans({
+  variable: '--font-dm-sans',
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
@@ -101,8 +103,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+    { media: '(prefers-color-scheme: light)', color: '#fafaf9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0c0a09' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -142,7 +144,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ro" className={`${montserrat.variable} ${openSans.variable} ${geistMono.variable}`}>
+    <html lang="ro" className={`${fraunces.variable} ${dmSans.variable} ${geistMono.variable}`}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />

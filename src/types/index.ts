@@ -16,16 +16,16 @@ export interface Product {
   discountPercentage?: number | null;
   unit: string;
   store: string;
-  validFrom: Date;
-  validUntil: Date;
+  validFrom: Date | string;
+  validUntil: Date | string;
   nutritionalInfo?: NutritionalInfo | null;
   allergens?: string[] | null;
   sourceUrl?: string | null;
   catalogPageNumber?: number | null;
   catalogPageImage?: string | null;  // Path to catalog page screenshot
   extractionConfidence?: number | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface NutritionalInfo {

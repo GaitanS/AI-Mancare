@@ -34,13 +34,43 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gray-900 text-gray-300" role="contentinfo">
-      <div className="container-custom py-12 md:py-16">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+    <footer className="relative bg-gradient-to-b from-neutral-800 via-neutral-900 to-neutral-900 text-neutral-300 overflow-hidden" role="contentinfo">
+      {/* Kitchen pattern overlay */}
+      <div className="absolute inset-0 pattern-kitchen opacity-5" />
+
+      {/* Warm accent glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-primary-500/10 rounded-full filter blur-[100px]" />
+
+      <div className="relative container-custom py-16 md:py-20">
+        {/* Newsletter Section */}
+        <div className="mb-16 pb-16 border-b border-neutral-700/50">
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="font-display text-2xl md:text-3xl font-bold text-white mb-3">
+              Primeste cele mai bune oferte
+            </h3>
+            <p className="text-neutral-400 mb-6">
+              Aboneaza-te pentru a primi notificari despre cele mai bune reduceri si retete noi.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+              <input
+                type="email"
+                placeholder="Adresa ta de email"
+                className="flex-1 px-5 py-3.5 rounded-xl bg-neutral-800/80 border border-neutral-700 text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
+              />
+              <button className="px-6 py-3.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-primary-700 shadow-warm transition-all duration-300 whitespace-nowrap">
+                Aboneaza-te
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Footer Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 lg:gap-12">
           {/* Brand Section */}
-          <div className="col-span-2 md:col-span-4 lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+          <div className="col-span-2 md:col-span-4 lg:col-span-1 mb-4 lg:mb-0">
+            <Link href="/" className="inline-flex items-center gap-3 mb-5 group">
+              <div className="w-11 h-11 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-warm group-hover:shadow-lg transition-shadow">
+                {/* Kitchen pot icon */}
                 <svg
                   className="w-6 h-6 text-white"
                   fill="none"
@@ -52,15 +82,16 @@ export default function Footer() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
                   />
                 </svg>
               </div>
-              <span className="text-xl font-bold text-white">
-                Retete <span className="text-primary-400">Ieftine</span>
+              <span className="flex items-baseline gap-1">
+                <span className="text-xl font-display font-bold text-white">Retete</span>
+                <span className="text-xl font-display font-bold text-primary-400">Ieftine</span>
               </span>
             </Link>
-            <p className="text-sm text-gray-400 max-w-xs">
+            <p className="text-sm text-neutral-400 leading-relaxed max-w-xs">
               Descopera cele mai bune oferte din supermarketuri si gateste retete
               delicioase la preturi accesibile.
             </p>
@@ -68,15 +99,15 @@ export default function Footer() {
 
           {/* Magazine Links */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-5">
               Magazine
-            </h3>
-            <ul className="space-y-2">
+            </h4>
+            <ul className="space-y-3">
               {footerLinks.magazine.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                    className="text-sm text-neutral-400 hover:text-primary-400 transition-colors duration-200 hover:translate-x-1 inline-block"
                   >
                     {link.name}
                   </Link>
@@ -87,15 +118,15 @@ export default function Footer() {
 
           {/* Categorii Links */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-5">
               Categorii
-            </h3>
-            <ul className="space-y-2">
+            </h4>
+            <ul className="space-y-3">
               {footerLinks.categorii.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                    className="text-sm text-neutral-400 hover:text-primary-400 transition-colors duration-200 hover:translate-x-1 inline-block"
                   >
                     {link.name}
                   </Link>
@@ -106,15 +137,15 @@ export default function Footer() {
 
           {/* Retete Links */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-5">
               Retete
-            </h3>
-            <ul className="space-y-2">
+            </h4>
+            <ul className="space-y-3">
               {footerLinks.retete.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                    className="text-sm text-neutral-400 hover:text-accent-400 transition-colors duration-200 hover:translate-x-1 inline-block"
                   >
                     {link.name}
                   </Link>
@@ -125,15 +156,15 @@ export default function Footer() {
 
           {/* Legal Links */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-5">
               Informatii
-            </h3>
-            <ul className="space-y-2">
+            </h4>
+            <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                    className="text-sm text-neutral-400 hover:text-white transition-colors duration-200 hover:translate-x-1 inline-block"
                   >
                     {link.name}
                   </Link>
@@ -144,18 +175,20 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-gray-800">
+        <div className="mt-16 pt-8 border-t border-neutral-700/50">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-neutral-500">
               &copy; {currentYear} Retete Ieftine. Toate drepturile rezervate.
             </p>
-            <p className="text-xs text-gray-500">
-              Preturile si disponibilitatea produselor pot varia. Verificati ofertele in
-              magazin.
+            <p className="text-xs text-neutral-600 text-center md:text-right max-w-lg">
+              Preturile si disponibilitatea produselor pot varia. Verificati ofertele in magazin inainte de cumparare.
             </p>
           </div>
         </div>
       </div>
+
+      {/* Decorative gradient at top */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent" />
     </footer>
   );
 }

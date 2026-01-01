@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Suspense } from 'react';
 import prisma from '@/lib/db';
 import { cached, productsCache, recipesCache, cacheKeys } from '@/lib/cache';
@@ -37,6 +38,11 @@ async function getFeaturedOffers(): Promise<Product[]> {
         ...p,
         price: Number(p.price),
         originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+        extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
+        validFrom: p.validFrom.toISOString(),
+        validUntil: p.validUntil.toISOString(),
+        createdAt: p.createdAt.toISOString(),
+        updatedAt: p.updatedAt.toISOString(),
         nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
         allergens: p.allergens as string[] | null,
       }));
@@ -103,14 +109,14 @@ async function getStats() {
   );
 }
 
-// Store logos/badges
+// Store with brand colors
 const stores = [
-  { name: 'Kaufland', slug: 'kaufland', color: 'bg-red-600' },
-  { name: 'Lidl', slug: 'lidl', color: 'bg-blue-700' },
-  { name: 'Penny', slug: 'penny', color: 'bg-red-700' },
-  { name: 'Carrefour', slug: 'carrefour', color: 'bg-blue-600' },
-  { name: 'Mega Image', slug: 'mega-image', color: 'bg-red-600' },
-  { name: 'Auchan', slug: 'auchan', color: 'bg-red-600' },
+  { name: 'Kaufland', slug: 'kaufland', gradient: 'from-[#e10915] to-[#c00812]' },
+  { name: 'Lidl', slug: 'lidl', gradient: 'from-[#0050aa] to-[#003d82]' },
+  { name: 'Penny', slug: 'penny', gradient: 'from-[#cd1719] to-[#a81315]' },
+  { name: 'Carrefour', slug: 'carrefour', gradient: 'from-[#004e9e] to-[#003a76]' },
+  { name: 'Mega Image', slug: 'mega-image', gradient: 'from-[#e31837] to-[#b8142d]' },
+  { name: 'Auchan', slug: 'auchan', gradient: 'from-[#e2001a] to-[#b80016]' },
 ];
 
 export default async function HomePage() {
@@ -122,101 +128,150 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Hero Section - Optimized for mobile */}
-      <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-br from-emerald-900 via-green-800 to-teal-900">
-        {/* Animated background elements - smaller on mobile */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 sm:-top-40 -right-20 sm:-right-40 w-48 sm:w-80 h-48 sm:h-80 bg-emerald-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
-          <div className="absolute -bottom-20 sm:-bottom-40 -left-20 sm:-left-40 w-48 sm:w-80 h-48 sm:h-80 bg-yellow-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '2s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 sm:w-96 h-64 sm:h-96 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse-slow" />
+      <section className="relative min-h-[85vh] md:min-h-[550px] flex items-center overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-900 via-neutral-950 to-black text-white">
+        {/* Background Effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Subtle glow effects */}
+          <div className="absolute -top-[20%] left-1/2 -translate-x-1/2 w-[120%] h-[80%] bg-primary-900/10 rounded-[100%] blur-[120px] opacity-40 mix-blend-screen pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black to-transparent z-10" />
+
+          {/* Floating Assets - Resized & Blended */}
+          <div className="absolute -right-10 top-[15%] w-[250px] h-[250px] lg:w-[300px] lg:h-[300px] animate-float opacity-100 hidden lg:block mix-blend-screen" style={{ maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}>
+            <Image
+              src="/hero-vegetables.png"
+              alt="Fresh vegetables floating"
+              fill
+              className="object-contain"
+              sizes="(max-width: 1024px) 250px, 300px"
+              priority
+            />
+          </div>
+          <div className="absolute -left-10 bottom-[15%] w-[280px] h-[280px] lg:w-[340px] lg:h-[340px] animate-float opacity-90 hidden lg:block mix-blend-screen" style={{ animationDelay: '2s', animationDuration: '7s', maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}>
+            <Image
+              src="/hero-spices.png"
+              alt="Spices and ingredients"
+              fill
+              className="object-contain rotate-12"
+              sizes="(max-width: 1024px) 280px, 340px"
+              priority
+            />
+          </div>
         </div>
 
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px] sm:bg-[size:50px_50px]" />
+        {/* Pattern Overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20" />
 
-        <div className="container-custom relative z-10 py-12 sm:py-20 md:py-32">
-          <div className="max-w-4xl mx-auto text-center animate-slide-up">
-            {/* Badge - smaller on mobile */}
-            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-6 sm:mb-8">
-              <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-primary-500 rounded-full animate-pulse" />
-              <span className="text-xs sm:text-sm text-white/90 font-body">Oferte actualizate zilnic</span>
+        <div className="container-custom relative z-20 pt-10 pb-10">
+          <div className="max-w-5xl mx-auto text-center flex flex-col items-center">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-6 animate-fade-in-up shadow-glow-primary">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-500"></span>
+              </span>
+              <span className="text-sm text-neutral-200 font-medium tracking-wide">Oferte actualizate zilnic</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight text-white font-heading">
-              Gateste{' '}
-              <span className="bg-gradient-to-r from-primary-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent">
-                delicios
+            {/* Headline - Brighter Contrast */}
+            <h1 className="font-display text-4xl sm:text-5xl md:text-7xl font-black mb-6 leading-[1.05] tracking-tight animate-fade-in-up drop-shadow-2xl" style={{ animationDelay: '100ms' }}>
+              <span className="text-white">Totul e mai{' '}</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-300 to-accent-300 relative">
+                gustos
+                <span className="absolute -bottom-2 left-0 w-full h-[6px] bg-primary-500/30 -rotate-2 rounded-full blur-sm"></span>
               </span>
-              <br className="hidden sm:block" />
-              <span className="sm:hidden"> </span>
-              fara sa golesti portofelul
+              <br />
+              <span className="text-neutral-200 font-bold text-3xl sm:text-4xl md:text-6xl block mt-2">când plătești mai puțin</span>
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-gray-200 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed font-body px-4 sm:px-0">
-              Descopera cele mai bune oferte din supermarketuri si retete economice
-              create special pentru ingredientele la reducere.
+            {/* Subheadline */}
+            <p className="text-lg text-neutral-300 mb-8 max-w-2xl mx-auto leading-relaxed px-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+              Platforma inteligentă care găsește automat <span className="text-white font-semibold">cele mai bune reduceri</span> din supermarketuri și generează <span className="text-white font-semibold">rețete delicioase</span>.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-10 sm:mb-16 px-4 sm:px-0">
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10 animate-fade-in-up relative z-20" style={{ animationDelay: '300ms' }}>
               <Link
                 href="/oferte"
-                className="group relative px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-primary-500 to-emerald-500 text-white font-semibold rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-glow hover:scale-105"
+                className="group relative px-8 py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold text-lg shadow-[0_0_40px_-10px_rgba(225,29,72,0.4)] hover:shadow-[0_0_60px_-15px_rgba(225,29,72,0.6)] hover:-translate-y-1 transition-all duration-300"
               >
-                <span className="relative z-10 flex items-center justify-center gap-2 font-heading text-sm sm:text-base">
+                <div className="absolute inset-0 rounded-xl overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-700" />
+                </div>
+                <span className="relative flex items-center justify-center gap-2">
                   Vezi Ofertele
-                  <svg className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>
               </Link>
               <Link
                 href="/retete"
-                className="px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl sm:rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 font-heading text-sm sm:text-base"
+                className="px-8 py-3.5 bg-white/5 backdrop-blur-sm border border-white/10 text-white rounded-xl font-bold text-lg hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 transition-all duration-300"
               >
-                Exploreaza Retete
+                Explorează Rețete
               </Link>
             </div>
 
-            {/* Stats - Compact on mobile */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-8 max-w-xl mx-auto px-2 sm:px-0">
-              <div className="p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-colors">
-                <p className="text-xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary-400 to-emerald-400 bg-clip-text text-transparent font-heading">
-                  {stats.products.toLocaleString('ro-RO')}+
-                </p>
-                <p className="text-gray-300 text-xs sm:text-sm mt-0.5 sm:mt-1 font-body">Produse</p>
+            {/* Compact Layout: Plate and Stats Side-by-Side on Desktop */}
+            <div className="w-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 animate-fade-in-up relative z-20" style={{ animationDelay: '400ms' }}>
+
+              {/* Central Hero Plate - Smaller */}
+              <div className="relative aspect-square w-[240px] sm:w-[300px]">
+                <div className="absolute inset-0 bg-gradient-to-t from-primary-600/20 to-transparent blur-[60px] rounded-full opacity-60 animate-pulse-soft" />
+                <Image
+                  src="/hero-plate.png"
+                  alt="Gourmet dish"
+                  fill
+                  className="object-contain drop-shadow-2xl z-10 mix-blend-screen"
+                  style={{ maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}
+                  priority
+                  sizes="(max-width: 640px) 240px, 300px"
+                />
               </div>
-              <div className="p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-colors">
-                <p className="text-xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-accent-400 to-yellow-400 bg-clip-text text-transparent font-heading">
-                  {stats.recipes.toLocaleString('ro-RO')}+
-                </p>
-                <p className="text-gray-300 text-xs sm:text-sm mt-0.5 sm:mt-1 font-body">Retete</p>
-              </div>
-              <div className="p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-colors">
-                <p className="text-xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent font-heading">
-                  {stats.stores}
-                </p>
-                <p className="text-gray-300 text-xs sm:text-sm mt-0.5 sm:mt-1 font-body">Magazine</p>
+
+              {/* Stats - Compact Grid */}
+              <div className="grid grid-cols-3 gap-6 md:gap-10">
+                <div className="text-center group">
+                  <p className="font-display text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary-400 to-primary-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
+                    {stats.products.toLocaleString('ro-RO')}
+                  </p>
+                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-primary-300 transition-colors">Produse</p>
+                </div>
+                <div className="text-center group">
+                  <p className="font-display text-2xl sm:text-4xl font-bold bg-gradient-to-r from-accent-400 to-accent-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
+                    {stats.recipes.toLocaleString('ro-RO')}
+                  </p>
+                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-accent-300 transition-colors">Rețete</p>
+                </div>
+                <div className="text-center group">
+                  <p className="font-display text-2xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-400 to-emerald-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
+                    {stats.stores}
+                  </p>
+                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-emerald-300 transition-colors">Magazine</p>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
 
         {/* Bottom gradient fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 sm:h-32 bg-gradient-to-t from-background to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-neutral-50 to-transparent" />
       </section>
 
-      {/* Stores Section - Compact on mobile */}
-      <section className="py-8 sm:py-12 bg-background">
+      {/* Stores Section */}
+      <section className="py-10 sm:py-14 bg-neutral-50">
         <div className="container-custom">
-          <p className="text-center text-xs sm:text-sm text-foreground/60 mb-4 sm:mb-6 font-medium uppercase tracking-wider font-body">Magazine partenere</p>
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 md:gap-4">
+          <p className="text-center text-xs text-neutral-500 mb-6 font-semibold uppercase tracking-widest">Magazine partenere</p>
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             {stores.map((store, index) => (
               <Link
                 key={store.slug}
                 href={`/oferte/${store.slug}`}
-                className="group relative px-4 sm:px-6 py-2 sm:py-3 bg-white text-foreground text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl hover:bg-gradient-to-r hover:from-primary-500 hover:to-emerald-500 hover:text-white transition-all duration-300 hover:scale-105 hover:shadow-lg font-heading border border-gray-100"
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className="group relative px-5 sm:px-6 py-2.5 sm:py-3 bg-white text-neutral-700 text-sm font-semibold rounded-xl hover:text-white transition-all duration-300 hover:scale-105 shadow-soft hover:shadow-lg border border-neutral-200/80 overflow-hidden stagger-item"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
+                <span className={`absolute inset-0 bg-gradient-to-r ${store.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
                 <span className="relative z-10">{store.name}</span>
               </Link>
             ))}
@@ -224,27 +279,25 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Offers Section - Mobile optimized */}
-      <section className="py-10 sm:py-16 md:py-20 bg-gradient-to-b from-background to-white">
+      {/* Featured Offers Section */}
+      <section className="py-12 sm:py-20 bg-white">
         <div className="container-custom">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 sm:mb-10 md:mb-12 gap-3 sm:gap-4">
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 sm:mb-12 gap-4">
             <div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2 font-heading">
+              <span className="inline-block px-3 py-1 bg-primary-50 text-primary-600 text-xs font-semibold rounded-full mb-3 border border-primary-100">
+                Reduceri de peste 20%
+              </span>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground">
                 Cele mai bune{' '}
-                <span className="bg-gradient-to-r from-primary-500 to-emerald-500 bg-clip-text text-transparent">
-                  oferte
-                </span>
+                <span className="text-gradient-warm">oferte</span>
               </h2>
-              <p className="text-sm sm:text-base text-foreground/60 font-body">
-                Reduceri de peste 20% valabile acum
-              </p>
             </div>
             <Link
               href="/oferte"
-              className="hidden sm:inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-primary-600 text-white text-sm sm:text-base font-semibold rounded-xl hover:bg-primary-700 transition-all duration-300 hover:scale-105 font-heading"
+              className="hidden sm:inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 shadow-warm hover:shadow-lg transition-all duration-300 group"
             >
               Vezi toate ofertele
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </Link>
@@ -253,8 +306,10 @@ export default async function HomePage() {
           <Suspense fallback={<ProductsGridSkeleton />}>
             {featuredOffers.length > 0 ? (
               <div className="grid-products">
-                {featuredOffers.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                {featuredOffers.map((product, index) => (
+                  <div key={product.id} className="stagger-item" style={{ animationDelay: `${index * 50}ms` }}>
+                    <ProductCard product={product} />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -265,8 +320,8 @@ export default async function HomePage() {
             )}
           </Suspense>
 
-          <div className="mt-6 sm:mt-8 text-center sm:hidden">
-            <Link href="/oferte" className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100 transition-colors font-heading">
+          <div className="mt-8 text-center sm:hidden">
+            <Link href="/oferte" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100 transition-colors border border-primary-100">
               Vezi toate ofertele
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -276,27 +331,25 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Recipes Section - Mobile optimized */}
-      <section className="py-10 sm:py-16 md:py-20 bg-white">
+      {/* Featured Recipes Section */}
+      <section className="py-12 sm:py-20 bg-kitchen-cream">
         <div className="container-custom">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 sm:mb-10 md:mb-12 gap-3 sm:gap-4">
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 sm:mb-12 gap-4">
             <div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2 font-heading">
+              <span className="inline-block px-3 py-1 bg-accent-50 text-accent-700 text-xs font-semibold rounded-full mb-3 border border-accent-100">
+                Cele mai populare
+              </span>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground">
                 Retete{' '}
-                <span className="bg-gradient-to-r from-accent-400 to-yellow-500 bg-clip-text text-transparent">
-                  populare
-                </span>
+                <span className="text-gradient-golden">populare</span>
               </h2>
-              <p className="text-sm sm:text-base text-foreground/60 font-body">
-                Gateste delicios cu ingrediente la preturi mici
-              </p>
             </div>
             <Link
               href="/retete"
-              className="hidden sm:inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-primary-600 text-white text-sm sm:text-base font-semibold rounded-xl hover:bg-primary-700 transition-all duration-300 hover:scale-105 font-heading"
+              className="hidden sm:inline-flex items-center gap-2 px-6 py-3 bg-accent-500 text-white text-sm font-semibold rounded-xl hover:bg-accent-600 shadow-glow-accent hover:shadow-lg transition-all duration-300 group"
             >
               Vezi toate retetele
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </Link>
@@ -305,8 +358,10 @@ export default async function HomePage() {
           <Suspense fallback={<RecipesGridSkeleton />}>
             {featuredRecipes.length > 0 ? (
               <div className="grid-recipes">
-                {featuredRecipes.map((recipe) => (
-                  <RecipeCard key={recipe.id} recipe={recipe} />
+                {featuredRecipes.map((recipe, index) => (
+                  <div key={recipe.id} className="stagger-item" style={{ animationDelay: `${index * 50}ms` }}>
+                    <RecipeCard recipe={recipe} />
+                  </div>
                 ))}
               </div>
             ) : (
@@ -317,8 +372,8 @@ export default async function HomePage() {
             )}
           </Suspense>
 
-          <div className="mt-6 sm:mt-8 text-center sm:hidden">
-            <Link href="/retete" className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100 transition-colors font-heading">
+          <div className="mt-8 text-center sm:hidden">
+            <Link href="/retete" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-accent-700 bg-accent-50 rounded-xl hover:bg-accent-100 transition-colors border border-accent-100">
               Vezi toate retetele
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -328,73 +383,71 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* How It Works Section - Mobile optimized */}
-      <section className="py-12 sm:py-16 md:py-24 bg-white relative overflow-hidden">
-        {/* Background decoration - hidden on mobile */}
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-primary-50 to-transparent hidden sm:block" />
+      {/* How It Works Section */}
+      <section className="py-16 sm:py-24 bg-white relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary-50/30 to-transparent hidden lg:block" />
+        <div className="absolute inset-0 pattern-dots opacity-30" />
 
         <div className="container-custom relative z-10">
-          <div className="text-center mb-8 sm:mb-12 md:mb-16">
-            <span className="inline-block px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-100 text-primary-700 text-xs sm:text-sm font-semibold rounded-full mb-3 sm:mb-4 font-heading">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="inline-block px-4 py-2 bg-secondary-50 text-secondary-700 text-xs font-bold rounded-full mb-4 uppercase tracking-wider border border-secondary-100">
               Simplu si eficient
             </span>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 sm:mb-4 font-heading">
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">
               Cum{' '}
-              <span className="bg-gradient-to-r from-primary-500 to-emerald-500 bg-clip-text text-transparent">
-                functioneaza
-              </span>
-              ?
+              <span className="text-gradient-fresh">functioneaza</span>?
             </h2>
-            <p className="text-sm sm:text-base md:text-lg text-foreground/60 max-w-2xl mx-auto font-body px-4 sm:px-0">
+            <p className="text-neutral-600 max-w-2xl mx-auto text-lg">
               Platforma noastra te ajuta sa economisesti bani si timp in bucatarie
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 lg:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
             {/* Step 1 */}
-            <div className="group text-center p-5 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary-50 to-emerald-50 hover:shadow-xl transition-all duration-300 sm:hover:-translate-y-2">
-              <div className="w-14 sm:w-16 md:w-20 h-14 sm:h-16 md:h-20 bg-gradient-to-br from-primary-500 to-emerald-500 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg className="w-7 sm:w-8 md:w-10 h-7 sm:h-8 md:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="group text-center p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-primary-50 to-kitchen-cream border border-primary-100 hover:shadow-warm hover:border-primary-200 transition-all duration-500 hover:-translate-y-2">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-warm group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
-              <div className="text-xs sm:text-sm font-bold text-primary-600 mb-1.5 sm:mb-2 font-heading">PASUL 1</div>
-              <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2 sm:mb-3 font-heading">
+              <div className="text-xs font-bold text-primary-600 mb-2 tracking-wider">PASUL 1</div>
+              <h3 className="font-display text-xl font-bold text-foreground mb-3">
                 Colectam ofertele
               </h3>
-              <p className="text-sm sm:text-base text-foreground/60 leading-relaxed font-body">
+              <p className="text-neutral-600 leading-relaxed">
                 Scanam automat cataloagele din toate magazinele mari pentru a gasi cele mai bune preturi.
               </p>
             </div>
 
             {/* Step 2 */}
-            <div className="group text-center p-5 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-accent-50 to-yellow-50 hover:shadow-xl transition-all duration-300 sm:hover:-translate-y-2">
-              <div className="w-14 sm:w-16 md:w-20 h-14 sm:h-16 md:h-20 bg-gradient-to-br from-accent-400 to-yellow-400 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg className="w-7 sm:w-8 md:w-10 h-7 sm:h-8 md:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="group text-center p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-accent-50 to-kitchen-butter border border-accent-100 hover:shadow-glow-accent hover:border-accent-200 transition-all duration-500 hover:-translate-y-2">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-accent-500 to-accent-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-glow-accent group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
-              <div className="text-xs sm:text-sm font-bold text-accent-500 mb-1.5 sm:mb-2 font-heading">PASUL 2</div>
-              <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2 sm:mb-3 font-heading">
+              <div className="text-xs font-bold text-accent-600 mb-2 tracking-wider">PASUL 2</div>
+              <h3 className="font-display text-xl font-bold text-foreground mb-3">
                 Generam retete
               </h3>
-              <p className="text-sm sm:text-base text-foreground/60 leading-relaxed font-body">
+              <p className="text-neutral-600 leading-relaxed">
                 Cream retete bazate pe ingredientele aflate in promotie pentru economii maxime.
               </p>
             </div>
 
             {/* Step 3 */}
-            <div className="group text-center p-5 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-teal-50 to-cyan-50 hover:shadow-xl transition-all duration-300 sm:hover:-translate-y-2">
-              <div className="w-14 sm:w-16 md:w-20 h-14 sm:h-16 md:h-20 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg className="w-7 sm:w-8 md:w-10 h-7 sm:h-8 md:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="group text-center p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-secondary-50 to-kitchen-cream border border-secondary-100 hover:shadow-glow-success hover:border-secondary-200 transition-all duration-500 hover:-translate-y-2">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-glow-success group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div className="text-xs sm:text-sm font-bold text-teal-600 mb-1.5 sm:mb-2 font-heading">PASUL 3</div>
-              <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2 sm:mb-3 font-heading">
+              <div className="text-xs font-bold text-secondary-600 mb-2 tracking-wider">PASUL 3</div>
+              <h3 className="font-display text-xl font-bold text-foreground mb-3">
                 Economisesti
               </h3>
-              <p className="text-sm sm:text-base text-foreground/60 leading-relaxed font-body">
+              <p className="text-neutral-600 leading-relaxed">
                 Gatesti acasa mancaruri delicioase la preturi mult mai mici decat in restaurante.
               </p>
             </div>
@@ -402,59 +455,53 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section - Mobile optimized */}
-      <section className="relative py-12 sm:py-16 md:py-24 overflow-hidden">
-        {/* Gradient background - Fresh Green Theme */}
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-green-800 to-teal-900" />
+      {/* CTA Section - Warm Kitchen */}
+      <section className="relative py-16 sm:py-24 overflow-hidden">
+        {/* Warm gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700" />
 
-        {/* Animated background elements - smaller on mobile */}
+        {/* Soft overlay patterns */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-5 sm:top-10 left-5 sm:left-10 w-40 sm:w-72 h-40 sm:h-72 bg-primary-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
-          <div className="absolute bottom-5 sm:bottom-10 right-5 sm:right-10 w-40 sm:w-72 h-40 sm:h-72 bg-accent-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '3s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 sm:w-96 h-56 sm:h-96 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse-slow" />
+          <div className="absolute top-10 left-10 w-64 sm:w-96 h-64 sm:h-96 bg-accent-400 rounded-full filter blur-[100px] opacity-20 animate-float" />
+          <div className="absolute bottom-10 right-10 w-64 sm:w-96 h-64 sm:h-96 bg-white rounded-full filter blur-[100px] opacity-10 animate-float" style={{ animationDelay: '3s' }} />
         </div>
 
-        {/* Grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:30px_30px] sm:bg-[size:40px_40px]" />
+        {/* Kitchen pattern */}
+        <div className="absolute inset-0 pattern-kitchen opacity-10" />
 
-        <div className="container-custom relative z-10 text-center px-4 sm:px-6">
-          <div className="animate-slide-up">
-            <span className="inline-block px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-sm text-white/90 text-xs sm:text-sm font-semibold rounded-full mb-4 sm:mb-6 border border-white/20 font-heading">
-              Incepe acum gratuit
-            </span>
+        <div className="container-custom relative z-10 text-center px-4">
+          <span className="inline-block px-4 py-2 bg-white/20 backdrop-blur-sm text-white text-xs font-bold rounded-full mb-6 border border-white/20 uppercase tracking-wider">
+            Incepe acum gratuit
+          </span>
 
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-white font-heading">
-              Pregatit sa{' '}
-              <span className="bg-gradient-to-r from-primary-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent">
-                economisesti
+          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-white">
+            Pregatit sa{' '}
+            <span className="text-accent-300">economisesti</span>?
+          </h2>
+
+          <p className="text-lg text-white/80 mb-10 max-w-2xl mx-auto leading-relaxed">
+            Descopera ofertele si retetele zilei si incepe sa gatesti delicios
+            fara sa iti faci griji pentru buget.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/oferte"
+              className="group px-8 py-4 bg-white text-primary-600 font-semibold rounded-xl hover:bg-accent-50 hover:text-primary-700 shadow-elevated hover:shadow-xl transition-all duration-300"
+            >
+              <span className="flex items-center justify-center gap-2">
+                Exploreaza Ofertele
+                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
               </span>
-              ?
-            </h2>
-
-            <p className="text-sm sm:text-base md:text-lg text-gray-200 mb-6 sm:mb-10 max-w-2xl mx-auto leading-relaxed font-body">
-              Descopera ofertele si retetele zilei si incepe sa gatesti delicios
-              fara sa iti faci griji pentru buget.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-              <Link
-                href="/oferte"
-                className="group relative px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-primary-500 to-emerald-500 text-white text-sm sm:text-base font-semibold rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-glow hover:scale-105 font-heading"
-              >
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  Exploreaza Ofertele
-                  <svg className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-              </Link>
-              <Link
-                href="/retete"
-                className="px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm text-white text-sm sm:text-base font-semibold rounded-xl sm:rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 font-heading"
-              >
-                Gaseste Retete
-              </Link>
-            </div>
+            </Link>
+            <Link
+              href="/retete"
+              className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border border-white/30 hover:bg-white/20 hover:border-white/40 transition-all duration-300"
+            >
+              Gaseste Retete
+            </Link>
           </div>
         </div>
       </section>
@@ -493,10 +540,10 @@ function EmptyState({
   description: string;
 }) {
   return (
-    <div className="text-center py-12">
-      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+    <div className="text-center py-16">
+      <div className="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-primary-100">
         <svg
-          className="w-8 h-8 text-gray-400"
+          className="w-10 h-10 text-primary-400"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -504,13 +551,13 @@ function EmptyState({
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth={2}
+            strokeWidth={1.5}
             d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
           />
         </svg>
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600">{description}</p>
+      <h3 className="font-display text-xl font-bold text-foreground mb-2">{title}</h3>
+      <p className="text-neutral-600">{description}</p>
     </div>
   );
 }
