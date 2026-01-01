@@ -204,21 +204,21 @@ export default async function RetetePage({ searchParams }: PageProps) {
       <div className="bg-[#FDFBF7] min-h-screen text-neutral-900 pb-20">
         {/* Simple Editorial Header */}
         <div className="border-b border-neutral-200">
-          <div className="container-custom pt-8 pb-8 md:pt-12 md:pb-10">
+          <div className="container-custom pt-6 pb-6 md:pt-12 md:pb-10">
             <div className="max-w-3xl">
-              <h1 className="font-display text-4xl md:text-5xl font-bold text-neutral-900 mb-4 tracking-tight">
+              <h1 className="font-display text-2xl sm:text-3xl md:text-5xl font-bold text-neutral-900 mb-2 md:mb-4 tracking-tight">
                 Catalog Rețete
               </h1>
-              <p className="text-lg text-neutral-800 leading-relaxed max-w-2xl font-medium opacity-90">
+              <p className="text-base sm:text-lg text-neutral-800 leading-relaxed max-w-2xl font-medium opacity-90">
                 Descoperă colecția noastră de rețete optimizate pentru cost și nutriție.
                 Gătește inteligent, mănâncă sănătos.
               </p>
 
               {/* Simple Stats Pills */}
-              <div className="flex gap-4 mt-6">
+              <div className="flex gap-4 mt-4 md:mt-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-neutral-200 rounded-md shadow-sm">
                   <span className="font-bold text-neutral-900">{total}</span>
-                  <span className="text-sm text-neutral-600 font-medium">Rețete</span>
+                  <span className="text-xs sm:text-sm text-neutral-600 font-medium">Rețete</span>
                 </div>
               </div>
             </div>

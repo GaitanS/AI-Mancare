@@ -277,7 +277,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
                 <li>/</li>
                 <li>
                   <Link href="/cataloage" className="hover:underline">
-                    Oferte
+                    Cataloage
                   </Link>
                 </li>
                 <li>/</li>
@@ -286,7 +286,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
             </nav>
 
             <h1 className="text-3xl md:text-4xl font-bold mb-2">
-              Oferte {storeName}
+              Cataloage {storeName}
             </h1>
             <p className="text-white/80 max-w-2xl">{info.description}</p>
             <p className="mt-4 text-lg">

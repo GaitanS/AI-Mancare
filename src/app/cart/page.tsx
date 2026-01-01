@@ -58,7 +58,6 @@ export default function CartPage() {
     const [showStoreComparison, setShowStoreComparison] = useState(false);
     const [loading, setLoading] = useState(true);
     const [totalCost, setTotalCost] = useState(0);
-    const [totalSavings, setTotalSavings] = useState(0);
     const [ownedItems, setOwnedItems] = useState<Set<string>>(new Set());
 
     // Swap modal state
@@ -81,35 +80,46 @@ export default function CartPage() {
     });
 
     // Fetch cart items on load
-    const fetchCartItems = useCallback(async () => {
+    const fetchCartItems = useCallback(async (storeOverride?: string, ingredientsOverride?: string[]) => {
         setLoading(true);
         try {
+            // If we have an override (manual switch), use that. 
+            // Otherwise try to use current cart items names, or fallback to demo only if cart is empty.
+            const ingredientList = ingredientsOverride ||
+                (cartItems.length > 0 ? cartItems.map(i => i.ingredientName) : demoIngredients);
+
             const response = await fetch('/api/cart/auto-fill', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ingredients: demoIngredients }),
+                body: JSON.stringify({
+                    ingredients: ingredientList,
+                    store: storeOverride || selectedStore
+                }),
             });
 
             if (response.ok) {
                 const data = await response.json();
                 setCartItems(data.items || []);
                 setTotalCost(data.totalCost || 0);
-                setTotalSavings(data.totalSavings || 0);
             }
         } catch (error) {
             console.error('Failed to fetch cart:', error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [selectedStore, cartItems]);
 
     // Fetch store comparison
     const fetchStoreComparison = async () => {
         try {
+            const currentIngredients = cartItems.length > 0
+                ? cartItems.map(item => item.ingredientName)
+                : demoIngredients;
+
             const response = await fetch('/api/cart/optimize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ingredients: demoIngredients }),
+                body: JSON.stringify({ ingredients: currentIngredients }),
             });
 
             if (response.ok) {
@@ -169,7 +179,12 @@ export default function CartPage() {
     };
 
     const removeCartItem = (ingredientName: string) => {
-        setCartItems(prev => prev.filter(item => item.ingredientName !== ingredientName));
+        setCartItems(prev => {
+            const next = prev.filter(item => item.ingredientName !== ingredientName);
+            // Re-calculate store comparison if needed or just clear it to force refresh
+            if (showStoreComparison) fetchStoreComparison();
+            return next;
+        });
     };
 
     // Fetch alternatives for swap
@@ -197,8 +212,9 @@ export default function CartPage() {
     // Export shopping list
     const exportList = async () => {
         try {
+            const currentIngredients = cartItems.map(item => item.ingredientName);
             const response = await fetch(
-                `/api/cart/export?format=text&ingredients=${demoIngredients.join(',')}&store=${selectedStore}`
+                `/api/cart/export?format=text&ingredients=${currentIngredients.join(',')}&store=${selectedStore}`
             );
 
             if (response.ok) {
@@ -218,14 +234,15 @@ export default function CartPage() {
     };
 
     useEffect(() => {
-        fetchCartItems();
+        // Initial load with demo ingredients
+        fetchCartItems(undefined, demoIngredients);
         fetchStoreComparison();
         fetchPantryItems();
-    }, [fetchCartItems]);
+    }, []); // Only on mount
 
     // Lock body scroll when modal is open
     useEffect(() => {
-        if (swapModalOpen) {
+        if (swapModalOpen || showStoreComparison) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -233,17 +250,27 @@ export default function CartPage() {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [swapModalOpen]);
+    }, [swapModalOpen, showStoreComparison]);
 
-    // Calculate totals considering owned items
+    // Calculate totals and counts considering owned items and filtered cart
+    const lowerCaseOwned = new Set(Array.from(ownedItems).map(i => i.toLowerCase()));
+    const cartIngredients = cartItems.map(item => item.ingredientName.toLowerCase());
+    const ownedInCart = cartIngredients.filter(name => lowerCaseOwned.has(name));
+
     const actualTotal = cartItems.reduce((sum, item) => {
-        if (ownedItems.has(item.ingredientName.toLowerCase())) return sum;
+        if (lowerCaseOwned.has(item.ingredientName.toLowerCase())) return sum;
         return sum + (item.matchedProduct?.price || 0);
+    }, 0);
+
+    const currentTotalSavings = cartItems.reduce((sum, item) => {
+        if (lowerCaseOwned.has(item.ingredientName.toLowerCase())) return sum;
+        const savings = (item.matchedProduct?.originalPrice || 0) - (item.matchedProduct?.price || 0);
+        return sum + (savings > 0 ? savings : 0);
     }, 0);
 
     const cheapestStore = storeComparison.length > 0
         ? storeComparison.reduce((prev, curr) => curr.total < prev.total ? curr : prev)
-        : { store: '', total: actualTotal, savings: totalSavings };
+        : { store: '', total: actualTotal, savings: currentTotalSavings };
 
     if (loading) {
         return (
@@ -277,79 +304,124 @@ export default function CartPage() {
                 </div>
             </div>
 
-            {/* Store Comparison Sheet */}
-            {showStoreComparison && storeComparison.length > 0 && (
-                <div className="mx-4 mt-4 bg-white rounded-2xl border border-neutral-200 overflow-hidden">
-                    <div className="p-4 border-b border-neutral-100">
-                        <h3 className="font-bold text-neutral-900">Unde este mai ieftin?</h3>
-                        <p className="text-sm text-neutral-500">Prețul total al coșului pe magazine</p>
-                    </div>
-
-                    <div className="divide-y divide-neutral-100">
-                        {storeComparison.map((store) => (
+            {/* Store Comparison Sheet (Modal) */}
+            {showStoreComparison && (
+                <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center">
+                    <div
+                        className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm animate-in fade-in duration-200"
+                        onClick={() => setShowStoreComparison(false)}
+                    />
+                    <div className="relative bg-white w-full max-w-lg rounded-t-3xl lg:rounded-3xl max-h-[90vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+                        <div className="p-4 border-b border-neutral-100 flex items-center justify-between flex-shrink-0">
+                            <div>
+                                <h3 className="font-bold text-neutral-900 text-lg">Unde este mai ieftin?</h3>
+                                <p className="text-sm text-neutral-500">Prețul total al coșului pe magazine</p>
+                            </div>
                             <button
-                                key={store.store}
-                                onClick={() => {
-                                    setSelectedStore(store.store);
-                                    setShowStoreComparison(false);
-                                }}
-                                className={cn(
-                                    "w-full p-4 flex items-center justify-between transition-colors",
-                                    selectedStore === store.store ? "bg-primary-50" : "hover:bg-neutral-50"
-                                )}
+                                onClick={() => setShowStoreComparison(false)}
+                                className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
                             >
-                                <div className="flex items-center gap-3">
-                                    {store.store === cheapestStore.store && (
-                                        <span className="px-2 py-1 bg-success-100 text-success-700 text-xs font-bold rounded-lg">
-                                            Cel mai ieftin
-                                        </span>
-                                    )}
-                                    <span className="font-semibold text-neutral-900">{store.store}</span>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-lg text-neutral-900">{store.total.toFixed(2)} lei</p>
-                                    <p className="text-sm text-success-600 font-semibold">
-                                        {store.availableItems}/{cartItems.length} produse găsite
-                                    </p>
-                                </div>
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                             </button>
-                        ))}
+                        </div>
+
+                        <div className="p-4 overflow-y-auto flex-1 min-h-0 overscroll-contain">
+                            <div className="space-y-3 pb-safe">
+                                {storeComparison.map((store) => (
+                                    <button
+                                        key={store.store}
+                                        onClick={() => {
+                                            const currentNames = cartItems.map(i => i.ingredientName);
+                                            setSelectedStore(store.store);
+                                            fetchCartItems(store.store, currentNames);
+                                            setShowStoreComparison(false);
+                                        }}
+                                        className={cn(
+                                            "w-full p-4 rounded-2xl flex items-center justify-between transition-all border",
+                                            selectedStore === store.store
+                                                ? "bg-primary-50 border-primary-200 shadow-md ring-2 ring-primary-500 ring-offset-1"
+                                                : "bg-neutral-50 border-transparent hover:border-neutral-200"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {selectedStore === store.store && (
+                                                <div className="bg-primary-600 text-white rounded-full p-0.5">
+                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </div>
+                                            )}
+                                            {store.store === cheapestStore.store && (
+                                                <span className="px-2 py-1 bg-success-100 text-success-700 text-[10px] font-bold rounded-lg uppercase tracking-wider">
+                                                    Optim
+                                                </span>
+                                            )}
+                                            <span className="font-bold text-neutral-900">{store.store}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-black text-lg text-neutral-900">{store.total.toFixed(2)} lei</p>
+                                            <div className="flex flex-col items-end">
+                                                <p className="text-xs text-neutral-500">
+                                                    {store.availableItems} din {cartItems.length} produse
+                                                </p>
+                                                {store.savings > 0 && (
+                                                    <p className="text-[10px] text-success-600 font-bold">
+                                                        -{store.savings.toFixed(2)} lei economie
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* Pantry Intelligence Banner */}
-            {ownedItems.size > 0 && (
-                <div className="mx-4 mt-4 bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-4 text-white">
-                    <div className="flex items-center gap-2 mb-1">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            {ownedInCart.length > 0 && (
+                <div className="mx-4 mt-3 bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl p-3 text-white">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                         </svg>
-                        <p className="font-bold">Ai deja {ownedItems.size} ingrediente acasă!</p>
+                        <p className="font-bold text-sm">Ai deja {ownedInCart.length} ingrediente acasă!</p>
                     </div>
-                    <p className="text-sm text-amber-100">
-                        Total real de plată: <span className="font-bold text-xl">{actualTotal.toFixed(2)} lei</span>
+                    <p className="text-xs text-amber-100">
+                        Total real de plată: <span className="font-bold text-lg">{actualTotal.toFixed(2)} lei</span>
                     </p>
                 </div>
             )}
 
             {/* Savings Banner */}
-            <div className="mx-4 mt-4 bg-gradient-to-r from-success-500 to-success-600 rounded-2xl p-4 text-white">
+            <div className="mx-4 mt-3 bg-gradient-to-r from-success-500 to-success-600 rounded-xl p-3 text-white">
                 <div className="flex items-center justify-between">
                     <div>
-                        <div className="flex items-center gap-2">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <div className="flex items-center gap-1.5">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <p className="font-bold text-lg">Economisești</p>
+                            <p className="font-bold text-sm">Economisești</p>
                         </div>
-                        <p className="text-3xl font-display font-black">
-                            {totalSavings.toFixed(2)} lei
+                        <p className="text-2xl font-display font-black">
+                            {currentTotalSavings.toFixed(2)} lei
                         </p>
                     </div>
                     <div className="text-right">
-                        <p className="text-sm text-success-100">Magazin recomandat</p>
-                        <p className="font-bold text-xl">{selectedStore || 'Se calculează...'}</p>
+                        <p className="text-[10px] text-success-100 opacity-80 uppercase tracking-wider font-bold">
+                            {selectedStore === cheapestStore.store ? 'Magazin recomandat' : 'Magazin selectat'}
+                        </p>
+                        <div className="flex items-center justify-end gap-1.5">
+                            {selectedStore === cheapestStore.store && (
+                                <svg className="w-4 h-4 text-success-200" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                            )}
+                            <p className="font-bold text-lg">{selectedStore || '—'}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -550,7 +622,7 @@ export default function CartPage() {
                 </div>
                 <button
                     onClick={exportList}
-                    className="w-full bg-primary-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-primary-700 transition-colors shadow-warm"
+                    className="w-full bg-primary-600 text-white py-3 rounded-xl font-bold text-base hover:bg-primary-700 transition-colors shadow-warm"
                 >
                     Exportă lista de cumpărături
                 </button>

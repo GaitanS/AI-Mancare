@@ -38,7 +38,7 @@ interface AutoFillResponse {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { recipeIds, ingredients: rawIngredients } = body;
+        const { recipeIds, ingredients: rawIngredients, store } = body;
 
         // Get ingredients either from recipes or directly provided
         let ingredientNames: string[] = [];
@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
                 where: {
                     AND: [
                         { OR: orConditions },
+                        store ? { store: store } : {},
                         { validFrom: { lte: now } },
                         { validUntil: { gte: now } },
                     ],

@@ -17,15 +17,15 @@ const productSortOptions = [
 ];
 
 export const metadata: Metadata = {
-  title: 'Oferte - Cele mai bune reduceri din supermarketuri',
+  title: 'Cataloage - Cele mai bune reduceri din supermarketuri',
   description:
-    'Descopera cele mai bune oferte si reduceri din Kaufland, Lidl, Penny, Carrefour, Mega Image si Auchan. Actualizam zilnic preturile pentru tine!',
+    'Descopera cele mai bune oferte si reduceri din Kaufland, Lidl, Penny, Carrefour, Mega Image si Auchan. Actualizam zilnic cataloagele pentru tine!',
   alternates: {
     canonical: '/cataloage',
   },
   openGraph: {
-    title: 'Oferte - CatalogSmart',
-    description: 'Cele mai bune reduceri din supermarketuri, actualizate zilnic.',
+    title: 'Cataloage - CatalogSmart',
+    description: 'Cele mai bune reduceri din supermarketuri, extrase din cataloagele actuale.',
     url: '/cataloage',
   },
 };
@@ -240,10 +240,10 @@ export default async function OfertePage({ searchParams }: PageProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
               </div>
-              <span className="text-white/60 text-sm font-medium">Oferte actuale</span>
+              <span className="text-white/60 text-sm font-medium">Cataloage actuale</span>
             </div>
             <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3">
-              Oferte si{' '}
+              Cataloage si{' '}
               <span className="text-gradient-primary">Reduceri</span>
             </h1>
             <p className="text-neutral-400 flex items-center gap-3">

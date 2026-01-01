@@ -167,14 +167,14 @@ export default async function HomePage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-500"></span>
               </span>
-              <span className="text-sm text-neutral-200 font-medium tracking-wide">Oferte actualizate săptămânal</span>
+              <span className="text-sm text-neutral-200 font-medium tracking-wide">Cataloage actualizate săptămânal</span>
             </div>
 
             {/* Headline - CRITICAL PENTRU SEO */}
             <h1 className="font-display text-4xl sm:text-5xl md:text-7xl font-black mb-6 leading-[1.05] tracking-tight animate-fade-in-up drop-shadow-2xl" style={{ animationDelay: '100ms' }}>
               <span className="text-white">Toate{' '}</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-300 to-accent-300 relative">
-                ofertele
+                cataloagele
                 <span className="absolute -bottom-2 left-0 w-full h-[6px] bg-primary-500/30 -rotate-2 rounded-full blur-sm"></span>
               </span>
               <br />
@@ -183,8 +183,8 @@ export default async function HomePage() {
 
             {/* Subheadline - SEO + Features */}
             <p className="text-lg text-neutral-300 mb-8 max-w-2xl mx-auto leading-relaxed px-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              Vezi ofertele de la <span className="text-white font-semibold">Lidl, Kaufland, Penny</span>.
-              AI-ul extrage produsele și generează <span className="text-white font-semibold">rețete automate</span> cu produsele la reducere.
+              Vezi cataloagele de la <span className="text-white font-semibold">Lidl, Kaufland, Penny</span>.
+              AI-ul extrage ofertele și generează <span className="text-white font-semibold">rețete automate</span> cu produsele la reducere.
             </p>
 
             {/* CTAs */}
