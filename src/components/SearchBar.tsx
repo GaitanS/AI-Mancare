@@ -178,7 +178,7 @@ export default function SearchBar() {
                 {results.products.map((product) => (
                   <li key={product.id}>
                     <Link
-                      href={`/oferte/${product.store.toLowerCase()}?product=${product.id}`}
+                      href={`/cataloage/${product.store.toLowerCase()}?product=${product.id}`}
                       onClick={() => setIsOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors group"
                     >

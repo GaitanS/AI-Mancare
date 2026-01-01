@@ -202,6 +202,11 @@ model User {
   preferredStores      String?  @map("preferred_stores")
   dietaryRestrictions  String?  @map("dietary_restrictions")
   budgetPreference     Decimal? @map("budget_preference")
+  
+  // Extended Preferences for Meal Planner
+  nutritionalGoals     String?  @map("nutritional_goals")     // LOW_CARB, HIGH_PROTEIN, VEGETARIAN, FARA_LACTOZA, FARA_GLUTEN
+  excludedIngredients  String?  @map("excluded_ingredients")  // JSON array of ingredients to exclude
+  householdSize        Int      @default(2) @map("household_size")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -219,4 +224,87 @@ model Cache {
 
   @@index([expiresAt])
   @@map("cache")
+}
+
+// ==========================================
+// SHOPPING CART TABLE
+// ==========================================
+model ShoppingCart {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  sessionId String?  @map("session_id")  // For anonymous users
+  
+  // Cart Configuration
+  storeMode     String  @default("OPTIMAL") @map("store_mode")  // OPTIMAL | SINGLE_STORE
+  selectedStore String? @map("selected_store")
+  
+  // Cart Items (JSON stored as String)
+  // Format: [{recipeId, ingredientName, productId, quantity, matched, ownedByUser}]
+  items String @default("[]")
+  
+  // Totals
+  totalCost        Decimal? @map("total_cost")
+  totalSavings     Decimal? @map("total_savings")
+  totalWithPantry  Decimal? @map("total_with_pantry")  // Cost after subtracting owned items
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+  
+  @@map("shopping_carts")
+}
+
+// StoreMode: "OPTIMAL" | "SINGLE_STORE"
+
+// ==========================================
+// INGREDIENT MAPPING TABLE
+// ==========================================
+model IngredientMapping {
+  id             String @id @default(uuid())
+  ingredientName String @unique @map("ingredient_name")  // "iaurt", "smântână", "pui", etc.
+  
+  // Product matching config
+  categoryMatch  String  @map("category_match")   // Product category to search in
+  keywords       String  @map("keywords")         // JSON array of search terms
+  defaultUnit    String  @default("buc") @map("default_unit")  // kg, L, buc, g
+  
+  // Aisle sorting for physical stores
+  aisleOrder     Int     @default(99) @map("aisle_order")  // 1=Fructe/Legume, 2=Lactate, 3=Carne, etc.
+  aisleName      String? @map("aisle_name")  // "Fructe și Legume", "Lactate", etc.
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@index([categoryMatch])
+  @@index([aisleOrder])
+  
+  @@map("ingredient_mappings")
+}
+
+// ==========================================
+// USER PANTRY TABLE
+// ==========================================
+model UserPantry {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  sessionId String?  @map("session_id")
+  
+  // Pantry item details
+  ingredientName String  @map("ingredient_name")
+  quantity       Decimal?
+  unit           String?
+  
+  // Tracking
+  addedAt    DateTime  @default(now()) @map("added_at")
+  expiresAt  DateTime? @map("expires_at")
+  isAvailable Boolean  @default(true) @map("is_available")
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([ingredientName])
+  @@index([isAvailable])
+  
+  @@map("user_pantry")
 }

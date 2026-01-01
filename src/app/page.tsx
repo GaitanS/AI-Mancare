@@ -9,7 +9,7 @@ import type { Product, Recipe } from '@/types';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Retete Ieftine - Oferte si Retete Economice pentru Toata Familia',
+  title: 'CatalogSmart - Oferte si Retete Economice pentru Toata Familia',
   description:
     'Descopera cele mai bune oferte din supermarketuri si retete delicioase la preturi mici. Economiseste bani gatind acasa cu ingrediente la reducere!',
   alternates: {
@@ -143,7 +143,6 @@ export default async function HomePage() {
               fill
               className="object-contain"
               sizes="(max-width: 1024px) 250px, 300px"
-              priority
             />
           </div>
           <div className="absolute -left-10 bottom-[15%] w-[280px] h-[280px] lg:w-[340px] lg:h-[340px] animate-float opacity-90 hidden lg:block mix-blend-screen" style={{ animationDelay: '2s', animationDuration: '7s', maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}>
@@ -153,7 +152,6 @@ export default async function HomePage() {
               fill
               className="object-contain rotate-12"
               sizes="(max-width: 1024px) 280px, 340px"
-              priority
             />
           </div>
         </div>
@@ -169,29 +167,30 @@ export default async function HomePage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-500"></span>
               </span>
-              <span className="text-sm text-neutral-200 font-medium tracking-wide">Oferte actualizate zilnic</span>
+              <span className="text-sm text-neutral-200 font-medium tracking-wide">Oferte actualizate săptămânal</span>
             </div>
 
-            {/* Headline - Brighter Contrast */}
+            {/* Headline - CRITICAL PENTRU SEO */}
             <h1 className="font-display text-4xl sm:text-5xl md:text-7xl font-black mb-6 leading-[1.05] tracking-tight animate-fade-in-up drop-shadow-2xl" style={{ animationDelay: '100ms' }}>
-              <span className="text-white">Totul e mai{' '}</span>
+              <span className="text-white">Toate{' '}</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-300 to-accent-300 relative">
-                gustos
+                ofertele
                 <span className="absolute -bottom-2 left-0 w-full h-[6px] bg-primary-500/30 -rotate-2 rounded-full blur-sm"></span>
               </span>
               <br />
-              <span className="text-neutral-200 font-bold text-3xl sm:text-4xl md:text-6xl block mt-2">când plătești mai puțin</span>
+              <span className="text-neutral-200 font-bold text-3xl sm:text-4xl md:text-6xl block mt-2">dar inteligente</span>
             </h1>
 
-            {/* Subheadline */}
+            {/* Subheadline - SEO + Features */}
             <p className="text-lg text-neutral-300 mb-8 max-w-2xl mx-auto leading-relaxed px-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              Platforma inteligentă care găsește automat <span className="text-white font-semibold">cele mai bune reduceri</span> din supermarketuri și generează <span className="text-white font-semibold">rețete delicioase</span>.
+              Vezi ofertele de la <span className="text-white font-semibold">Lidl, Kaufland, Penny</span>.
+              AI-ul extrage produsele și generează <span className="text-white font-semibold">rețete automate</span> cu produsele la reducere.
             </p>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10 animate-fade-in-up relative z-20" style={{ animationDelay: '300ms' }}>
               <Link
-                href="/oferte"
+                href="/cataloage"
                 className="group relative px-8 py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold text-lg shadow-[0_0_40px_-10px_rgba(225,29,72,0.4)] hover:shadow-[0_0_60px_-15px_rgba(225,29,72,0.6)] hover:-translate-y-1 transition-all duration-300"
               >
                 <div className="absolute inset-0 rounded-xl overflow-hidden">
@@ -208,7 +207,7 @@ export default async function HomePage() {
                 href="/retete"
                 className="px-8 py-3.5 bg-white/5 backdrop-blur-sm border border-white/10 text-white rounded-xl font-bold text-lg hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 transition-all duration-300"
               >
-                Explorează Rețete
+                Vezi Rețetele
               </Link>
             </div>
 
@@ -220,7 +219,7 @@ export default async function HomePage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-primary-600/20 to-transparent blur-[60px] rounded-full opacity-60 animate-pulse-soft" />
                 <Image
                   src="/hero-plate.png"
-                  alt="Gourmet dish"
+                  alt="Mâncare delicioasă"
                   fill
                   className="object-contain drop-shadow-2xl z-10 mix-blend-screen"
                   style={{ maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}
@@ -229,25 +228,25 @@ export default async function HomePage() {
                 />
               </div>
 
-              {/* Stats - Compact Grid */}
+              {/* Stats - SCHIMBAT pentru CatalogSmart */}
               <div className="grid grid-cols-3 gap-6 md:gap-10">
                 <div className="text-center group">
                   <p className="font-display text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary-400 to-primary-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
-                    {stats.products.toLocaleString('ro-RO')}
+                    {stats.products.toLocaleString('ro-RO')}+
                   </p>
-                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-primary-300 transition-colors">Produse</p>
+                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-primary-300 transition-colors">Oferte</p>
                 </div>
                 <div className="text-center group">
                   <p className="font-display text-2xl sm:text-4xl font-bold bg-gradient-to-r from-accent-400 to-accent-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
-                    {stats.recipes.toLocaleString('ro-RO')}
+                    {stats.stores}
                   </p>
-                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-accent-300 transition-colors">Rețete</p>
+                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-accent-300 transition-colors">Cataloage</p>
                 </div>
                 <div className="text-center group">
                   <p className="font-display text-2xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-400 to-emerald-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
-                    {stats.stores}
+                    7 zile
                   </p>
-                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-emerald-300 transition-colors">Magazine</p>
+                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-emerald-300 transition-colors">Update</p>
                 </div>
               </div>
             </div>
@@ -262,13 +261,13 @@ export default async function HomePage() {
       {/* Stores Section */}
       <section className="py-10 sm:py-14 bg-neutral-50">
         <div className="container-custom">
-          <p className="text-center text-xs text-neutral-500 mb-6 font-semibold uppercase tracking-widest">Magazine partenere</p>
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+          <p className="text-center text-xs text-neutral-500 mb-6 font-semibold uppercase tracking-widest">Magazine</p>
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             {stores.map((store, index) => (
               <Link
                 key={store.slug}
-                href={`/oferte/${store.slug}`}
-                className="group relative px-5 sm:px-6 py-2.5 sm:py-3 bg-white text-neutral-700 text-sm font-semibold rounded-xl hover:text-white transition-all duration-300 hover:scale-105 shadow-soft hover:shadow-lg border border-neutral-200/80 overflow-hidden stagger-item"
+                href={`/cataloage/${store.slug}`}
+                className="group relative px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-neutral-700 text-xs sm:text-sm font-semibold rounded-xl hover:text-white transition-all duration-300 hover:scale-105 shadow-soft hover:shadow-lg border border-neutral-200/80 overflow-hidden stagger-item"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <span className={`absolute inset-0 bg-gradient-to-r ${store.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
@@ -293,10 +292,10 @@ export default async function HomePage() {
               </h2>
             </div>
             <Link
-              href="/oferte"
+              href="/cataloage"
               className="hidden sm:inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 shadow-warm hover:shadow-lg transition-all duration-300 group"
             >
-              Vezi toate ofertele
+              Vezi toate cataloagele
               <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -321,8 +320,8 @@ export default async function HomePage() {
           </Suspense>
 
           <div className="mt-8 text-center sm:hidden">
-            <Link href="/oferte" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100 transition-colors border border-primary-100">
-              Vezi toate ofertele
+            <Link href="/cataloage" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100 transition-colors border border-primary-100">
+              Vezi toate cataloagele
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -486,11 +485,11 @@ export default async function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/oferte"
+              href="/cataloage"
               className="group px-8 py-4 bg-white text-primary-600 font-semibold rounded-xl hover:bg-accent-50 hover:text-primary-700 shadow-elevated hover:shadow-xl transition-all duration-300"
             >
               <span className="flex items-center justify-center gap-2">
-                Exploreaza Ofertele
+                Exploreaza Cataloagele
                 <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>

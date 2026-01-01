@@ -21,12 +21,12 @@ export const metadata: Metadata = {
   description:
     'Descopera cele mai bune oferte si reduceri din Kaufland, Lidl, Penny, Carrefour, Mega Image si Auchan. Actualizam zilnic preturile pentru tine!',
   alternates: {
-    canonical: '/oferte',
+    canonical: '/cataloage',
   },
   openGraph: {
-    title: 'Oferte - Retete Ieftine',
+    title: 'Oferte - CatalogSmart',
     description: 'Cele mai bune reduceri din supermarketuri, actualizate zilnic.',
-    url: '/oferte',
+    url: '/cataloage',
   },
 };
 
@@ -208,9 +208,9 @@ export default async function OfertePage({ searchParams }: PageProps) {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: 'Oferte si Reduceri Supermarketuri',
+    name: 'Cataloage si Reduceri Supermarketuri',
     description: 'Cele mai bune oferte din supermarketurile din Romania',
-    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://reteteieftine.ro'}/oferte`,
+    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/cataloage`,
     numberOfItems: total,
   };
 
@@ -240,7 +240,7 @@ export default async function OfertePage({ searchParams }: PageProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
               </div>
-              <span className="text-white/60 text-sm font-medium">Catalog oferte</span>
+              <span className="text-white/60 text-sm font-medium">Oferte actuale</span>
             </div>
             <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3">
               Oferte si{' '}
@@ -312,7 +312,7 @@ export default async function OfertePage({ searchParams }: PageProps) {
                 <Pagination
                   currentPage={page}
                   totalPages={totalPages}
-                  basePath="/oferte"
+                  basePath="/cataloage"
                   searchParams={params}
                 />
               )}
@@ -372,8 +372,8 @@ function Pagination({
           <a
             href={currentPage > 1 ? getPageUrl(currentPage - 1) : undefined}
             className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 ${currentPage > 1
-                ? 'text-neutral-700 hover:bg-primary-50 hover:text-primary-600'
-                : 'text-neutral-300 cursor-not-allowed'
+              ? 'text-neutral-700 hover:bg-primary-50 hover:text-primary-600'
+              : 'text-neutral-300 cursor-not-allowed'
               }`}
             aria-disabled={currentPage <= 1}
           >
@@ -394,8 +394,8 @@ function Pagination({
               <a
                 href={getPageUrl(page as number)}
                 className={`flex items-center justify-center w-10 h-10 rounded-xl text-sm font-bold transition-all duration-200 ${page === currentPage
-                    ? 'bg-gradient-to-r from-primary-500 to-emerald-500 text-white shadow-lg shadow-primary-500/25'
-                    : 'text-neutral-700 hover:bg-neutral-100'
+                  ? 'bg-gradient-to-r from-primary-500 to-emerald-500 text-white shadow-lg shadow-primary-500/25'
+                  : 'text-neutral-700 hover:bg-neutral-100'
                   }`}
                 aria-current={page === currentPage ? 'page' : undefined}
               >
@@ -410,8 +410,8 @@ function Pagination({
           <a
             href={currentPage < totalPages ? getPageUrl(currentPage + 1) : undefined}
             className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 ${currentPage < totalPages
-                ? 'text-neutral-700 hover:bg-primary-50 hover:text-primary-600'
-                : 'text-neutral-300 cursor-not-allowed'
+              ? 'text-neutral-700 hover:bg-primary-50 hover:text-primary-600'
+              : 'text-neutral-300 cursor-not-allowed'
               }`}
             aria-disabled={currentPage >= totalPages}
           >

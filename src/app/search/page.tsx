@@ -17,7 +17,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const query = params.q || '';
 
   return {
-    title: query ? `Rezultate pentru "${query}" - Retete Ieftine` : 'Cauta - Retete Ieftine',
+    title: query ? `Rezultate pentru "${query}" - CatalogSmart` : 'Cauta - CatalogSmart',
     description: query
       ? `Rezultate pentru cautarea "${query}" - produse si retete economice`
       : 'Cauta produse la reducere si retete economice',
@@ -223,13 +223,13 @@ export default async function SearchPage({ searchParams }: PageProps) {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
-                href="/oferte"
+                href="/cataloage"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-primary-500/25 transition-all"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
-                Vezi ofertele
+                Vezi cataloagele
               </Link>
               <Link
                 href="/retete"
@@ -260,7 +260,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                     </span>
                   </h2>
                   <Link
-                    href={`/oferte?search=${encodeURIComponent(query)}`}
+                    href={`/cataloage?search=${encodeURIComponent(query)}`}
                     className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors"
                   >
                     Vezi toate
@@ -334,13 +334,13 @@ export default async function SearchPage({ searchParams }: PageProps) {
             <p className="text-neutral-500 mb-6">Nu ai gasit ce cautai?</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
-                href="/oferte"
+                href="/cataloage"
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-xl transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
-                Toate ofertele
+                Toate cataloagele
               </Link>
               <Link
                 href="/retete"

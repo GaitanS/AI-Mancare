@@ -416,15 +416,15 @@ export default function ProductCard({
           {/* Main content container */}
           <div
             className={cn(
-              "relative w-full max-w-5xl h-full max-h-[90vh] lg:max-h-[80vh] flex flex-col lg:flex-row bg-white rounded-[2rem] overflow-hidden shadow-2xl z-[10000]",
+              "relative w-full max-w-5xl h-full max-h-[90vh] lg:max-h-[80vh] flex flex-col lg:flex-row bg-white rounded-2xl lg:rounded-[2rem] overflow-hidden shadow-2xl z-[10000]",
               isClosing ? "animate-modal-scale-out" : "animate-modal-scale"
             )}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Image Section - Left (Desktop) / Top (Mobile) */}
-            <div className="relative w-full lg:w-[60%] h-[40vh] sm:h-[50vh] lg:h-full bg-neutral-50 flex items-center justify-center p-6 border-b lg:border-b-0 lg:border-r border-neutral-100 text-left">
-              <div className="absolute top-4 left-4 z-30">
-                <span className={cn("px-4 py-2 rounded-xl text-white font-bold text-xs uppercase shadow-lg", storeStyle.solid)}>
+            <div className="relative w-full lg:w-[60%] h-[25vh] sm:h-[40vh] lg:h-full bg-neutral-50 flex items-center justify-center p-4 lg:p-6 border-b lg:border-b-0 lg:border-r border-neutral-100 text-left flex-shrink-0">
+              <div className="absolute top-3 left-3 z-30">
+                <span className={cn("px-2.5 py-1 rounded-lg text-white font-bold text-[10px] lg:text-xs uppercase shadow-md", storeStyle.solid)}>
                   {product.store}
                 </span>
               </div>
@@ -442,43 +442,43 @@ export default function ProductCard({
             </div>
 
             {/* Content Section - Right (Desktop) / Bottom (Mobile) */}
-            <div className="flex-1 flex flex-col h-full bg-white overflow-hidden text-left">
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary-400 via-accent-400 to-primary-400" />
+            <div className="flex-1 flex flex-col min-h-0 bg-white overflow-hidden text-left">
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary-400 via-accent-400 to-primary-400 z-10" />
 
-              <div className="flex-1 overflow-y-auto p-6 sm:p-8 lg:p-10 space-y-6">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 space-y-4 lg:space-y-6">
                 <div>
-                  <span className="inline-block px-3 py-1 rounded-lg bg-neutral-100 text-neutral-600 text-xs font-bold uppercase tracking-wider mb-3">
+                  <span className="inline-block px-2.5 py-0.5 rounded-md bg-neutral-100 text-neutral-600 text-[10px] lg:text-xs font-bold uppercase tracking-wider mb-2">
                     {product.category}
                   </span>
-                  <h2 className="text-2xl sm:text-3xl font-display font-bold text-neutral-900 leading-tight">
+                  <h2 className="text-xl sm:text-3xl font-display font-bold text-neutral-900 leading-tight">
                     {product.name}
                   </h2>
-                  {product.brand && <p className="text-lg text-neutral-500 mt-2">{product.brand}</p>}
+                  {product.brand && <p className="text-sm lg:text-lg text-neutral-500 mt-1">{product.brand}</p>}
                 </div>
 
                 {/* Pricing Block */}
-                <div className="p-6 rounded-3xl bg-neutral-50 border border-neutral-100 space-y-4">
+                <div className="p-4 lg:p-6 rounded-2xl lg:rounded-3xl bg-neutral-50 border border-neutral-100 space-y-3 lg:space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       {product.originalPrice && hasDiscount && (
-                        <p className="text-lg text-neutral-400 line-through font-medium mb-1">
+                        <p className="text-base lg:text-lg text-neutral-400 line-through font-medium mb-0.5">
                           {formatPrice(product.originalPrice)}
                         </p>
                       )}
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-5xl font-display font-black text-neutral-900">
+                      <div className="flex items-baseline gap-0.5">
+                        <span className="text-4xl lg:text-5xl font-display font-black text-neutral-900">
                           {product.price.toFixed(2).split('.')[0]}
                         </span>
-                        <span className="text-2xl font-display font-bold text-neutral-900">
+                        <span className="text-xl lg:text-2xl font-display font-bold text-neutral-900">
                           ,{product.price.toFixed(2).split('.')[1]}
                         </span>
-                        <span className="text-xl font-bold text-primary-600 uppercase ml-2">lei</span>
+                        <span className="text-base lg:text-xl font-bold text-primary-600 uppercase ml-1">lei</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-semibold text-neutral-500 block mb-1">per {product.unit}</span>
+                      <span className="text-xs lg:text-sm font-semibold text-neutral-500 block mb-1">per {product.unit}</span>
                       {hasDiscount && (
-                        <span className="inline-block bg-primary-600 text-white font-black px-4 py-2 rounded-2xl text-xl shadow-warm">
+                        <span className="inline-block bg-primary-600 text-white font-black px-3 py-1.5 lg:px-4 lg:py-2 rounded-xl text-lg lg:text-xl shadow-warm">
                           -{product.discountPercentage}%
                         </span>
                       )}
@@ -486,29 +486,29 @@ export default function ProductCard({
                   </div>
 
                   {savings > 0 && (
-                    <div className="pt-4 border-t border-neutral-200 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-success-100 flex items-center justify-center">
-                        <svg className="w-6 h-6 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="pt-3 lg:pt-4 border-t border-neutral-200 flex items-center gap-2 lg:gap-3">
+                      <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl bg-success-100 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 lg:w-6 lg:h-6 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
-                      <p className="font-bold text-success-700">Economisești {formatPrice(savings)} la acest produs!</p>
+                      <p className="font-bold text-sm lg:text-base text-success-700 leading-tight">Economisesti {formatPrice(savings)}!</p>
                     </div>
                   )}
                 </div>
 
                 {/* Validity and Other Details */}
                 <div className="space-y-4 text-left">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white border border-neutral-100 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl lg:rounded-2xl bg-white border border-neutral-100 shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-neutral-100 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 lg:w-5 lg:h-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </div>
                       <div>
-                        <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider">Perioadă ofertă</p>
-                        <p className="text-sm font-semibold text-neutral-800">
+                        <p className="text-[10px] lg:text-xs text-neutral-500 font-bold uppercase tracking-wider">Perioada oferta</p>
+                        <p className="text-xs lg:text-sm font-semibold text-neutral-800">
                           {formatDate(product.validFrom)} — {formatDate(product.validUntil)}
                         </p>
                       </div>
@@ -518,17 +518,15 @@ export default function ProductCard({
                 </div>
               </div>
 
-              {/* Action Bar */}
-              <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex items-center justify-between mt-auto">
-                <p className="text-xs text-neutral-400 italic">Prețul de la raft poate varia.</p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={closeModal}
-                    className="px-6 py-3 bg-neutral-900 text-white font-bold rounded-2xl hover:bg-black transition-colors shadow-lg"
-                  >
-                    Închide detaliile
-                  </button>
-                </div>
+              {/* Action Bar - Compact */}
+              <div className="p-4 lg:p-6 border-t border-neutral-100 bg-neutral-50/80 backdrop-blur-sm flex items-center justify-between mt-auto">
+                <p className="text-[10px] lg:text-xs text-neutral-400 italic hidden sm:block">Pret raft variabil.</p>
+                <button
+                  onClick={closeModal}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-neutral-900 text-white font-bold rounded-xl hover:bg-black transition-colors shadow-lg text-sm"
+                >
+                  Inchide
+                </button>
               </div>
             </div>
           </div>

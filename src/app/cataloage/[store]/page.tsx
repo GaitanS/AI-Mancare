@@ -43,15 +43,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `Oferte ${storeName} - Cele mai bune reduceri`,
-    description: `Descopera cele mai bune oferte si reduceri din ${storeName}. Actualizam zilnic preturile pentru tine!`,
+    title: `Cataloage ${storeName} - Cele mai bune reduceri`,
+    description: `Descopera cele mai bune oferte si reduceri din ${storeName}. Actualizam zilnic cataloagele pentru tine!`,
     alternates: {
-      canonical: `/oferte/${store}`,
+      canonical: `/cataloage/${store}`,
     },
     openGraph: {
-      title: `Oferte ${storeName} - Retete Ieftine`,
-      description: `Cele mai bune reduceri din ${storeName}, actualizate zilnic.`,
-      url: `/oferte/${store}`,
+      title: `Cataloage ${storeName} - CatalogSmart`,
+      description: `Cele mai bune reduceri din ${storeName}, extrase din cataloagele actuale.`,
+      url: `/cataloage/${store}`,
     },
   };
 }
@@ -253,7 +253,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
     '@type': 'Store',
     name: storeName,
     description: info.description,
-    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://reteteieftine.ro'}/oferte/${store}`,
+    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/cataloage/${store}`,
   };
 
   return (
@@ -276,7 +276,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
                 </li>
                 <li>/</li>
                 <li>
-                  <Link href="/oferte" className="hover:underline">
+                  <Link href="/cataloage" className="hover:underline">
                     Oferte
                   </Link>
                 </li>
@@ -351,7 +351,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
                 <Pagination
                   currentPage={page}
                   totalPages={totalPages}
-                  basePath={`/oferte/${store}`}
+                  basePath={`/cataloage/${store}`}
                   searchParams={search}
                 />
               )}
@@ -371,7 +371,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
                 .map(([slug, name]) => (
                   <Link
                     key={slug}
-                    href={`/oferte/${slug}`}
+                    href={`/cataloage/${slug}`}
                     className={`px-6 py-3 ${storeInfo[name]?.color || 'bg-gray-600'} text-white font-medium rounded-lg hover:opacity-90 transition-opacity`}
                   >
                     {name}

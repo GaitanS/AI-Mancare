@@ -162,18 +162,32 @@ export default function RecipeCard({
         {/* Recipe Content */}
         <div className="flex flex-col flex-1 p-4">
           {/* Tags */}
-          {recipe.tags && recipe.tags.length > 0 && (
-            <div className="mb-2.5 flex flex-wrap gap-1.5">
-              {recipe.tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs text-primary-600 font-medium hover:text-primary-700 transition-colors"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          )}
+          {(() => {
+            let tags = recipe.tags;
+            if (typeof tags === 'string') {
+              try {
+                tags = JSON.parse(tags);
+              } catch (e) {
+                tags = [];
+              }
+            }
+            if (!Array.isArray(tags)) tags = [];
+
+            if (tags.length === 0) return null;
+
+            return (
+              <div className="mb-2.5 flex flex-wrap gap-1.5">
+                {tags.slice(0, 3).map((tag: string) => (
+                  <span
+                    key={tag}
+                    className="text-xs text-primary-600 font-medium hover:text-primary-700 transition-colors"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Recipe Title */}
           <h3

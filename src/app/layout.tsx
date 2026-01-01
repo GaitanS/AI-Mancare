@@ -3,6 +3,7 @@ import { Fraunces, DM_Sans, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import BottomNav from '@/components/BottomNav';
 
 // Display font - Serif for headlines
 const fraunces = Fraunces({
@@ -27,15 +28,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://reteteieftine.ro'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'),
   title: {
-    default: 'Retete Ieftine - Oferte si Retete Economice pentru Toata Familia',
-    template: '%s | Retete Ieftine',
+    default: 'CatalogSmart - Oferte si Retete Economice pentru Toata Familia',
+    template: '%s | CatalogSmart',
   },
   description:
-    'Descopera cele mai bune oferte din supermarketuri si retete delicioase la preturi mici. Economiseste bani cu Retete Ieftine!',
+    'Descopera cele mai bune oferte din supermarketuri si retete delicioase la preturi mici. Economiseste bani cu CatalogSmart!',
   keywords: [
     'retete ieftine',
+    'catalog smart',
     'oferte supermarket',
     'retete economice',
     'mancare ieftina',
@@ -50,9 +52,9 @@ export const metadata: Metadata = {
     'buget mic',
     'economii',
   ],
-  authors: [{ name: 'Retete Ieftine' }],
-  creator: 'Retete Ieftine',
-  publisher: 'Retete Ieftine',
+  authors: [{ name: 'CatalogSmart' }],
+  creator: 'CatalogSmart',
+  publisher: 'CatalogSmart',
   formatDetection: {
     email: false,
     address: false,
@@ -62,8 +64,8 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ro_RO',
     url: '/',
-    siteName: 'Retete Ieftine',
-    title: 'Retete Ieftine - Oferte si Retete Economice',
+    siteName: 'CatalogSmart',
+    title: 'CatalogSmart - Oferte si Retete Economice',
     description:
       'Descopera cele mai bune oferte din supermarketuri si retete delicioase la preturi mici.',
     images: [
@@ -71,13 +73,13 @@ export const metadata: Metadata = {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Retete Ieftine - Oferte si Retete Economice',
+        alt: 'CatalogSmart - Oferte si Retete Economice',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Retete Ieftine - Oferte si Retete Economice',
+    title: 'CatalogSmart - Oferte si Retete Economice',
     description:
       'Descopera cele mai bune oferte din supermarketuri si retete delicioase la preturi mici.',
     images: ['/og-image.jpg'],
@@ -116,14 +118,14 @@ export const viewport: Viewport = {
 const websiteJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: 'Retete Ieftine',
-  url: process.env.NEXT_PUBLIC_BASE_URL || 'https://reteteieftine.ro',
+  name: 'CatalogSmart',
+  url: process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro',
   description: 'Platformă pentru oferte din supermarketuri si retete economice',
   potentialAction: {
     '@type': 'SearchAction',
     target: {
       '@type': 'EntryPoint',
-      urlTemplate: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://reteteieftine.ro'}/search?q={search_term_string}`,
+      urlTemplate: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/search?q={search_term_string}`,
     },
     'query-input': 'required name=search_term_string',
   },
@@ -132,9 +134,9 @@ const websiteJsonLd = {
 const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'Retete Ieftine',
-  url: process.env.NEXT_PUBLIC_BASE_URL || 'https://reteteieftine.ro',
-  logo: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://reteteieftine.ro'}/logo.png`,
+  name: 'CatalogSmart',
+  url: process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro',
+  logo: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/logo.png`,
   sameAs: [],
 };
 
@@ -161,8 +163,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col bg-background font-body text-foreground">
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-20 lg:pb-0">{children}</main>
         <Footer />
+        <BottomNav />
       </body>
     </html>
   );

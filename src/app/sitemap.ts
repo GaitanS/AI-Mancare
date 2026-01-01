@@ -6,7 +6,7 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://retete-ieftine.ro';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://catalogsmart.ro';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [];
@@ -20,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   });
 
   routes.push({
-    url: `${SITE_URL}/oferte`,
+    url: `${SITE_URL}/cataloage`,
     lastModified: new Date(),
     changeFrequency: 'daily',
     priority: 0.9,
@@ -67,7 +67,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     stores.forEach((store) => {
       routes.push({
-        url: `${SITE_URL}/oferte/${store.toLowerCase().replace(' ', '-')}`,
+        url: `${SITE_URL}/cataloage/${store.toLowerCase().replace(' ', '-')}`,
         lastModified: new Date(),
         changeFrequency: 'daily',
         priority: 0.7,
@@ -86,7 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     categories.forEach((category) => {
       routes.push({
-        url: `${SITE_URL}/oferte/categorie/${category}`,
+        url: `${SITE_URL}/cataloage/categorie/${category}`,
         lastModified: new Date(),
         changeFrequency: 'daily',
         priority: 0.7,

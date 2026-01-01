@@ -2,19 +2,19 @@ import Link from 'next/link';
 
 const footerLinks = {
   magazine: [
-    { name: 'Kaufland', href: '/oferte/kaufland' },
-    { name: 'Lidl', href: '/oferte/lidl' },
-    { name: 'Penny', href: '/oferte/penny' },
-    { name: 'Carrefour', href: '/oferte/carrefour' },
-    { name: 'Mega Image', href: '/oferte/mega-image' },
-    { name: 'Auchan', href: '/oferte/auchan' },
+    { name: 'Kaufland', href: '/cataloage/kaufland' },
+    { name: 'Lidl', href: '/cataloage/lidl' },
+    { name: 'Penny', href: '/cataloage/penny' },
+    { name: 'Carrefour', href: '/cataloage/carrefour' },
+    { name: 'Mega Image', href: '/cataloage/mega-image' },
+    { name: 'Auchan', href: '/cataloage/auchan' },
   ],
   categorii: [
-    { name: 'Carne si Mezeluri', href: '/oferte?category=carne' },
-    { name: 'Lactate', href: '/oferte?category=lactate' },
-    { name: 'Legume si Fructe', href: '/oferte?category=legume-fructe' },
-    { name: 'Bauturi', href: '/oferte?category=bauturi' },
-    { name: 'Dulciuri', href: '/oferte?category=dulciuri' },
+    { name: 'Carne si Mezeluri', href: '/cataloage?category=carne' },
+    { name: 'Lactate', href: '/cataloage?category=lactate' },
+    { name: 'Legume si Fructe', href: '/cataloage?category=legume-fructe' },
+    { name: 'Bauturi', href: '/cataloage?category=bauturi' },
+    { name: 'Dulciuri', href: '/cataloage?category=dulciuri' },
   ],
   retete: [
     { name: 'Retete Usoare', href: '/retete?difficulty=USOR' },
@@ -87,8 +87,8 @@ export default function Footer() {
                 </svg>
               </div>
               <span className="flex items-baseline gap-1">
-                <span className="text-xl font-display font-bold text-white">Retete</span>
-                <span className="text-xl font-display font-bold text-primary-400">Ieftine</span>
+                <span className="text-xl font-display font-bold text-white">Catalog</span>
+                <span className="text-xl font-display font-bold text-primary-400">Smart</span>
               </span>
             </Link>
             <p className="text-sm text-neutral-400 leading-relaxed max-w-xs">
@@ -178,7 +178,7 @@ export default function Footer() {
         <div className="mt-16 pt-8 border-t border-neutral-700/50">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-neutral-500">
-              &copy; {currentYear} Retete Ieftine. Toate drepturile rezervate.
+              &copy; {currentYear} CatalogSmart. Toate drepturile rezervate.
             </p>
             <p className="text-xs text-neutral-600 text-center md:text-right max-w-lg">
               Preturile si disponibilitatea produselor pot varia. Verificati ofertele in magazin inainte de cumparare.

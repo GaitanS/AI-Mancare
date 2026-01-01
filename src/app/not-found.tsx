@@ -39,8 +39,8 @@ export default function NotFound() {
           <Link href="/" className="btn-primary btn-md">
             Inapoi la Acasa
           </Link>
-          <Link href="/oferte" className="btn-secondary btn-md">
-            Vezi Ofertele
+          <Link href="/cataloage" className="btn-secondary btn-md">
+            Vezi Cataloagele
           </Link>
         </div>
 
@@ -48,21 +48,21 @@ export default function NotFound() {
           <p className="text-sm text-gray-500 mb-4">Sau cauta ce te intereseaza:</p>
           <div className="flex flex-wrap justify-center gap-2">
             <Link
-              href="/oferte/kaufland"
+              href="/cataloage/kaufland"
               className="text-sm text-primary-600 hover:text-primary-700 hover:underline"
             >
               Kaufland
             </Link>
             <span className="text-gray-300">|</span>
             <Link
-              href="/oferte/lidl"
+              href="/cataloage/lidl"
               className="text-sm text-primary-600 hover:text-primary-700 hover:underline"
             >
               Lidl
             </Link>
             <span className="text-gray-300">|</span>
             <Link
-              href="/oferte/penny"
+              href="/cataloage/penny"
               className="text-sm text-primary-600 hover:text-primary-700 hover:underline"
             >
               Penny

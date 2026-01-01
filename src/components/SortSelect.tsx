@@ -118,11 +118,12 @@ export default function SortSelect({
   return (
     <div className={cn('relative', className)}>
       {/* Trigger Button */}
+      {/* Trigger Button */}
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
+          'w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
           'bg-white border border-neutral-200 text-neutral-700',
           'hover:border-primary-300 hover:shadow-sm',
           'focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400',
@@ -131,20 +132,22 @@ export default function SortSelect({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        {/* Icon */}
-        <span className={cn(
-          'transition-colors',
-          isOpen ? 'text-primary-500' : 'text-neutral-400'
-        )}>
-          {sortIcons[currentValue] || (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
-            </svg>
-          )}
-        </span>
+        <div className="flex items-center gap-2 overflow-hidden">
+          {/* Icon */}
+          <span className={cn(
+            'transition-colors flex-shrink-0',
+            isOpen ? 'text-primary-500' : 'text-neutral-400'
+          )}>
+            {sortIcons[currentValue] || (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
+              </svg>
+            )}
+          </span>
 
-        {/* Label */}
-        <span className="hidden sm:inline">{currentOption?.label || 'Sorteaza'}</span>
+          {/* Label */}
+          <span className="truncate">{currentOption?.label || 'Sorteaza'}</span>
+        </div>
 
         {/* Chevron */}
         <svg

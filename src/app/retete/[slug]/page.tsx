@@ -27,39 +27,52 @@ async function getRecipe(slug: string): Promise<Recipe | null> {
     data: { viewCount: { increment: 1 } },
   });
 
+  const ingredientIds = recipe.ingredientIds ? JSON.parse(recipe.ingredientIds) : [];
+
   return {
     ...recipe,
     estimatedCost: recipe.estimatedCost ? Number(recipe.estimatedCost) : null,
     costPerServing: recipe.costPerServing ? Number(recipe.costPerServing) : null,
-    instructions: recipe.instructions as Recipe['instructions'],
-    tips: recipe.tips as string[] | null,
-    tags: recipe.tags as string[] | null,
-    nutritionPerServing: recipe.nutritionPerServing as Recipe['nutritionPerServing'],
+    instructions: typeof recipe.instructions === 'string' ? JSON.parse(recipe.instructions) : recipe.instructions,
+    tips: recipe.tips ? (typeof recipe.tips === 'string' ? JSON.parse(recipe.tips) : recipe.tips) : [],
+    tags: recipe.tags ? (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags) : [],
+    nutritionPerServing: recipe.nutritionPerServing ? (typeof recipe.nutritionPerServing === 'string' ? JSON.parse(recipe.nutritionPerServing) : recipe.nutritionPerServing) : null,
+    ingredientIds,
   };
 }
 
 // Get recipe ingredients (products)
 async function getRecipeIngredients(ingredientIds: string[]): Promise<Product[]> {
-  if (!ingredientIds || ingredientIds.length === 0) return [];
+  if (!ingredientIds || !Array.isArray(ingredientIds) || ingredientIds.length === 0) return [];
 
-  const products = await prisma.product.findMany({
-    where: {
-      id: { in: ingredientIds },
-    },
-  });
+  // Filter out any invalid IDs potentially
+  const validIds = ingredientIds.filter(id => typeof id === 'string' && id.length > 0);
 
-  return products.map((p) => ({
-    ...p,
-    price: Number(p.price),
-    originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-    extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
-    validFrom: p.validFrom.toISOString(),
-    validUntil: p.validUntil.toISOString(),
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-    nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-    allergens: p.allergens as string[] | null,
-  }));
+  if (validIds.length === 0) return [];
+
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        id: { in: validIds },
+      },
+    });
+
+    return products.map((p) => ({
+      ...p,
+      price: Number(p.price),
+      originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+      extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
+      validFrom: p.validFrom.toISOString(),
+      validUntil: p.validUntil.toISOString(),
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+      nutritionalInfo: p.nutritionalInfo ? (typeof p.nutritionalInfo === 'string' ? JSON.parse(p.nutritionalInfo) : p.nutritionalInfo) : null,
+      allergens: p.allergens ? (typeof p.allergens === 'string' ? JSON.parse(p.allergens) : p.allergens) : [],
+    }));
+  } catch (error) {
+    console.error('Error fetching ingredients:', error);
+    return [];
+  }
 }
 
 // Get related recipes
@@ -68,13 +81,16 @@ async function getRelatedRecipes(
   tags: string[] | null,
   difficulty: string
 ): Promise<Recipe[]> {
+  const firstTag = tags && tags.length > 0 ? tags[0] : null;
+
   const recipes = await prisma.recipe.findMany({
     where: {
       id: { not: recipeId },
       OR: [
-        { tags: tags && tags.length > 0 ? { hasSome: tags } : undefined },
+        // Fallback: Check if tags string contains the first tag (basic approximate matching)
+        firstTag ? { tags: { contains: firstTag } } : undefined,
         { difficulty: difficulty as 'USOR' | 'MEDIU' | 'DIFICIL' },
-      ].filter(Boolean),
+      ].filter(Boolean) as any,
     },
     take: 3,
     orderBy: { viewCount: 'desc' },
@@ -84,10 +100,11 @@ async function getRelatedRecipes(
     ...r,
     estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
     costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
-    instructions: r.instructions as Recipe['instructions'],
-    tips: r.tips as string[] | null,
-    tags: r.tags as string[] | null,
-    nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
+    instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
+    tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : [],
+    tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
+    nutritionPerServing: r.nutritionPerServing ? (typeof r.nutritionPerServing === 'string' ? JSON.parse(r.nutritionPerServing) : r.nutritionPerServing) : null,
+    ingredientIds: r.ingredientIds ? (typeof r.ingredientIds === 'string' ? JSON.parse(r.ingredientIds) : r.ingredientIds) : [],
   }));
 }
 
@@ -129,38 +146,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-// Difficulty styles - premium gradient versions
-const difficultyStyles = {
-  USOR: {
-    bg: 'bg-gradient-to-r from-success-500 to-emerald-500',
-    text: 'text-white',
-    label: 'Usor',
-    icon: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-  },
-  MEDIU: {
-    bg: 'bg-gradient-to-r from-warning-500 to-amber-500',
-    text: 'text-white',
-    label: 'Mediu',
-    icon: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
-  },
-  DIFICIL: {
-    bg: 'bg-gradient-to-r from-danger-500 to-rose-500',
-    text: 'text-white',
-    label: 'Dificil',
-    icon: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-      </svg>
-    ),
-  },
+// Clean, modern difficulty badges
+const difficultyConfig = {
+  USOR: { label: 'Usor', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+  MEDIU: { label: 'Mediu', color: 'text-amber-700 bg-amber-50 border-amber-200' },
+  DIFICIL: { label: 'Dificil', color: 'text-rose-700 bg-rose-50 border-rose-200' },
 };
 
 export default async function RecipePage({ params }: PageProps) {
@@ -176,7 +166,7 @@ export default async function RecipePage({ params }: PageProps) {
     getRelatedRecipes(recipe.id, recipe.tags, recipe.difficulty),
   ]);
 
-  const difficultyStyle = difficultyStyles[recipe.difficulty] || difficultyStyles.MEDIU;
+  const difficultyInfo = difficultyConfig[recipe.difficulty as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
 
   // JSON-LD structured data for recipe
   const recipeJsonLd = {
@@ -225,408 +215,210 @@ export default async function RecipePage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(recipeJsonLd) }}
       />
-
-      <article className="bg-neutral-50 min-h-screen">
-        {/* Premium Hero Header */}
-        <div className="relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 text-white overflow-hidden">
-          {/* Animated gradient orbs */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-primary-500/20 to-emerald-500/10 rounded-full blur-3xl animate-float" />
-            <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-accent-500/15 to-primary-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '-2s' }} />
-          </div>
-
-          {/* Subtle grid pattern */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-          }} />
-
-          <div className="relative container-custom py-8 md:py-12">
-            {/* Premium Breadcrumb */}
-            <nav aria-label="Breadcrumb" className="mb-6 animate-fade-in-up">
-              <ol className="flex items-center gap-2 text-sm">
-                <li>
-                  <Link href="/" className="flex items-center gap-1 text-neutral-400 hover:text-white transition-colors">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                    Acasa
-                  </Link>
-                </li>
-                <li className="text-neutral-600">/</li>
-                <li>
-                  <Link href="/retete" className="text-neutral-400 hover:text-white transition-colors">
-                    Retete
-                  </Link>
-                </li>
-                <li className="text-neutral-600">/</li>
-                <li className="text-white font-medium truncate max-w-xs">
-                  {recipe.title}
-                </li>
+      <article className="min-h-screen bg-[#FDFBF7] text-neutral-900 pb-20">
+        {/* Navigation Breadcrumb - Compact */}
+        <div className="sticky top-0 z-30 bg-[#FDFBF7]/95 backdrop-blur-sm border-b border-neutral-200/60 shadow-sm">
+          <div className="container-custom py-2 flex items-center justify-between">
+            <nav aria-label="Breadcrumb">
+              <ol className="flex items-center gap-1.5 text-xs font-medium text-neutral-600">
+                <li><Link href="/" className="hover:text-primary-700 transition-colors">Acasa</Link></li>
+                <li className="text-neutral-400">/</li>
+                <li><Link href="/retete" className="hover:text-primary-700 transition-colors">Retete</Link></li>
+                <li className="hidden sm:block text-neutral-400">/</li>
+                <li className="hidden sm:block text-neutral-900 truncate max-w-[150px] font-bold">{recipe.title}</li>
               </ol>
             </nav>
 
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              {/* Recipe Image Placeholder */}
-              <div className="relative aspect-video bg-gradient-to-br from-primary-500/20 to-emerald-500/10 rounded-3xl flex items-center justify-center overflow-hidden animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary-500/10 via-transparent to-transparent" />
-                <svg
-                  className="w-24 h-24 text-primary-400/50"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1}
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
+            <div className="flex gap-1">
+              <button className="p-1.5 text-neutral-600 hover:text-primary-700 hover:bg-neutral-100 rounded-full transition-colors" aria-label="Favorite">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
                 </svg>
-              </div>
+              </button>
+              <button className="p-1.5 text-neutral-600 hover:text-primary-700 hover:bg-neutral-100 rounded-full transition-colors" aria-label="Share">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
 
-              {/* Recipe Info */}
-              <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-                {/* Tags */}
-                {recipe.tags && recipe.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {recipe.tags.map((tag) => (
-                      <Link
-                        key={tag}
-                        href={`/retete?tags=${tag}`}
-                        className="px-3 py-1 text-sm font-medium text-primary-400 bg-primary-500/10 hover:bg-primary-500/20 rounded-full transition-colors"
-                      >
-                        #{tag}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+        <div className="container-custom py-6 lg:py-8">
+          <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
 
-                <h1 className="font-display text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-4">
-                  {recipe.title}
-                </h1>
+            {/* Header & Meta (Spans full width on mobile, left col on desktop) */}
+            <div className="lg:col-span-8 flex flex-col justify-center text-center lg:text-left">
+              {/* Tags */}
+              {recipe.tags && recipe.tags.length > 0 && (
+                <div className="flex flex-wrap justify-center lg:justify-start gap-2 mb-4">
+                  {recipe.tags.slice(0, 3).map(tag => (
+                    <Link key={tag} href={`/retete?tags=${tag}`} className="px-2.5 py-1 rounded-md bg-white border border-neutral-200 text-neutral-800 text-[11px] font-bold uppercase tracking-wider hover:border-neutral-400 transition-colors shadow-sm">
+                      {tag}
+                    </Link>
+                  ))}
+                </div>
+              )}
 
-                <p className="text-lg text-neutral-300 mb-6">{recipe.description}</p>
+              <h1 className="font-display font-bold text-3xl md:text-4xl lg:text-5xl text-neutral-900 leading-[1.1] mb-4">
+                {recipe.title}
+              </h1>
 
-                {/* Recipe Meta Badges */}
-                <div className="flex flex-wrap gap-3 mb-6">
-                  {/* Difficulty */}
-                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl ${difficultyStyle.bg} ${difficultyStyle.text} font-semibold text-sm shadow-lg`}>
-                    {difficultyStyle.icon}
-                    {difficultyStyle.label}
-                  </div>
+              <p className="text-base md:text-lg text-neutral-800 leading-relaxed font-medium opacity-90 mb-6 max-w-2xl mx-auto lg:mx-0">
+                {recipe.description}
+              </p>
 
-                  {/* Time */}
-                  {recipe.totalTime && (
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-sm text-white text-sm font-medium">
-                      <svg className="w-4 h-4 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {recipe.totalTime} minute
-                    </div>
-                  )}
-
-                  {/* Servings */}
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-sm text-white text-sm font-medium">
-                    <svg className="w-4 h-4 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {recipe.servings} portii
-                  </div>
+              {/* Compact Metadata Row */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 border-t border-b border-neutral-200 py-4 bg-white/50 rounded-xl px-4 lg:px-0 lg:bg-transparent lg:border-t-0 lg:border-b-0 lg:py-0 lg:rounded-none">
+                <div className="flex items-center gap-2" title="Dificultate">
+                  <div className={`w-2.5 h-2.5 rounded-full ${difficultyInfo.color.split(' ')[0].replace('text-', 'bg-')}`}></div>
+                  <span className="text-sm font-bold text-neutral-900">{difficultyInfo.label}</span>
                 </div>
 
-                {/* Cost Badge - Premium */}
-                {recipe.estimatedCost && (
-                  <div className="inline-flex items-center gap-3 bg-gradient-to-r from-success-500/20 to-emerald-500/20 backdrop-blur-sm border border-success-500/30 px-5 py-3 rounded-2xl">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-success-500 to-emerald-500 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-display font-bold text-white">
-                        {formatPrice(recipe.estimatedCost)}
-                      </p>
-                      <p className="text-xs text-neutral-400">
-                        {recipe.costPerServing && `${formatPrice(recipe.costPerServing)} / portie`}
-                      </p>
-                    </div>
+                {recipe.totalTime && (
+                  <div className="flex items-center gap-2" title="Timp total">
+                    <svg className="w-4 h-4 text-neutral-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-bold text-neutral-900">{recipe.totalTime} min</span>
                   </div>
                 )}
 
-                {/* Stats */}
-                <div className="mt-6 flex items-center gap-6 text-sm text-neutral-400">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    <span>{recipe.viewCount.toLocaleString('ro-RO')} vizualizari</span>
+                <div className="flex items-center gap-2" title="Portii">
+                  <svg className="w-4 h-4 text-neutral-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="text-sm font-bold text-neutral-900">{recipe.servings} pers.</span>
+                </div>
+
+                {recipe.estimatedCost && (
+                  <div className="flex items-center gap-2 pl-2 md:pl-4 md:border-l border-neutral-300">
+                    <span className="text-sm font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded text-emerald-900">{formatPrice(recipe.estimatedCost)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-danger-400" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                    <span>{recipe.favoriteCount} favorite</span>
-                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Sidebar / Ingredients Card (Right side on Desktop) */}
+            <div className="lg:col-span-4 lg:row-span-2">
+              <div className="bg-white rounded-2xl p-5 shadow-card border border-neutral-200/80 sticky top-20">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-neutral-100">
+                  <h3 className="font-display text-lg font-bold text-neutral-900">Ingrediente</h3>
+                  <span className="text-xs font-bold bg-neutral-100 text-neutral-600 px-2 py-1 rounded">{ingredients.length} items</span>
+                </div>
+
+                {ingredients.length > 0 ? (
+                  <ul className="space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin pr-1">
+                    {ingredients.map((item) => (
+                      <li key={item.id} className="flex items-start justify-between gap-2 text-sm">
+                        <label className="flex items-start gap-2.5 cursor-pointer leading-tight select-none">
+                          <input type="checkbox" className="mt-0.5 w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500" />
+                          <div>
+                            <span className="font-semibold text-neutral-900">{item.name}</span>
+                            {item.store && <span className="block text-[10px] text-neutral-500 uppercase font-bold tracking-wide mt-0.5">{item.store}</span>}
+                          </div>
+                        </label>
+                        <div className="text-right whitespace-nowrap">
+                          <span className="font-bold text-neutral-900">{formatPrice(item.price)}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-neutral-500 text-xs text-center py-4">Fara ingrediente.</p>
+                )}
+
+                <div className="mt-5 pt-4 border-t border-neutral-100 grid grid-cols-2 gap-2">
+                  <button className="col-span-2 btn-primary py-2.5 text-sm font-bold shadow-none rounded-lg">
+                    Adauga tot
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Bottom gradient fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-neutral-50 to-transparent" />
-        </div>
-
-        {/* Recipe Content */}
-        <div className="container-custom py-8 lg:py-12">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Time Breakdown - Premium Cards */}
-              {(recipe.prepTime || recipe.cookTime) && (
-                <section className="grid grid-cols-3 gap-4 animate-fade-in-up">
-                  {recipe.prepTime && (
-                    <div className="bg-white rounded-2xl p-5 border border-neutral-100 shadow-card text-center group hover:shadow-elevated transition-all duration-300">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                        <svg className="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                      </div>
-                      <p className="font-display text-3xl font-bold text-neutral-900">{recipe.prepTime}</p>
-                      <p className="text-sm text-neutral-500 mt-1">min pregatire</p>
+            {/* Instructions (Below Header on Desktop) */}
+            <div className="lg:col-span-8">
+              <h2 className="font-display text-2xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
+                Mod de preparare
+              </h2>
+              <div className="space-y-6">
+                {recipe.instructions.map((step, idx) => (
+                  <div key={idx} className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold text-sm mt-1">
+                      {step.step}
                     </div>
-                  )}
-                  {recipe.cookTime && (
-                    <div className="bg-white rounded-2xl p-5 border border-neutral-100 shadow-card text-center group hover:shadow-elevated transition-all duration-300">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-50 to-accent-100 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                        <svg className="w-6 h-6 text-accent-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-                        </svg>
-                      </div>
-                      <p className="font-display text-3xl font-bold text-neutral-900">{recipe.cookTime}</p>
-                      <p className="text-sm text-neutral-500 mt-1">min gatit</p>
+                    <div>
+                      <p className="text-neutral-900 leading-7 font-medium">
+                        {step.text}
+                      </p>
                     </div>
-                  )}
-                  {recipe.totalTime && (
-                    <div className="bg-gradient-to-br from-primary-500 to-emerald-500 rounded-2xl p-5 shadow-lg shadow-primary-500/25 text-center text-white">
-                      <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-3">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <p className="font-display text-3xl font-bold">{recipe.totalTime}</p>
-                      <p className="text-sm text-white/80 mt-1">min total</p>
-                    </div>
-                  )}
-                </section>
-              )}
+                  </div>
+                ))}
+              </div>
 
-              {/* Instructions - Premium Editorial Style */}
-              <section className="bg-white rounded-2xl p-6 md:p-8 border border-neutral-100 shadow-card">
-                <h2 className="font-display text-2xl font-bold text-neutral-900 mb-8 flex items-center gap-3">
-                  <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-emerald-500 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                  </span>
-                  Instructiuni
-                </h2>
-                <ol className="space-y-6">
-                  {recipe.instructions.map((instruction, index) => (
-                    <li key={instruction.step} className="flex gap-5 group">
-                      <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-primary-500 to-emerald-500 text-white rounded-xl flex items-center justify-center font-display font-bold shadow-lg shadow-primary-500/20 group-hover:scale-110 transition-transform">
-                        {instruction.step}
-                      </div>
-                      <div className="flex-1 pt-2">
-                        <p className="text-neutral-700 leading-relaxed">{instruction.text}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-
-              {/* Tips - Premium Style */}
+              {/* Tips */}
               {recipe.tips && recipe.tips.length > 0 && (
-                <section className="relative bg-gradient-to-br from-accent-50 to-amber-50 rounded-2xl p-6 md:p-8 border border-accent-100 overflow-hidden">
-                  {/* Decorative pattern */}
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-accent-200/30 to-transparent rounded-full blur-2xl" />
-
-                  <h2 className="relative font-display text-xl font-bold text-accent-800 mb-6 flex items-center gap-3">
-                    <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-500 to-amber-500 flex items-center justify-center shadow-lg">
-                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
-                    </span>
+                <div className="mt-10 bg-amber-50 rounded-xl p-5 border border-amber-100">
+                  <h3 className="font-bold text-amber-900 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
                     Sfaturi utile
-                  </h2>
-                  <ul className="relative space-y-3">
-                    {recipe.tips.map((tip, index) => (
-                      <li key={index} className="flex items-start gap-3 text-accent-800">
-                        <svg className="w-5 h-5 text-accent-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
+                  </h3>
+                  <ul className="space-y-2">
+                    {recipe.tips.map((tip, i) => (
+                      <li key={i} className="flex gap-2 text-sm font-medium text-amber-900">
+                        <span className="text-amber-600 font-bold">•</span>
                         <span>{tip}</span>
                       </li>
                     ))}
                   </ul>
-                </section>
+                </div>
               )}
 
-              {/* Nutrition Info - Premium Cards */}
+              {/* Nutrition Table - Compact */}
               {recipe.nutritionPerServing && (
-                <section className="bg-white rounded-2xl p-6 md:p-8 border border-neutral-100 shadow-card">
-                  <h2 className="font-display text-xl font-bold text-neutral-900 mb-6 flex items-center gap-3">
-                    <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg">
-                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </span>
-                    Informatii nutritionale
-                    <span className="text-sm font-normal text-neutral-500">(per portie)</span>
-                  </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {recipe.nutritionPerServing.calories && (
-                      <div className="text-center p-4 bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-xl group hover:shadow-md transition-all">
-                        <p className="font-display text-3xl font-bold text-neutral-900 group-hover:text-primary-600 transition-colors">
-                          {recipe.nutritionPerServing.calories}
-                        </p>
-                        <p className="text-sm text-neutral-500 mt-1">kcal</p>
-                      </div>
-                    )}
-                    {recipe.nutritionPerServing.protein && (
-                      <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl group hover:shadow-md transition-all">
-                        <p className="font-display text-3xl font-bold text-neutral-900 group-hover:text-blue-600 transition-colors">
-                          {recipe.nutritionPerServing.protein}g
-                        </p>
-                        <p className="text-sm text-neutral-500 mt-1">Proteine</p>
-                      </div>
-                    )}
-                    {recipe.nutritionPerServing.carbs && (
-                      <div className="text-center p-4 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl group hover:shadow-md transition-all">
-                        <p className="font-display text-3xl font-bold text-neutral-900 group-hover:text-amber-600 transition-colors">
-                          {recipe.nutritionPerServing.carbs}g
-                        </p>
-                        <p className="text-sm text-neutral-500 mt-1">Carbohidrati</p>
-                      </div>
-                    )}
-                    {recipe.nutritionPerServing.fat && (
-                      <div className="text-center p-4 bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl group hover:shadow-md transition-all">
-                        <p className="font-display text-3xl font-bold text-neutral-900 group-hover:text-rose-600 transition-colors">
-                          {recipe.nutritionPerServing.fat}g
-                        </p>
-                        <p className="text-sm text-neutral-500 mt-1">Grasimi</p>
-                      </div>
-                    )}
+                <div className="mt-10 pt-8 border-t border-neutral-200">
+                  <h3 className="font-display text-lg font-bold text-neutral-900 mb-4">Nutritionale <span className="text-sm font-normal text-neutral-500 font-sans">(per portie)</span></h3>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <div className="bg-white border border-neutral-200 px-4 py-2 rounded-lg text-center min-w-[80px]">
+                      <div className="font-bold text-neutral-900 text-lg">{recipe.nutritionPerServing.calories}</div>
+                      <div className="text-[10px] text-neutral-500 uppercase font-bold">Kcal</div>
+                    </div>
+                    <div className="bg-white border border-neutral-200 px-4 py-2 rounded-lg text-center min-w-[80px]">
+                      <div className="font-bold text-neutral-900 text-lg">{recipe.nutritionPerServing.protein}g</div>
+                      <div className="text-[10px] text-neutral-500 uppercase font-bold">Prot</div>
+                    </div>
+                    <div className="bg-white border border-neutral-200 px-4 py-2 rounded-lg text-center min-w-[80px]">
+                      <div className="font-bold text-neutral-900 text-lg">{recipe.nutritionPerServing.carbs}g</div>
+                      <div className="text-[10px] text-neutral-500 uppercase font-bold">Carb</div>
+                    </div>
+                    <div className="bg-white border border-neutral-200 px-4 py-2 rounded-lg text-center min-w-[80px]">
+                      <div className="font-bold text-neutral-900 text-lg">{recipe.nutritionPerServing.fat}g</div>
+                      <div className="text-[10px] text-neutral-500 uppercase font-bold">Fat</div>
+                    </div>
                   </div>
-                </section>
+                </div>
               )}
             </div>
 
-            {/* Sidebar */}
-            <aside className="space-y-6">
-              {/* Ingredients - Premium Sticky Card */}
-              <section className="bg-white rounded-2xl border border-neutral-100 shadow-card sticky top-24 overflow-hidden">
-                <div className="bg-gradient-to-r from-primary-500 to-emerald-500 p-5">
-                  <h2 className="font-display text-lg font-bold text-white flex items-center gap-2">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    Ingrediente
-                  </h2>
-                  <p className="text-sm text-white/80 mt-1">{ingredients.length} produse</p>
-                </div>
-
-                <div className="p-5">
-                  {ingredients.length > 0 ? (
-                    <ul className="space-y-3">
-                      {ingredients.map((ingredient) => (
-                        <li
-                          key={ingredient.id}
-                          className="flex items-center justify-between gap-3 pb-3 border-b border-neutral-100 last:border-0 last:pb-0 group"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-neutral-900 truncate group-hover:text-primary-600 transition-colors">
-                              {ingredient.name}
-                            </p>
-                            <p className="text-xs text-neutral-500">{ingredient.store}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-primary-600">
-                              {formatPrice(ingredient.price)}
-                            </p>
-                            {ingredient.discountPercentage && ingredient.discountPercentage > 0 && (
-                              <span className="inline-block px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-danger-500 to-rose-500 text-white rounded-full">
-                                -{ingredient.discountPercentage}%
-                              </span>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-neutral-500 text-center py-4">
-                      Ingredientele vor fi adaugate in curand.
-                    </p>
-                  )}
-
-                  {recipe.estimatedCost && (
-                    <div className="mt-5 pt-5 border-t border-neutral-100">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-neutral-700">Total estimat:</span>
-                        <span className="font-display text-xl font-bold text-success-600">
-                          {formatPrice(recipe.estimatedCost)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              {/* Print/Share - Premium */}
-              <div className="flex gap-3">
-                <PrintButton className="flex-1" />
-                <button
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white rounded-xl border border-neutral-200 text-neutral-700 font-semibold hover:bg-neutral-50 hover:border-neutral-300 transition-all"
-                  aria-label="Share"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
-                  Share
-                </button>
-              </div>
-            </aside>
           </div>
         </div>
 
-        {/* Related Recipes - Premium Section */}
+        {/* Related Recipes Section */}
         {relatedRecipes.length > 0 && (
-          <section className="relative bg-white py-16 border-t border-neutral-100 overflow-hidden">
-            {/* Background decoration */}
-            <div className="absolute inset-0 opacity-[0.02]" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2316a34a' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-            }} />
-
-            <div className="relative container-custom">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="font-display text-2xl md:text-3xl font-bold text-neutral-900">
-                  Retete similare
-                </h2>
-                <Link
-                  href="/retete"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors"
-                >
-                  Vezi toate
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
+          <section className="bg-neutral-50 border-t border-neutral-200 py-16 mt-16">
+            <div className="container-custom">
+              <div className="flex items-end justify-between mb-10">
+                <div>
+                  <span className="text-primary-600 font-bold uppercase tracking-wider text-sm mb-2 block">Descopera mai mult</span>
+                  <h2 className="font-display text-3xl md:text-4xl font-bold text-neutral-900">Alte Retete Similare</h2>
+                </div>
+                <Link href="/retete" className="hidden md:inline-flex text-neutral-900 font-semibold hover:text-primary-600 transition-colors items-center gap-1">
+                  Vezi catalogul <span aria-hidden="true">&rarr;</span>
                 </Link>
               </div>
+
               <div className="grid-recipes">
-                {relatedRecipes.map((recipe, index) => (
-                  <div key={recipe.id} className="stagger-item" style={{ animationDelay: `${index * 100}ms` }}>
-                    <RecipeCard recipe={recipe} />
-                  </div>
+                {relatedRecipes.map((r) => (
+                  <RecipeCard key={r.id} recipe={r} />
                 ))}
               </div>
             </div>

@@ -169,8 +169,8 @@ export default function FilterSidebar({
                   </div>
                   <div className="flex items-center gap-2 flex-1">
                     <span className={cn(
-                      'w-2.5 h-2.5 rounded-full bg-gradient-to-r shadow-sm',
-                      storeColors[store.value] || 'from-neutral-400 to-neutral-500'
+                      'w-2.5 h-2.5 rounded-full shadow-sm',
+                      storeColors[store.value] ? `bg-[${storeColors[store.value]}]` : 'bg-neutral-400'
                     )} />
                     <span className={cn(
                       'text-sm font-medium transition-colors',
@@ -287,7 +287,7 @@ export default function FilterSidebar({
                   className={cn(
                     'px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
                     isSelected
-                      ? 'bg-gradient-to-r from-danger-500 to-rose-500 text-white shadow-md'
+                      ? 'bg-neutral-900 text-white shadow-md'
                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   )}
                 >
@@ -319,11 +319,7 @@ export default function FilterSidebar({
                 ? getFilterValue('difficulty').includes(difficulty.value)
                 : getFilterValue('difficulty') === difficulty.value;
 
-              const colorClass = difficulty.value === 'USOR'
-                ? 'from-success-500 to-emerald-500'
-                : difficulty.value === 'MEDIU'
-                  ? 'from-warning-500 to-amber-500'
-                  : 'from-danger-500 to-rose-500';
+              const colorClass = isSelected ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600';
 
               return (
                 <button
@@ -332,7 +328,7 @@ export default function FilterSidebar({
                   className={cn(
                     'px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200',
                     isSelected
-                      ? `bg-gradient-to-r ${colorClass} text-white shadow-md`
+                      ? 'bg-neutral-900 text-white shadow-md'
                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   )}
                 >
@@ -386,7 +382,7 @@ export default function FilterSidebar({
                   className={cn(
                     'px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5',
                     isSelected
-                      ? 'bg-gradient-to-r from-primary-500 to-emerald-500 text-white shadow-md'
+                      ? 'bg-neutral-900 text-white shadow-md'
                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   )}
                 >
@@ -438,14 +434,14 @@ export default function FilterSidebar({
   return (
     <>
       {/* Mobile Filter Button */}
-      <div className="lg:hidden">
+      <div className="lg:hidden w-full">
         <button
           onClick={() => setIsOpen(true)}
           className={cn(
-            'flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200',
+            'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all duration-200',
             hasActiveFilters
-              ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-              : 'bg-white text-neutral-700 border border-neutral-200 shadow-sm hover:shadow-md'
+              ? 'bg-neutral-900 text-white shadow-lg shadow-neutral-900/20'
+              : 'bg-white text-neutral-900 border border-neutral-200 shadow-sm hover:bg-neutral-50'
           )}
         >
           <svg
@@ -486,9 +482,9 @@ export default function FilterSidebar({
           {/* Drawer */}
           <div className="absolute inset-y-0 right-0 w-full max-w-[340px] bg-white shadow-2xl flex flex-col animate-slide-in">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-gradient-to-r from-neutral-50 to-white">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-white">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-primary-500/20">
+                <div className="w-10 h-10 rounded-xl bg-neutral-900 flex items-center justify-center shadow-lg shadow-neutral-900/20">
                   <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
@@ -528,7 +524,7 @@ export default function FilterSidebar({
                 </button>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-500 to-emerald-500 rounded-xl shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 transition-all"
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-neutral-900 rounded-xl shadow-lg shadow-neutral-900/20 hover:bg-neutral-800 hover:shadow-xl transition-all"
                 >
                   Aplica filtre
                 </button>
@@ -542,7 +538,7 @@ export default function FilterSidebar({
       <aside className={cn('hidden lg:block', className)}>
         <div className="sticky top-24 bg-white rounded-2xl border border-neutral-200/80 shadow-card overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-gradient-to-r from-neutral-50 to-white">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-white">
             <h2 className="font-display text-lg font-bold text-neutral-900 flex items-center gap-2">
               <svg className="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -685,43 +681,7 @@ function RangeFilter({
         </div>
       </div>
 
-      {/* Custom Range Slider */}
-      <div className="relative pt-1">
-        <input
-          type="range"
-          min={min}
-          max={max}
-          value={maxValue}
-          onChange={(e) => onMaxChange(Number(e.target.value))}
-          className="w-full h-2 bg-neutral-200 rounded-full appearance-none cursor-pointer
-            [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:w-5
-            [&::-webkit-slider-thumb]:h-5
-            [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:bg-gradient-to-br
-            [&::-webkit-slider-thumb]:from-primary-500
-            [&::-webkit-slider-thumb]:to-emerald-500
-            [&::-webkit-slider-thumb]:shadow-lg
-            [&::-webkit-slider-thumb]:shadow-primary-500/30
-            [&::-webkit-slider-thumb]:cursor-pointer
-            [&::-webkit-slider-thumb]:transition-transform
-            [&::-webkit-slider-thumb]:hover:scale-110
-            [&::-moz-range-thumb]:w-5
-            [&::-moz-range-thumb]:h-5
-            [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:bg-gradient-to-br
-            [&::-moz-range-thumb]:from-primary-500
-            [&::-moz-range-thumb]:to-emerald-500
-            [&::-moz-range-thumb]:border-0
-            [&::-moz-range-thumb]:shadow-lg
-            [&::-moz-range-thumb]:cursor-pointer"
-        />
-        {/* Progress bar */}
-        <div
-          className="absolute top-1 left-0 h-2 bg-gradient-to-r from-primary-500 to-emerald-500 rounded-full pointer-events-none"
-          style={{ width: `${((maxValue - min) / (max - min)) * 100}%` }}
-        />
-      </div>
+
 
       <div className="flex justify-between text-xs text-neutral-400 font-medium">
         <span>{min} {unit}</span>
