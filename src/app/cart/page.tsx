@@ -284,29 +284,299 @@ export default function CartPage() {
     }
 
     return (
-        <div className="min-h-screen bg-neutral-50">
-            {/* Header */}
-            <div className="bg-white px-4 pt-6 pb-4 border-b border-neutral-100">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-display font-bold text-primary-600">Coșul tău</h1>
-                        <p className="text-neutral-500 mt-1">{cartItems.length} ingrediente</p>
+        <div className="min-h-screen bg-neutral-50 pb-20 lg:pb-12">
+            {/* Premium Header */}
+            <div className="relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 text-white overflow-hidden mb-6">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-float" />
+                    <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-accent-500 rounded-full mix-blend-screen filter blur-[100px] opacity-15 animate-float" style={{ animationDelay: '2s' }} />
+                </div>
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px]" />
+
+                <div className="relative container-custom py-8 md:py-10 z-10">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-orange-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
+                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                </div>
+                                <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Coșul Tău</span>
+                            </div>
+                            <h1 className="font-display text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
+                                Lista de Cumpărături
+                            </h1>
+                            <p className="text-neutral-400 text-sm md:text-base max-w-lg">
+                                Gestionează produsele și găsește cele mai bune oferte pentru lista ta.
+                            </p>
+                        </div>
                     </div>
-                    <button
-                        onClick={() => {
-                            fetchStoreComparison();
-                            setShowStoreComparison(!showStoreComparison);
-                        }}
-                        className="px-4 py-2 bg-primary-50 text-primary-600 rounded-xl text-sm font-semibold"
-                    >
-                        Compară magazine
-                    </button>
                 </div>
             </div>
 
+            <div className="container-custom">
+                <div className="grid lg:grid-cols-12 gap-8 items-start">
+                    {/* LEFT COLUMN - Cart Items */}
+                    <div className="lg:col-span-8 space-y-4">
+
+                        {/* Mobile Only: Banners moved to sidebar on Desktop */}
+                        <div className="lg:hidden space-y-3">
+                            {/* Pantry Intelligence Banner - Mobile */}
+                            {ownedInCart.length > 0 && (
+                                <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl p-3 text-white">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                        </svg>
+                                        <p className="font-bold text-sm">Ai deja {ownedInCart.length} ingrediente acasă!</p>
+                                    </div>
+                                    <p className="text-xs text-amber-100">
+                                        Total real de plată: <span className="font-bold text-lg">{actualTotal.toFixed(2)} lei</span>
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Savings Banner - Mobile */}
+                            <div className="bg-gradient-to-r from-success-500 to-success-600 rounded-xl p-3 text-white">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-1.5">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <p className="font-bold text-sm">Economisești</p>
+                                        </div>
+                                        <p className="text-2xl font-display font-black">
+                                            {currentTotalSavings.toFixed(2)} lei
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <button
+                                            onClick={() => {
+                                                fetchStoreComparison();
+                                                setShowStoreComparison(!showStoreComparison);
+                                            }}
+                                            className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors mb-1"
+                                        >
+                                            Compară
+                                        </button>
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <p className="font-bold text-lg">{selectedStore || '—'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Cart Items List */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between px-1">
+                                <h2 className="text-lg font-bold text-neutral-900">Listă de cumpărături</h2>
+                            </div>
+
+                            {cartItems.map((item) => {
+                                const isOwned = ownedItems.has(item.ingredientName.toLowerCase());
+
+                                return (
+                                    <div
+                                        key={item.ingredientName}
+                                        className={cn(
+                                            "bg-white rounded-2xl p-4 border shadow-soft transition-all group",
+                                            isOwned ? "border-success-200 bg-success-50/30" : "border-neutral-100"
+                                        )}
+                                    >
+                                        <div className="flex gap-4">
+                                            {/* Product Image */}
+                                            <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center bg-neutral-100">
+                                                {item.matchedProduct?.catalogPageImage ? (
+                                                    <Image
+                                                        src={item.matchedProduct.catalogPageImage}
+                                                        alt={item.matchedProduct.name}
+                                                        fill
+                                                        className={cn("object-cover transition-opacity", isOwned ? "opacity-50 grayscale" : "opacity-100")}
+                                                        sizes="80px"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
+                                                        <span className="text-2xl font-bold text-primary-600">
+                                                            {item.ingredientName.charAt(0).toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {/* Discount Badge */}
+                                                {!isOwned && item.matchedProduct?.discount && (
+                                                    <span className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+                                                        -{item.matchedProduct.discount}%
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Product Info */}
+                                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                                <div>
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div>
+                                                            <h3 className={cn(
+                                                                "font-bold text-sm line-clamp-2 transition-colors",
+                                                                isOwned ? "text-neutral-400 line-through decoration-2 decoration-neutral-300" : "text-neutral-900"
+                                                            )}>
+                                                                {item.matchedProduct?.name || item.ingredientName}
+                                                            </h3>
+                                                            <p className="text-xs text-neutral-400 mt-0.5">
+                                                                {item.matchedProduct?.store || 'Nedetectat'}
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => removeCartItem(item.ingredientName)}
+                                                            className="p-1.5 -mr-1.5 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                            title="Șterge din listă"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between mt-3">
+                                                    {/* Price */}
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={cn(
+                                                            "font-bold text-lg",
+                                                            isOwned ? "text-neutral-300" : "text-neutral-900"
+                                                        )}>
+                                                            {item.matchedProduct?.price ? `${item.matchedProduct.price.toFixed(2)} lei` : '—'}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Actions */}
+                                                    <div className="flex items-center gap-2">
+                                                        {!isOwned && item.matchedProduct && (
+                                                            <button
+                                                                onClick={() => fetchAlternatives(item.ingredientName, item.matchedProduct?.price || 0)}
+                                                                className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 px-2 py-1.5 rounded-lg transition-colors"
+                                                            >
+                                                                Alternative
+                                                            </button>
+                                                        )}
+
+                                                        <button
+                                                            onClick={() => toggleOwned(item.ingredientName)}
+                                                            className={cn(
+                                                                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                                                                isOwned
+                                                                    ? "bg-success-100 text-success-700 border-success-200"
+                                                                    : "bg-white text-neutral-500 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50"
+                                                            )}
+                                                        >
+                                                            {isOwned ? (
+                                                                <>
+                                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                    Cumpărat
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-neutral-600">Bifează</span>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* RIGHT COLUMN - Summary Sidebar (Desktop Stick) */}
+                    <div className="hidden lg:block lg:col-span-4 sticky top-6 space-y-4">
+
+                        {/* Summary Card */}
+                        <div className="bg-white rounded-2xl p-6 border border-neutral-100 shadow-card">
+                            <h3 className="font-display font-bold text-xl text-neutral-900 mb-6">Sumar comandă</h3>
+
+                            {/* Savings Info */}
+                            <div className="bg-success-50 border border-success-100 rounded-xl p-4 mb-6">
+                                <div className="flex items-center gap-2 text-success-700 mb-1">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className="font-bold">Total Economisit</span>
+                                </div>
+                                <p className="text-3xl font-display font-black text-success-600">
+                                    {currentTotalSavings.toFixed(2)} <span className="text-lg">lei</span>
+                                </p>
+                            </div>
+
+                            {/* Store Selector */}
+                            <div className="mb-6">
+                                <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Magazin Selectat</label>
+                                <button
+                                    onClick={() => {
+                                        fetchStoreComparison();
+                                        setShowStoreComparison(!showStoreComparison);
+                                    }}
+                                    className="w-full flex items-center justify-between p-3 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-xl transition-colors group"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        {selectedStore === cheapestStore.store && (
+                                            <svg className="w-5 h-5 text-success-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                            </svg>
+                                        )}
+                                        <span className="font-bold text-neutral-900">{selectedStore || 'Selectează'}</span>
+                                    </div>
+                                    <span className="text-xs font-bold text-primary-600 group-hover:underline">Compară</span>
+                                </button>
+                            </div>
+
+                            {/* Owned Items Info */}
+                            {ownedInCart.length > 0 && (
+                                <div className="mb-6 p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-3">
+                                    <svg className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                    </svg>
+                                    <div>
+                                        <p className="text-sm font-bold text-amber-900">Ai economisit din cămară</p>
+                                        <p className="text-xs text-amber-700 mt-0.5">
+                                            Ai deja {ownedInCart.length} din ingredientele necesare.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="border-t border-neutral-100 pt-4 mb-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-neutral-600">Total Produse</span>
+                                    <span className="font-bold text-neutral-900">{cartItems.length}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-lg font-bold text-neutral-900">Total de plată</span>
+                                    <span className="text-2xl font-display font-bold text-primary-600">
+                                        {actualTotal.toFixed(2)} lei
+                                    </span>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={exportList}
+                                className="w-full bg-primary-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 hover:-translate-y-1"
+                            >
+                                Exportă lista
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
             {/* Store Comparison Sheet (Modal) */}
             {showStoreComparison && (
-                <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center">
+                <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center p-0 lg:p-4">
                     <div
                         className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm animate-in fade-in duration-200"
                         onClick={() => setShowStoreComparison(false)}
@@ -381,176 +651,9 @@ export default function CartPage() {
                 </div>
             )}
 
-            {/* Pantry Intelligence Banner */}
-            {ownedInCart.length > 0 && (
-                <div className="mx-4 mt-3 bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl p-3 text-white">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        </svg>
-                        <p className="font-bold text-sm">Ai deja {ownedInCart.length} ingrediente acasă!</p>
-                    </div>
-                    <p className="text-xs text-amber-100">
-                        Total real de plată: <span className="font-bold text-lg">{actualTotal.toFixed(2)} lei</span>
-                    </p>
-                </div>
-            )}
-
-            {/* Savings Banner */}
-            <div className="mx-4 mt-3 bg-gradient-to-r from-success-500 to-success-600 rounded-xl p-3 text-white">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <div className="flex items-center gap-1.5">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p className="font-bold text-sm">Economisești</p>
-                        </div>
-                        <p className="text-2xl font-display font-black">
-                            {currentTotalSavings.toFixed(2)} lei
-                        </p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-[10px] text-success-100 opacity-80 uppercase tracking-wider font-bold">
-                            {selectedStore === cheapestStore.store ? 'Magazin recomandat' : 'Magazin selectat'}
-                        </p>
-                        <div className="flex items-center justify-end gap-1.5">
-                            {selectedStore === cheapestStore.store && (
-                                <svg className="w-4 h-4 text-success-200" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                </svg>
-                            )}
-                            <p className="font-bold text-lg">{selectedStore || '—'}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Cart Items */}
-            <div className="px-4 mt-6">
-                <h2 className="text-lg font-bold text-neutral-900 mb-4">Ingrediente</h2>
-
-                <div className="space-y-3">
-                    {cartItems.map((item) => {
-                        const isOwned = ownedItems.has(item.ingredientName.toLowerCase());
-
-                        return (
-                            <div
-                                key={item.ingredientName}
-                                className={cn(
-                                    "bg-white rounded-2xl p-4 border shadow-soft transition-all group",
-                                    isOwned ? "border-success-200 bg-success-50/30" : "border-neutral-100"
-                                )}
-                            >
-                                <div className="flex gap-4">
-                                    {/* Product Image */}
-                                    <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center bg-neutral-100">
-                                        {item.matchedProduct?.catalogPageImage ? (
-                                            <Image
-                                                src={item.matchedProduct.catalogPageImage}
-                                                alt={item.matchedProduct.name}
-                                                fill
-                                                className={cn("object-cover transition-opacity", isOwned ? "opacity-50 grayscale" : "opacity-100")}
-                                                sizes="80px"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
-                                                <span className="text-2xl font-bold text-primary-600">
-                                                    {item.ingredientName.charAt(0).toUpperCase()}
-                                                </span>
-                                            </div>
-                                        )}
-
-                                        {/* Discount Badge */}
-                                        {!isOwned && item.matchedProduct?.discount && (
-                                            <span className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
-                                                -{item.matchedProduct.discount}%
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Product Info */}
-                                    <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                        <div>
-                                            <div className="flex items-start justify-between gap-2">
-                                                <div>
-                                                    <h3 className={cn(
-                                                        "font-bold text-sm line-clamp-2 transition-colors",
-                                                        isOwned ? "text-neutral-400 line-through decoration-2 decoration-neutral-300" : "text-neutral-900"
-                                                    )}>
-                                                        {item.matchedProduct?.name || item.ingredientName}
-                                                    </h3>
-                                                    <p className="text-xs text-neutral-400 mt-0.5">
-                                                        {item.matchedProduct?.store || 'Nedetectat'}
-                                                    </p>
-                                                </div>
-                                                <button
-                                                    onClick={() => removeCartItem(item.ingredientName)}
-                                                    className="p-1.5 -mr-1.5 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                                    title="Șterge din listă"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center justify-between mt-3">
-                                            {/* Price */}
-                                            <div className="flex items-center gap-2">
-                                                <span className={cn(
-                                                    "font-bold text-lg",
-                                                    isOwned ? "text-neutral-300" : "text-neutral-900"
-                                                )}>
-                                                    {item.matchedProduct?.price ? `${item.matchedProduct.price.toFixed(2)} lei` : '—'}
-                                                </span>
-                                            </div>
-
-                                            {/* Actions */}
-                                            <div className="flex items-center gap-2">
-                                                {!isOwned && item.matchedProduct && (
-                                                    <button
-                                                        onClick={() => fetchAlternatives(item.ingredientName, item.matchedProduct?.price || 0)}
-                                                        className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 px-2 py-1.5 rounded-lg transition-colors"
-                                                    >
-                                                        Alternative
-                                                    </button>
-                                                )}
-
-                                                <button
-                                                    onClick={() => toggleOwned(item.ingredientName)}
-                                                    className={cn(
-                                                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
-                                                        isOwned
-                                                            ? "bg-success-100 text-success-700 border-success-200"
-                                                            : "bg-white text-neutral-500 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50"
-                                                    )}
-                                                >
-                                                    {isOwned ? (
-                                                        <>
-                                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                            </svg>
-                                                            Cumpărat
-                                                        </>
-                                                    ) : (
-                                                        <span className="text-neutral-600">Bifează</span>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
             {/* Swap Modal */}
             {swapModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center">
+                <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center p-0 lg:p-4">
                     {/* Backdrop */}
                     <div
                         className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm animate-in fade-in duration-200"
@@ -612,8 +715,8 @@ export default function CartPage() {
                 </div>
             )}
 
-            {/* Total & Checkout */}
-            <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-neutral-200 p-4 lg:hidden">
+            {/* Total & Checkout - Mobile Only Fixed Bottom */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 lg:hidden pb-safe">
                 <div className="flex items-center justify-between mb-3">
                     <span className="text-neutral-600">Total de plată</span>
                     <span className="text-2xl font-display font-bold text-neutral-900">
@@ -627,9 +730,6 @@ export default function CartPage() {
                     Exportă lista de cumpărături
                 </button>
             </div>
-
-            {/* Spacer */}
-            <div className="h-40" />
         </div>
     );
 }

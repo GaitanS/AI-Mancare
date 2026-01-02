@@ -202,24 +202,31 @@ export default async function RetetePage({ searchParams }: PageProps) {
       />
 
       <div className="bg-[#FDFBF7] min-h-screen text-neutral-900 pb-20">
-        {/* Simple Editorial Header */}
-        <div className="border-b border-neutral-200">
-          <div className="container-custom pt-6 pb-6 md:pt-12 md:pb-10">
-            <div className="max-w-3xl">
-              <h1 className="font-display text-2xl sm:text-3xl md:text-5xl font-bold text-neutral-900 mb-2 md:mb-4 tracking-tight">
-                Catalog Rețete
-              </h1>
-              <p className="text-base sm:text-lg text-neutral-800 leading-relaxed max-w-2xl font-medium opacity-90">
-                Descoperă colecția noastră de rețete optimizate pentru cost și nutriție.
-                Gătește inteligent, mănâncă sănătos.
-              </p>
+        {/* Premium Header */}
+        <div className="relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 text-white overflow-hidden mb-8">
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-float" />
+            <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-accent-500 rounded-full mix-blend-screen filter blur-[100px] opacity-15 animate-float" style={{ animationDelay: '2s' }} />
+          </div>
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px]" />
 
-              {/* Simple Stats Pills */}
-              <div className="flex gap-4 mt-4 md:mt-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-neutral-200 rounded-md shadow-sm">
-                  <span className="font-bold text-neutral-900">{total}</span>
-                  <span className="text-xs sm:text-sm text-neutral-600 font-medium">Rețete</span>
+          <div className="relative container-custom py-8 md:py-10 z-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-orange-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Catalog Culinar</span>
                 </div>
+                <h1 className="font-display text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
+                  Găsește Inspirație
+                </h1>
+                <p className="text-neutral-400 text-sm md:text-base max-w-lg">
+                  Rețete delicioase optimizate pentru bugetul și preferințele tale.
+                </p>
               </div>
             </div>
           </div>

@@ -25,7 +25,7 @@ const stores = [
 export default function ProfilePage() {
     const [householdSize, setHouseholdSize] = useState(2);
     const [weeklyBudget, setWeeklyBudget] = useState(300);
-    const [dietaryGoal, setDietaryGoal] = useState('none');
+    const [selectedDietaryOptions, setSelectedDietaryOptions] = useState<string[]>(['none']);
     const [preferredStores, setPreferredStores] = useState<string[]>(['kaufland', 'lidl']);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -44,20 +44,26 @@ export default function ProfilePage() {
                 setHouseholdSize(profile.householdSize || 2);
                 setWeeklyBudget(Number(profile.budgetPreference) || 300);
 
-                // Map backend arrays to single UI selection state
-                if (profile.dietaryRestrictions && profile.dietaryRestrictions.includes('FARA_GLUTEN')) {
-                    setDietaryGoal('fara_gluten');
-                } else if (profile.dietaryRestrictions && profile.dietaryRestrictions.includes('FARA_LACTOZA')) {
-                    setDietaryGoal('fara_lactoza');
-                } else if (profile.nutritionalGoals && profile.nutritionalGoals.includes('LOW_CARB')) {
-                    setDietaryGoal('low_carb');
-                } else if (profile.nutritionalGoals && profile.nutritionalGoals.includes('VEGETARIAN')) {
-                    setDietaryGoal('vegetarian');
-                } else if (profile.nutritionalGoals && profile.nutritionalGoals.includes('HIGH_PROTEIN')) {
-                    setDietaryGoal('high_protein');
-                } else {
-                    setDietaryGoal('none');
+                // Map backend arrays to multiple UI selection state
+                const newSelectedOptions: string[] = [];
+
+                if (profile.dietaryRestrictions) {
+                    if (profile.dietaryRestrictions.includes('FARA_GLUTEN')) newSelectedOptions.push('fara_gluten');
+                    if (profile.dietaryRestrictions.includes('FARA_LACTOZA')) newSelectedOptions.push('fara_lactoza');
                 }
+
+                if (profile.nutritionalGoals) {
+                    if (profile.nutritionalGoals.includes('LOW_CARB')) newSelectedOptions.push('low_carb');
+                    if (profile.nutritionalGoals.includes('VEGETARIAN')) newSelectedOptions.push('vegetarian');
+                    if (profile.nutritionalGoals.includes('HIGH_PROTEIN')) newSelectedOptions.push('high_protein');
+                    if (profile.nutritionalGoals.includes('BUDGET')) newSelectedOptions.push('budget');
+                }
+
+                if (newSelectedOptions.length === 0) {
+                    newSelectedOptions.push('none');
+                }
+
+                setSelectedDietaryOptions(newSelectedOptions);
 
                 if (profile.preferredStores) {
                     setPreferredStores(profile.preferredStores);
@@ -78,6 +84,31 @@ export default function ProfilePage() {
         );
     };
 
+    const toggleDietaryOption = (optionId: string) => {
+        if (optionId === 'none') {
+            setSelectedDietaryOptions(['none']);
+            return;
+        }
+
+        setSelectedDietaryOptions(prev => {
+            // Remove 'none' if selecting something else
+            let newSelection = prev.filter(p => p !== 'none');
+
+            if (newSelection.includes(optionId)) {
+                newSelection = newSelection.filter(p => p !== optionId);
+            } else {
+                newSelection = [...newSelection, optionId];
+            }
+
+            // If nothing selected, revert to 'none'
+            if (newSelection.length === 0) {
+                return ['none'];
+            }
+
+            return newSelection;
+        });
+    };
+
     const handleSave = async () => {
         setSaving(true);
         setMessage(null);
@@ -86,14 +117,16 @@ export default function ProfilePage() {
         let nutritionalGoals: string[] = [];
         let dietaryRestrictions: string[] = [];
 
-        switch (dietaryGoal) {
-            case 'low_carb': nutritionalGoals = ['LOW_CARB']; break;
-            case 'vegetarian': nutritionalGoals = ['VEGETARIAN']; break;
-            case 'high_protein': nutritionalGoals = ['HIGH_PROTEIN']; break;
-            case 'fara_lactoza': dietaryRestrictions = ['FARA_LACTOZA']; break;
-            case 'fara_gluten': dietaryRestrictions = ['FARA_GLUTEN']; break;
-            case 'budget': nutritionalGoals = ['BUDGET']; break; // Custom tag
-        }
+        selectedDietaryOptions.forEach(option => {
+            switch (option) {
+                case 'low_carb': nutritionalGoals.push('LOW_CARB'); break;
+                case 'vegetarian': nutritionalGoals.push('VEGETARIAN'); break;
+                case 'high_protein': nutritionalGoals.push('HIGH_PROTEIN'); break;
+                case 'fara_lactoza': dietaryRestrictions.push('FARA_LACTOZA'); break;
+                case 'fara_gluten': dietaryRestrictions.push('FARA_GLUTEN'); break;
+                case 'budget': nutritionalGoals.push('BUDGET'); break;
+            }
+        });
 
         try {
             const res = await fetch('/api/user/profile', {
@@ -130,14 +163,38 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-neutral-50 pb-20">
-            {/* Header */}
-            <div className="bg-white px-4 pt-6 pb-4 border-b border-neutral-100">
-                <h1 className="text-3xl font-display font-bold text-primary-600">Profilul tău</h1>
-                <p className="text-neutral-500 mt-1">Personalizează-ți experiența</p>
+        <div className="min-h-screen bg-neutral-50 pb-20 lg:pb-12">
+            {/* Premium Header */}
+            <div className="relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 text-white overflow-hidden mb-6">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-float" />
+                    <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-accent-500 rounded-full mix-blend-screen filter blur-[100px] opacity-15 animate-float" style={{ animationDelay: '2s' }} />
+                </div>
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px]" />
+
+                <div className="relative container-custom py-8 md:py-10 z-10">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-orange-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
+                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </div>
+                                <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Contul Tău</span>
+                            </div>
+                            <h1 className="font-display text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
+                                Profil utilizator
+                            </h1>
+                            <p className="text-neutral-400 text-sm md:text-base max-w-lg">
+                                Personalizează-ți preferințele alimentare și bugetul.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="px-4 py-6 space-y-6">
+            <div className="max-w-3xl mx-auto px-4 space-y-6">
                 {message && (
                     <div className={cn(
                         "p-4 rounded-xl text-center font-bold animate-fade-in",
@@ -207,38 +264,41 @@ export default function ProfilePage() {
                     <h3 className="font-bold text-neutral-900 mb-1">Obiectiv alimentar</h3>
                     <p className="text-sm text-neutral-500 mb-4">Ce tip de alimentație preferi?</p>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        {dietaryOptions.map((option) => (
-                            <button
-                                key={option.id}
-                                onClick={() => setDietaryGoal(option.id)}
-                                className={cn(
-                                    "p-4 rounded-xl border-2 transition-all text-left",
-                                    dietaryGoal === option.id
-                                        ? "border-primary-500 bg-primary-50"
-                                        : "border-neutral-200 hover:border-neutral-300"
-                                )}
-                            >
-                                <svg
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {dietaryOptions.map((option) => {
+                            const isSelected = selectedDietaryOptions.includes(option.id);
+                            return (
+                                <button
+                                    key={option.id}
+                                    onClick={() => toggleDietaryOption(option.id)}
                                     className={cn(
-                                        "w-6 h-6",
-                                        dietaryGoal === option.id ? "text-primary-600" : "text-neutral-500"
+                                        "p-4 rounded-xl border-2 transition-all text-left flex flex-col items-start gap-2 h-full",
+                                        isSelected
+                                            ? "border-primary-500 bg-primary-50"
+                                            : "border-neutral-200 hover:border-neutral-300"
                                     )}
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={2}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" d={option.iconPath} />
-                                </svg>
-                                <p className={cn(
-                                    "text-sm font-semibold mt-2",
-                                    dietaryGoal === option.id ? "text-primary-700" : "text-neutral-700"
-                                )}>
-                                    {option.label}
-                                </p>
-                            </button>
-                        ))}
+                                    <svg
+                                        className={cn(
+                                            "w-6 h-6",
+                                            isSelected ? "text-primary-600" : "text-neutral-500"
+                                        )}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth={2}
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d={option.iconPath} />
+                                    </svg>
+                                    <p className={cn(
+                                        "text-sm font-semibold",
+                                        isSelected ? "text-primary-700" : "text-neutral-700"
+                                    )}>
+                                        {option.label}
+                                    </p>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 

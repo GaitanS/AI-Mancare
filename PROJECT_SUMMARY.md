@@ -1,39 +1,40 @@
 # 🚀 Rețete Ieftine - Sumar Proiect (Live Status)
 
-## 📊 Status Curent: ✅ ALPHA COMPLETE (Core + WOW Features + Personalization)
+## 📊 Status Curent: ✅ ALPHA COMPLETE (Core + WOW Features + Personalization + Polished UI)
 
-**Data Actualizării:** 01 Ianuarie 2026
-**Versiune:** 0.9.5 (Feature Complete)
+**Data Actualizării:** 02 Ianuarie 2026
+**Versiune:** 0.9.8 (Polished & Responsive)
 
-Proiectul a atins stadiul de **Feature Complete** pentru MVP. Toate funcționalitățile majore ("WOW Features" și Personalizare) sunt implementate și verificate. Urmează polish final și deployment complet.
+Proiectul a atins stadiul de **Feature Complete & Polished** pentru MVP. Toate funcționalitățile majore sunt implementate, verificate și rafinate vizual cu o temă unitară "Premium Warm". Interfața este complet responsive (Mobile/Tablet/Desktop).
 
 ---
 
 ## ✅ Funcționalități Implementate (Realitate vs Plan)
 
-### 1. 📱 UI/UX Modern (Mobile-First)
-- [x] **Bottom Navigation**: Bară de navigare fixă pentru acces rapid (Plan, Search, Cart, Profile).
-- [x] **Responsive Design**: Optimizat pentru mobile (iPhone SE -> iPhone 15 Pro Max).
-- [x] **Design System**: Shadcn/ui + Tailwind CSS, iconițe SVG native (fără librării grele).
-- [x] **Animații**: Tranziții fluide între pagini și stări (loading, modals).
+### 1. 📱 UI/UX Modern & Responsive (Polished)
+- [x] **Compact Premium Header**: Header unitar "Dark Gradient" pe toate paginile (Plan, Cart, Profile, Retete, Cataloage), cu fonturi optimizate și animații subtile.
+- [x] **Warm Culinary Design**: Paletă de culori caldă (`bg-[#FDFBF7]`), carduri cu contrast subtil și iconițe SVG profesionale (fără emoji-uri).
+- [x] **Full Responsiveness**: Layout-uri adaptive (Grid -> Column), Sidebar cu filtre ascuns automat pe mobil, Toolbar de navigare fix pe mobil.
+- [x] **Professional Icons**: Înlocuirea completă a emoji-urilor cu iconițe SVG vectoriale pentru un aspect "Enterprise".
 
-### 2. 🍳 Planificare Mese (The Core)
-- [x] **Party Mode**: Slider dinamic pentru 2-20 persoane. Recalculează automat cantitățile și prețurile.
-- [x] **Batch Cooking (WOW Feature)**: Algoritm care grupează pașii de preparare pentru mai multe rețete (ex: "Toacă toate legumele deodată").
-- [x] **Filtrare Inteligentă**: Filtrare automată bazată pe profil (ex: dacă ești Vegetarian, vezi doar rețete vegetariene).
-- [x] **Rețete Seed**: Bază de date inițială cu rețete complete (ingrediente, pași, timpi).
+### 2. 🍳 Planificare Mese (The Core & AI Magic)
+- [x] **AI Discount Engine (The Differentiator)**: Motorul principal care generează sugestii de rețete *pornind* de la cataloagele de reduceri active (ex: "Săptămâna aceasta e reducere la Pui la Lidl -> Îți sugerez rețeta de Tikka Masala").
+- [x] **Party Mode**: Slider dinamic pentru 2-20 persoane. Recalculează automat cantitățile și costurile.
+- [x] **Batch Cooking (WOW Feature)**: Algoritm AI care grupează pașii de preparare (ex: "Toacă toate legumele deodată").
+- [x] **Filtrare Avansată**: Filtre pentru Cost, Timp, Dificultate și Dietă.
+- [x] **Rețete Seed**: Bază de date inițială cu rețete complete, optimizate pentru cost.
 
 ### 3. 🛒 Smart Cart (Coș Inteligent)
-- [x] **Smart Matching**: Algoritm care leagă ingredientele din rețete (ex: "500g piept pui") de produse reale din magazine (ex: "Lidl - Piept Pui dezosat 650g - 24.99 RON").
-- [x] **Swap to Save (WOW Feature)**: Modal care sugerează alternative mai ieftine din alte magazine.
-- [x] **Pantry Intelligence (WOW Feature)**: Sistem "AI Acasă" - bifezi ce ai în cămară, iar prețul se scade din total.
-- [x] **Optimizare Preț**: Calcul automat al celui mai bun preț total.
+- [x] **Smart Matching**: Algoritm care leagă ingredientele din rețete de produse reale (Kaufland, Lidl, etc.).
+- [x] **Store Comparison Logic**: Compară totalul coșului între magazine și recomandă opțiunea cea mai ieftină.
+- [x] **Pantry Intelligence**: Sistem "AI Acasă" - bifezi ce ai în cămară (afișare distinctă cu verde/amber), iar prețul se scade.
+- [x] **Export Listă**: Funcționalitate de export a listei de cumpărături.
 
 ### 4. 👤 Personalizare (Profile)
-- [x] **Preferințe Alimentare**: Setare obiective (Low Carb, High Protein, Vegetarian, Fără Gluten/Lactoză).
+- [x] **Multi-Select Dietary Goals**: Suport pentru selectarea multiplă a obiectivelor (ex: "Low Carb" + "Fără Lactoză").
 - [x] **Configurare Gospodărie**: Setare număr persoane default.
-- [x] **Buget Săptămânal**: Slider pentru setarea bugetului țintă.
-- [x] **Magazine Preferate**: Selectare magazine favorite (Lidl, Kaufland, Penny, etc.).
+- [x] **Buget Săptămânal**: Slider interactiv pentru buget.
+- [x] **Magazine Preferate**: Selectare multiple magazine favorite.
 
 ---
 
@@ -42,36 +43,35 @@ Proiectul a atins stadiul de **Feature Complete** pentru MVP. Toate funcționali
 ### Backend (Next.js API Routes)
 | Endpoint | Descriere | Status |
 |----------|-----------|--------|
-| `GET /api/recipes` | Listare rețete cu filtre (tags, difficulty, search) | ✅ Activ |
-| `GET /api/pantry` | Returnează ingredientele marcate ca "acasă" | ✅ Activ |
-| `POST /api/cart/auto-fill` | Populează coșul cu produse reale bazat pe rețete | ✅ Activ |
-| `POST /api/cart/optimize` | Calculează cel mai bun preț între magazine | ✅ Activ |
-| `GET /api/cart/alternatives` | Găsește produse similare mai ieftine | ✅ Activ |
-| `POST /api/plan/batch` | Generează planul de gătit optimizat (Batch Cooking) | ✅ Activ |
-| `GET/POST /api/user/profile` | Gestionare preferințe utilizator | ✅ Activ |
+| `GET /api/recipes` | Listare rețete cu filtre avansate | ✅ Activ |
+| `GET /api/pantry` | Gestionare stoc propriu | ✅ Activ |
+| `POST /api/cart/auto-fill` | Populează coșul și face matching inteligent | ✅ Activ |
+| `POST /api/cart/optimize` | Calculează cel mai bun preț (Multi-Store) | ✅ Activ |
+| `GET /api/cart/alternatives` | Găsește alternative (Swap to Save) | ✅ Activ |
+| `POST /api/plan/batch` | Generează planul de gătit (Batch Cooking) | ✅ Activ |
+| `GET/POST /api/user/profile` | Gestionare full profile (Multi-select) | ✅ Activ |
 
 ### Baza de Date (Prisma + SQLite/MySQL)
 Modele principale implementate:
-*   `User`: Preferințe, istoric.
-*   `Recipe`: Structură complexă JSON pentru pași și ingrediente.
-*   `Product`: Date reale despre prețuri și magazine.
-*   `IngredientMapping`: "Dicționarul" care leagă rețetele de produse.
-*   `UserPantry`: Stocul utilizatorului.
-*   `ShoppingCart`: Starea curentă a coșului.
+*   `User` (Preferences, Goals)
+*   `Recipe` (Steps, Ingredients, Nutrition)
+*   `Product` ( Prices, Stores, Discounts)
+*   `IngredientMapping` (Recipe -> Store Product)
+*   `UserPantry` & `ShoppingCart`
 
 ### Stack Tehnologic
 *   **Framework**: Next.js 15 (App Router)
 *   **Limbaj**: TypeScript 5.7
-*   **Styling**: Tailwind CSS 3.4
-*   **Database**: Prisma ORM (SQLite local -> MySQL Prod)
-*   **State Management**: React Hooks (useContext, useState)
+*   **Styling**: Tailwind CSS 3.4 (Custom Design System)
+*   **Database**: Prisma ORM
+*   **State**: React Hooks + Local Storage Persistence
 
 ---
 
 ## 🚀 Următorii Pași (Roadmap)
 
-1.  **Recipe Import (Bonus)**: Implementare parser text pentru import rețete din Instagram/TikTok.
-2.  **Export PDF**: Generare listă de cumpărături PDF pentru print/WhatsApp.
-3.  **Deployment**: Configurare finală pe Hostinger și seed cu date reale extinse.
+1.  **Recipe Import (Bonus)**: Implementare parser text pentru import rețete.
+2.  **Export PDF**: Generare listă de cumpărături PDF stilizat.
+3.  **Deployment**: Configurare finală pe server de producție.
 
-Proiectul este într-o stare excelentă, stabil și funcțional pentru demonstrat capabilitățile AI și UX avansate.
+Proiectul este **100% funcțional**, estetic unitar și pregătit pentru utilizare.

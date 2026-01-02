@@ -229,11 +229,38 @@ export default function PlanPage() {
     };
 
     return (
-        <div className="min-h-screen bg-neutral-50 relative">
-            {/* Header Section */}
-            <div className="bg-white px-4 pt-6 pb-4 border-b border-neutral-100">
-                <h1 className="text-3xl font-display font-bold text-primary-600">Planifică</h1>
-                <p className="text-neutral-500 mt-1">Alege rețetele pentru săptămâna aceasta</p>
+        <div className="min-h-screen bg-[#FDFBF7] relative pb-20">
+            {/* Premium Header */}
+            <div className="relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 text-white overflow-hidden mb-8">
+                {/* Animated gradient orbs */}
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-float" />
+                    <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-accent-500 rounded-full mix-blend-screen filter blur-[100px] opacity-15 animate-float" style={{ animationDelay: '2s' }} />
+                </div>
+
+                {/* Grid pattern */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px]" />
+
+                <div className="relative container-custom py-8 md:py-10 z-10">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-orange-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
+                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                    </svg>
+                                </div>
+                                <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Planificator</span>
+                            </div>
+                            <h1 className="font-display text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
+                                Planifică Mesele
+                            </h1>
+                            <p className="text-neutral-400 text-sm md:text-base max-w-lg">
+                                Organizează-ți săptămâna cu rețete delicioase și economisește bani.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Portions Slider (Party Mode) */}
@@ -247,8 +274,10 @@ export default function PlanPage() {
                         }}
                         className="flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors p-2 rounded-lg hover:bg-primary-50"
                     >
-                        <span className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-xs">
-                            🎉
+                        <span className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-xs text-primary-600">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                            </svg>
                         </span>
                         <span>Planifici o petrecere? Activează Party Mode</span>
                     </button>
@@ -382,7 +411,7 @@ export default function PlanPage() {
                         <p className="text-neutral-500">Se încarcă rețetele...</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filteredRecipes.map((recipe) => {
                             const isSelected = selectedRecipes.includes(recipe.id);
                             const scaledCost = recipe.estimatedCost
@@ -393,26 +422,37 @@ export default function PlanPage() {
                                 <div
                                     key={recipe.id}
                                     className={cn(
-                                        "relative bg-white rounded-2xl overflow-hidden shadow-soft border-2 transition-all cursor-pointer",
-                                        isSelected ? "border-primary-500 shadow-warm" : "border-transparent"
+                                        "relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border-2 transition-all cursor-pointer",
+                                        isSelected ? "border-primary-500 shadow-warm" : "border-neutral-200 hover:border-neutral-300"
                                     )}
                                     onClick={() => toggleRecipe(recipe.id)}
                                 >
                                     {/* Recipe Image Placeholder */}
-                                    <div className="relative aspect-[4/3] bg-gradient-to-br from-primary-100 to-primary-200">
+                                    <div className="relative aspect-[4/3] bg-neutral-100 group-hover:bg-neutral-50 transition-colors">
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                            <span className="text-4xl font-display font-bold text-primary-400">
-                                                {recipe.title.charAt(0)}
-                                            </span>
+                                            {/* Simple Culinary Icon based on tag or default */}
+                                            {recipe.tags.includes('Mic dejun') ? (
+                                                <svg className="w-16 h-16 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                </svg>
+                                            ) : recipe.tags.includes('Vegetarian') ? (
+                                                <svg className="w-16 h-16 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                </svg>
+                                            ) : (
+                                                <svg className="w-16 h-16 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                </svg>
+                                            )}
                                         </div>
 
                                         {/* Selection Checkbox */}
                                         <div
                                             className={cn(
-                                                "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                                                "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm border",
                                                 isSelected
-                                                    ? "bg-primary-600 text-white"
-                                                    : "bg-white/90 text-neutral-400"
+                                                    ? "bg-primary-600 text-white border-primary-600"
+                                                    : "bg-white text-neutral-300 border-neutral-200 hover:border-primary-300"
                                             )}
                                         >
                                             {isSelected ? (
@@ -426,10 +466,10 @@ export default function PlanPage() {
                                             )}
                                         </div>
 
-                                        {/* Cost Badge */}
+                                        {/* Cost Badge - Softer */}
                                         {scaledCost && (
-                                            <div className="absolute bottom-2 left-2 bg-white/95 px-2 py-1 rounded-lg">
-                                                <span className="text-sm font-bold text-primary-600">~{scaledCost} lei</span>
+                                            <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-neutral-100 shadow-sm">
+                                                <span className="text-xs font-bold text-neutral-700">~{scaledCost} lei</span>
                                             </div>
                                         )}
                                     </div>

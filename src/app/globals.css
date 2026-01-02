@@ -282,7 +282,7 @@
 
   /* ========== GRIDS ========== */
   .grid-products {
-    @apply grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+    @apply grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
     @apply gap-4 sm:gap-5 md:gap-6;
   }
 

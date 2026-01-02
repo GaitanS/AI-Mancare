@@ -5,6 +5,7 @@ import prisma from '@/lib/db';
 import { cached, productsCache, recipesCache, cacheKeys } from '@/lib/cache';
 import ProductCard, { ProductCardSkeleton } from '@/components/ProductCard';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
+import OnboardingTour from '@/components/OnboardingTour';
 import type { Product, Recipe } from '@/types';
 import type { Metadata } from 'next';
 
@@ -128,6 +129,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <OnboardingTour />
       <section className="relative min-h-[85vh] md:min-h-[550px] flex items-center overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-900 via-neutral-950 to-black text-white">
         {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -279,7 +281,7 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Offers Section */}
-      <section className="py-12 sm:py-20 bg-white">
+      <section id="catalog-section" className="py-12 sm:py-20 bg-white">
         <div className="container-custom">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 sm:mb-12 gap-4">
             <div>
@@ -331,7 +333,7 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Recipes Section */}
-      <section className="py-12 sm:py-20 bg-kitchen-cream">
+      <section id="ai-recipes" className="py-12 sm:py-20 bg-kitchen-cream">
         <div className="container-custom">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 sm:mb-12 gap-4">
             <div>
