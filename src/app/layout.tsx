@@ -5,26 +5,31 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
 
-// Display font - Serif for headlines
+// Display font - Serif for headlines (optimized: 2 weights for ~60% smaller font bundle)
 const fraunces = Fraunces({
   variable: '--font-fraunces',
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800', '900'],
+  weight: ['500', '700'],
   display: 'swap',
+  preload: true,
 });
 
-// Body font - Modern sans-serif
+// Body font - Modern sans-serif (optimized: 2 weights for ~50% smaller font bundle)
 const dmSans = DM_Sans({
   variable: '--font-dm-sans',
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '600'],
   display: 'swap',
+  preload: true,
 });
 
+// Mono font (optimized: single weight)
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  weight: ['400'],
   display: 'swap',
+  preload: true,
 });
 
 export const metadata: Metadata = {

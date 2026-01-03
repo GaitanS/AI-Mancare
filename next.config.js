@@ -1,4 +1,8 @@
 /** @type {import('next').NextConfig} */
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig = {
   // CRUCIAL pentru Hostinger - generează bundle standalone
   output: 'standalone',
@@ -29,6 +33,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // Optimize imports for better tree-shaking
+    optimizePackageImports: ['date-fns', 'clsx', 'tailwind-merge'],
   },
 
   // Webpack config pentru canvas și PDF processing
@@ -124,4 +130,5 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// Wrap config with bundle analyzer
+module.exports = withBundleAnalyzer(nextConfig);

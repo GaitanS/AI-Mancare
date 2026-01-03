@@ -1,103 +1,251 @@
-// In-Memory Cache using node-cache
-// 4GB RAM available on Hostinger Cloud Startup
+import * as NodeCache from 'node-cache'
+import { logger } from './logger'
 
-import NodeCache from 'node-cache';
+/**
+ * Cache statistics
+ */
+interface CacheStats {
+  hits: number
+  misses: number
+  keys: number
+  hitRate: number
+}
 
-// Cache TTL values from environment or defaults
-const DEFAULT_TTL = parseInt(process.env.CACHE_TTL_DEFAULT || '600', 10); // 10 minutes
-const PRODUCTS_TTL = parseInt(process.env.CACHE_TTL_PRODUCTS || '3600', 10); // 1 hour
-const RECIPES_TTL = parseInt(process.env.CACHE_TTL_RECIPES || '7200', 10); // 2 hours
+/**
+ * Multi-layer cache manager
+ * Layer 1: In-memory cache (node-cache)
+ * Layer 2: Redis (optional, for multi-instance deployments)
+ */
+class CacheManager {
+  private cache: NodeCache
+  private stats = { hits: 0, misses: 0 }
 
-// Create cache instances
-export const cache = new NodeCache({
-  stdTTL: DEFAULT_TTL,
-  checkperiod: 120, // Check for expired keys every 2 minutes
-  useClones: false, // Better performance, but be careful with mutations
-  deleteOnExpire: true,
-  maxKeys: 1000, // Limit number of keys to prevent memory issues
-});
+  constructor() {
+    this.cache = new NodeCache({
+      stdTTL: 300, // 5 minutes default
+      checkperiod: 60, // Check for expired keys every minute
+      useClones: false, // Better performance (don't clone objects)
+      maxKeys: 5000 // Prevent memory issues
+    })
 
-export const productsCache = new NodeCache({
-  stdTTL: PRODUCTS_TTL,
-  checkperiod: 300,
-  useClones: false,
-  maxKeys: 500,
-});
-
-export const recipesCache = new NodeCache({
-  stdTTL: RECIPES_TTL,
-  checkperiod: 600,
-  useClones: false,
-  maxKeys: 200,
-});
-
-// Generic cache wrapper function
-export async function cached<T>(
-  key: string,
-  ttl: number,
-  fn: () => Promise<T>,
-  cacheInstance: NodeCache = cache
-): Promise<T> {
-  // Try to get from cache
-  const cachedValue = cacheInstance.get<T>(key);
-  if (cachedValue !== undefined) {
-    return cachedValue;
+    // Log stats every 5 minutes
+    if (typeof setInterval !== 'undefined') {
+      setInterval(() => this.logStats(), 300000)
+    }
   }
 
-  // If not in cache, execute function
-  const result = await fn();
+  /**
+   * Get value from cache
+   */
+  async get<T>(key: string): Promise<T | undefined> {
+    const value = this.cache.get<T>(key)
 
-  // Store in cache
-  cacheInstance.set(key, result, ttl);
+    if (value !== undefined) {
+      this.stats.hits++
+      logger.cache('hit', key)
+      return value
+    }
 
-  return result;
-}
+    this.stats.misses++
+    logger.cache('miss', key)
+    return undefined
+  }
 
-// Cache key generators
-export const cacheKeys = {
-  product: (id: string) => `product:${id}`,
-  productsByStore: (store: string) => `products:store:${store}`,
-  productsByCategory: (category: string) => `products:category:${category}`,
-  activeOffers: (store?: string) =>
-    store ? `offers:active:${store}` : 'offers:active:all',
-  recipe: (id: string) => `recipe:${id}`,
-  recipeBySlug: (slug: string) => `recipe:slug:${slug}`,
-  weeklyRecipes: () => 'recipes:weekly',
-  stats: (type: string) => `stats:${type}`,
-};
+  /**
+   * Set value in cache
+   */
+  async set<T>(key: string, value: T, ttl?: number): Promise<void> {
+    this.cache.set(key, value, ttl || 300)
+    logger.cache('set', key, { ttl: ttl || 300 })
+  }
 
-// Cache invalidation helpers
-export function invalidateProductCache(store?: string) {
-  if (store) {
-    productsCache.del(cacheKeys.productsByStore(store));
-    productsCache.del(cacheKeys.activeOffers(store));
-  } else {
-    productsCache.flushAll();
+  /**
+   * Get from cache or execute factory function
+   */
+  async getOrSet<T>(
+    key: string,
+    factory: () => Promise<T>,
+    ttl?: number
+  ): Promise<T> {
+    const cached = await this.get<T>(key)
+    if (cached !== undefined) return cached
+
+    const value = await factory()
+    await this.set(key, value, ttl)
+    return value
+  }
+
+  /**
+   * Delete single key
+   */
+  async del(key: string): Promise<void> {
+    this.cache.del(key)
+    logger.cache('invalidate', key)
+  }
+
+  /**
+   * Delete keys matching pattern
+   */
+  async invalidatePattern(pattern: string): Promise<number> {
+    const keys = this.cache.keys()
+    const matching = keys.filter(k => k.includes(pattern))
+
+    if (matching.length > 0) {
+      this.cache.del(matching)
+      logger.cache('invalidate', pattern, { count: matching.length })
+    }
+
+    return matching.length
+  }
+
+  /**
+   * Delete all keys with specific prefix
+   */
+  async invalidatePrefix(prefix: string): Promise<number> {
+    const keys = this.cache.keys()
+    const matching = keys.filter(k => k.startsWith(prefix))
+
+    if (matching.length > 0) {
+      this.cache.del(matching)
+      logger.cache('invalidate', `${prefix}*`, { count: matching.length })
+    }
+
+    return matching.length
+  }
+
+  /**
+   * Clear entire cache
+   */
+  async clear(): Promise<void> {
+    this.cache.flushAll()
+    this.stats = { hits: 0, misses: 0 }
+    logger.info('Cache cleared')
+  }
+
+  /**
+   * Check if key exists
+   */
+  has(key: string): boolean {
+    return this.cache.has(key)
+  }
+
+  /**
+   * Get remaining TTL for key
+   */
+  getTtl(key: string): number | undefined {
+    return this.cache.getTtl(key)
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getStats(): CacheStats {
+    const total = this.stats.hits + this.stats.misses
+    return {
+      hits: this.stats.hits,
+      misses: this.stats.misses,
+      keys: this.cache.keys().length,
+      hitRate: total > 0 ? this.stats.hits / total : 0
+    }
+  }
+
+  /**
+   * Log cache statistics
+   */
+  private logStats() {
+    const stats = this.getStats()
+    if (stats.keys > 0 || this.stats.hits > 0) {
+      logger.info('Cache statistics', {
+        ...stats,
+        hitRate: `${(stats.hitRate * 100).toFixed(1)}%`
+      })
+    }
   }
 }
 
-export function invalidateRecipeCache(id?: string) {
-  if (id) {
-    recipesCache.del(cacheKeys.recipe(id));
-  } else {
-    recipesCache.flushAll();
+// Singleton instance
+export const cache = new CacheManager()
+
+/**
+ * Cache key builders for consistent key naming
+ */
+export const CacheKeys = {
+  // Offers
+  offers: (filters: Record<string, any>) =>
+    `offers:list:${JSON.stringify(filters)}`,
+  offer: (id: string) =>
+    `offers:single:${id}`,
+  offersTrending: () =>
+    'offers:trending',
+  offersByStore: (storeId: string) =>
+    `offers:store:${storeId}`,
+  offersByCategory: (category: string) =>
+    `offers:category:${category}`,
+  offersStats: () =>
+    'offers:stats',
+
+  // Recipes
+  recipes: (filters: Record<string, any>) =>
+    `recipes:list:${JSON.stringify(filters)}`,
+  recipe: (id: string) =>
+    `recipes:single:${id}`,
+  recipesPopular: () =>
+    'recipes:popular',
+  recipesBudget: (maxCost: number) =>
+    `recipes:budget:${maxCost}`,
+  recipesStats: () =>
+    'recipes:stats',
+
+  // Stores
+  stores: (filters: Record<string, any>) =>
+    `stores:list:${JSON.stringify(filters)}`,
+  store: (id: string) =>
+    `stores:single:${id}`,
+  storeBySlug: (slug: string) =>
+    `stores:slug:${slug}`,
+  storesActive: () =>
+    'stores:active',
+  storesStats: () =>
+    'stores:stats',
+
+  // AI/Catalogs
+  catalog: (catalogId: string) =>
+    `catalogs:${catalogId}`,
+  catalogProducts: (catalogId: string) =>
+    `catalogs:products:${catalogId}`,
+
+  // Menus
+  weeklyMenu: (userId: string, weekNumber: number) =>
+    `menus:weekly:${userId}:${weekNumber}`
+}
+
+/**
+ * Cache TTL values (in seconds)
+ */
+export const CacheTTL = {
+  SHORT: 60,        // 1 minute - for frequently changing data
+  MEDIUM: 300,      // 5 minutes - default
+  LONG: 900,        // 15 minutes - for stable data
+  HOUR: 3600,       // 1 hour - for rarely changing data
+  DAY: 86400        // 24 hours - for static data
+}
+
+/**
+ * Decorator for caching method results
+ */
+export function Cached<T>(keyFn: (...args: any[]) => string, ttl: number = CacheTTL.MEDIUM) {
+  return function (
+    _target: any,
+    _propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const originalMethod = descriptor.value
+
+    descriptor.value = async function (...args: any[]) {
+      const cacheKey = keyFn(...args)
+      return cache.getOrSet(cacheKey, () => originalMethod.apply(this, args), ttl)
+    }
+
+    return descriptor
   }
 }
-
-// Stats for monitoring
-export function getCacheStats() {
-  return {
-    main: cache.getStats(),
-    products: productsCache.getStats(),
-    recipes: recipesCache.getStats(),
-  };
-}
-
-// Clear all caches
-export function clearAllCaches() {
-  cache.flushAll();
-  productsCache.flushAll();
-  recipesCache.flushAll();
-}
-
-export default cache;

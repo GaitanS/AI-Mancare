@@ -1,0 +1,70 @@
+/**
+ * Cloudflare Configuration
+ * Deploy this as _headers file to your hosting or configure in Cloudflare dashboard
+ */
+
+# ===========================================
+# CLOUDFLARE PAGE RULES & CACHE SETTINGS
+# ===========================================
+# 
+# Pentru Cloudflare, configurează acestea în Dashboard:
+#
+# 1. PAGE RULES (https://dash.cloudflare.com/xxx/retete-ieftine.ro/rules)
+#    
+#    Rule 1: Cache Everything for API v2
+#    URL: *retete-ieftine.ro/api/v2/*
+#    Settings:
+#      - Cache Level: Cache Everything
+#      - Edge Cache TTL: 5 minutes
+#    
+#    Rule 2: Bypass cache for mutations
+#    URL: *retete-ieftine.ro/api/recipes/generate*
+#    Settings:
+#      - Cache Level: Bypass
+#    
+#    Rule 3: Long cache for static assets
+#    URL: *retete-ieftine.ro/_next/static/*
+#    Settings:
+#      - Cache Level: Cache Everything
+#      - Edge Cache TTL: 1 month
+#      - Browser Cache TTL: 1 year
+#
+# 2. TRANSFORM RULES - Auto Minify
+#    Enable: JavaScript, CSS, HTML minification
+#
+# 3. SPEED → Optimization
+#    - Enable Brotli compression
+#    - Enable Early Hints
+#    - Enable Rocket Loader (test first!)
+#    - Enable Mirage (for images)
+#    - Enable Polish (Lossy for best compression)
+#
+# ===========================================
+
+# Static Assets - Long Cache
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Images - Medium Cache
+/images/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+# API v2 - Short Cache  
+/api/v2/*
+  Cache-Control: public, s-maxage=300, stale-while-revalidate=600
+
+# Health & Metrics - No Cache
+/api/health
+  Cache-Control: no-store
+
+/api/metrics
+  Cache-Control: no-store
+
+# Pages - Stale While Revalidate
+/*
+  Cache-Control: public, max-age=0, s-maxage=86400, stale-while-revalidate=43200
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()

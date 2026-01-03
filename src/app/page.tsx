@@ -145,6 +145,8 @@ export default async function HomePage() {
               fill
               className="object-contain"
               sizes="(max-width: 1024px) 250px, 300px"
+              priority
+              loading="eager"
             />
           </div>
           <div className="absolute -left-10 bottom-[15%] w-[280px] h-[280px] lg:w-[340px] lg:h-[340px] animate-float opacity-90 hidden lg:block mix-blend-screen" style={{ animationDelay: '2s', animationDuration: '7s', maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}>
@@ -154,6 +156,8 @@ export default async function HomePage() {
               fill
               className="object-contain rotate-12"
               sizes="(max-width: 1024px) 280px, 340px"
+              priority
+              loading="eager"
             />
           </div>
         </div>

@@ -112,17 +112,79 @@ export default function PlanPage() {
     const [estimatedTotal, setEstimatedTotal] = useState(0);
     const [filterTag, setFilterTag] = useState<string | null>(null);
 
-    // Logic temporarily removed for debugging
-    const filteredRecipes: Recipe[] = [];
-    const activeFilterCount = 0;
-    const allTags: string[] = [];
-    const clearAllFilters = () => { };
-    const toggleRecipe = (id: string) => { };
-    const getDifficultyLabel = (d: string) => d;
-    const fetchData = async () => { };
+    // State variables for filters
+    const [showFilters, setShowFilters] = useState(false);
+    const [isPartyMode, setIsPartyMode] = useState(false);
+    const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
+    const [showBatchModal, setShowBatchModal] = useState(false);
+    const [loadingBatch, setLoadingBatch] = useState(false);
+    const [batchPlan, setBatchPlan] = useState<any>(null);
+    const [filterDifficulty, setFilterDifficulty] = useState<string[]>([]);
+    const [filterMealType, setFilterMealType] = useState<string[]>([]);
+    const [filterMeatType, setFilterMeatType] = useState<string[]>([]);
+    const [filterDietaryRestrictions, setFilterDietaryRestrictions] = useState<string[]>([]);
+    const [filterMaxTime, setFilterMaxTime] = useState<number | null>(null);
+    const [filterMaxCost, setFilterMaxCost] = useState<number | null>(null);
+    const profileRestrictions: string[] = [];
+    const defaultPortions = 4;
 
-    // Filter recipes by all criteria
-    const filteredRecipes = [];
+    // Derived values
+    const filteredRecipes: Recipe[] = recipes.filter(recipe => {
+        if (filterTag && !recipe.tags.includes(filterTag)) return false;
+        if (filterDifficulty.length > 0 && !filterDifficulty.includes(recipe.difficulty)) return false;
+        if (filterMaxTime && recipe.totalTime && recipe.totalTime > filterMaxTime) return false;
+        if (filterMaxCost && recipe.estimatedCost && recipe.estimatedCost > filterMaxCost) return false;
+        return true;
+    });
+
+    const activeFilterCount = [
+        filterDifficulty.length > 0,
+        filterMealType.length > 0,
+        filterMeatType.length > 0,
+        filterDietaryRestrictions.length > 0,
+        filterMaxTime !== null,
+        filterMaxCost !== null,
+        filterTag !== null
+    ].filter(Boolean).length;
+
+    const allTags: string[] = [...new Set(recipes.flatMap(r => r.tags))];
+
+    const clearAllFilters = () => {
+        setFilterDifficulty([]);
+        setFilterMealType([]);
+        setFilterMeatType([]);
+        setFilterDietaryRestrictions([]);
+        setFilterMaxTime(null);
+        setFilterMaxCost(null);
+        setFilterTag(null);
+    };
+
+    const toggleRecipe = (id: string) => {
+        setSelectedRecipes(prev =>
+            prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+        );
+    };
+
+    const getDifficultyLabel = (d: string) => {
+        switch (d) {
+            case 'USOR': return 'Ușor';
+            case 'MEDIU': return 'Mediu';
+            case 'DIFICIL': return 'Dificil';
+            default: return d;
+        }
+    };
+
+    // Calculate estimated total when selection changes
+    useEffect(() => {
+        const total = selectedRecipes.reduce((sum, id) => {
+            const recipe = recipes.find(r => r.id === id);
+            if (recipe?.estimatedCost) {
+                return sum + (recipe.estimatedCost * portions / recipe.servings);
+            }
+            return sum;
+        }, 0);
+        setEstimatedTotal(total);
+    }, [selectedRecipes, portions, recipes]);
 
     const generateBatchPlan = () => { };
 
@@ -530,9 +592,9 @@ export default function PlanPage() {
                             </div>
                         )}
                     </div>
-            </div >
-        </div >
-    </div >
+            </div>
+        </div>
+    </div>
 
     {/* Batch Cooking Modal */ }
     {

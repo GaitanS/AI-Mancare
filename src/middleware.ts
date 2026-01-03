@@ -11,6 +11,13 @@ export async function middleware(request: NextRequest) {
   // Security headers (suplimentar la next.config.js)
   const response = NextResponse.next();
 
+  // Additional security headers
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
   // Rate limiting pentru API routes
   if (pathname.startsWith('/api/')) {
     // Determine rate limit config based on endpoint
