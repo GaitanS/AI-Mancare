@@ -8,6 +8,7 @@ import { z } from 'zod';
 import type { Product, GeneratedRecipe } from '@/types';
 import { generateSlug, sleep } from '@/lib/utils';
 import prisma from '@/lib/db';
+import { calculateDietaryFlags } from '@/lib/dietary';
 
 // OpenRouter client (OpenAI-compatible API)
 const openrouter = new OpenAI({
@@ -69,8 +70,7 @@ export async function generateRecipe(
     const productsFormatted = availableProducts
       .map(
         (p) =>
-          `- ${p.name} (${p.brand || 'no brand'}): ${p.price} lei/${p.unit} ${
-            p.discountPercentage ? `[${p.discountPercentage}% reducere]` : ''
+          `- ${p.name} (${p.brand || 'no brand'}): ${p.price} lei/${p.unit} ${p.discountPercentage ? `[${p.discountPercentage}% reducere]` : ''
           } [ID: ${p.id}] [Store: ${p.store}]`
       )
       .join('\n');
@@ -224,6 +224,8 @@ export async function generateWeeklyRecipes(count: number = 10): Promise<string[
               `${recipe.servings} portii`,
               `${recipe.prep_time + recipe.cook_time} minute`,
             ],
+            // Automatic Dietary Classification
+            ...calculateDietaryFlags(recipe.title + ' ' + recipe.instructions.map(s => s.text).join(' ') + ' ' + recipe.ingredients.map(i => i.product_id).join(' ')),
           },
         });
 

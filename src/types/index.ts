@@ -85,6 +85,7 @@ export interface Recipe {
   id: string;
   title: string;
   description: string;
+  imageUrl?: string | null;
   servings: number;
   prepTime?: number | null;
   cookTime?: number | null;
@@ -100,6 +101,13 @@ export interface Recipe {
   slug: string;
   metaDescription?: string | null;
   tags?: string[] | null;
+
+  // Dietary Flags
+  isGlutenFree?: boolean;
+  isDairyFree?: boolean;
+  isVegan?: boolean;
+  isVegetarian?: boolean;
+
   viewCount: number;
   favoriteCount: number;
   createdAt: Date;

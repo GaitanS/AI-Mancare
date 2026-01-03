@@ -232,7 +232,7 @@ export default async function RetetePage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        <div className="container-custom py-8">
+        <div className="container-custom pt-0 pb-4 sm:py-6 lg:py-8">
           {/* Mobile Toolbar (LG Hidden) */}
           <div className="lg:hidden mb-6">
             <div className="flex items-center gap-3">

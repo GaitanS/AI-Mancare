@@ -255,7 +255,7 @@ export default async function OfertePage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        <div className="container-custom py-6 sm:py-10">
+        <div className="container-custom pt-0 pb-4 sm:py-6 lg:py-8">
           {/* Mobile Toolbar (LG Hidden) */}
           <div className="lg:hidden mb-6">
             <div className="flex items-center gap-3">
@@ -298,8 +298,8 @@ export default async function OfertePage({ searchParams }: PageProps) {
 
             {/* Main Content */}
             <div className="flex-1 min-w-0">
-              {/* Sorting Bar */}
-              <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-card p-4 mb-6">
+              {/* Sorting Bar - Hidden on mobile, uses Mobile Toolbar instead */}
+              <div className="hidden lg:block bg-white rounded-2xl border border-neutral-200/80 shadow-card p-4 mb-6">
                 <div className="flex items-center justify-between gap-4">
                   <p className="text-sm text-neutral-600">
                     <span className="font-bold text-neutral-900">{products.length}</span> din{' '}

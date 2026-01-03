@@ -97,6 +97,7 @@ model Recipe {
   id          String @id @default(uuid())
   title       String
   description String
+  imageUrl    String? @map("image_url")  // Unsplash image URL
 
   // Recipe Details
   servings   Int            @default(4)
@@ -127,6 +128,15 @@ model Recipe {
   viewCount     Int @default(0) @map("view_count")
   favoriteCount Int @default(0) @map("favorite_count")
 
+  // Recipe Matching - hash of sorted ingredients for reuse
+  ingredientHash String? @unique @map("ingredient_hash")
+
+  // Dietary Flags (Denormalized)
+  isGlutenFree   Boolean @default(false) @map("is_gluten_free")
+  isDairyFree    Boolean @default(false) @map("is_dairy_free")
+  isVegan        Boolean @default(false) @map("is_vegan")
+  isVegetarian   Boolean @default(false) @map("is_vegetarian")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -134,6 +144,7 @@ model Recipe {
   @@index([estimatedCost])
   @@index([createdAt])
   @@index([difficulty])
+  @@index([ingredientHash])
 
   @@map("recipes")
 }
@@ -274,6 +285,12 @@ model IngredientMapping {
   // Aisle sorting for physical stores
   aisleOrder     Int     @default(99) @map("aisle_order")  // 1=Fructe/Legume, 2=Lactate, 3=Carne, etc.
   aisleName      String? @map("aisle_name")  // "Fructe și Legume", "Lactate", etc.
+  
+  // Dietary Flags
+  isGlutenFree   Boolean @default(false) @map("is_gluten_free")
+  isDairyFree    Boolean @default(false) @map("is_dairy_free")
+  isVegan        Boolean @default(false) @map("is_vegan")
+  isVegetarian   Boolean @default(false) @map("is_vegetarian")
   
   createdAt DateTime @default(now()) @map("created_at")
   

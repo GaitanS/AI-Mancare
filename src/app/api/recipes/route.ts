@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { cached, recipesCache, cacheKeys } from '@/lib/cache';
 import { generateSlug } from '@/lib/utils';
+import { calculateDietaryFlags } from '@/lib/dietary';
 import type { Recipe, RecipeFilters, PaginatedResponse, ApiResponse } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,12 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const sortBy = searchParams.get('sortBy') || 'created';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
+
+    // Dietary Filters
+    const isGlutenFree = searchParams.get('isGlutenFree') === 'true';
+    const isDairyFree = searchParams.get('isDairyFree') === 'true';
+    const isVegan = searchParams.get('isVegan') === 'true';
+    const isVegetarian = searchParams.get('isVegetarian') === 'true';
 
     const skip = (page - 1) * pageSize;
 
@@ -51,6 +58,12 @@ export async function GET(request: NextRequest) {
         { description: { contains: search, mode: 'insensitive' } },
       ];
     }
+
+    // Strict Dietary Filtering
+    if (isGlutenFree) where.isGlutenFree = true;
+    if (isDairyFree) where.isDairyFree = true;
+    if (isVegan) where.isVegan = true;
+    if (isVegetarian) where.isVegetarian = true;
 
     // Build orderBy
     const orderBy: any = {};
@@ -99,6 +112,11 @@ export async function GET(request: NextRequest) {
             tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : null,
             tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
             nutritionPerServing: r.nutritionPerServing ? (typeof r.nutritionPerServing === 'string' ? JSON.parse(r.nutritionPerServing) : r.nutritionPerServing) : null,
+            // Dietary Flags
+            isGlutenFree: r.isGlutenFree,
+            isDairyFree: r.isDairyFree,
+            isVegan: r.isVegan,
+            isVegetarian: r.isVegetarian
           })),
           total,
         };
@@ -203,6 +221,13 @@ export async function POST(request: NextRequest) {
         slug,
         metaDescription: body.metaDescription || body.description.substring(0, 160),
         tags: body.tags,
+        // Automatic Dietary Classification if not provided
+        ...(body.isVegan !== undefined ? {
+          isGlutenFree: body.isGlutenFree,
+          isDairyFree: body.isDairyFree,
+          isVegan: body.isVegan,
+          isVegetarian: body.isVegetarian
+        } : calculateDietaryFlags(body.title + ' ' + body.description + ' ' + JSON.stringify(body.tags || []) + ' ' + JSON.stringify(body.instructions))),
       },
     });
 

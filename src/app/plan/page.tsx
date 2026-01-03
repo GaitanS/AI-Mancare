@@ -9,6 +9,7 @@ interface Recipe {
     id: string;
     title: string;
     description: string;
+    imageUrl: string | null;
     servings: number;
     prepTime: number | null;
     cookTime: number | null;
@@ -110,6 +111,18 @@ export default function PlanPage() {
     const [estimatedTotal, setEstimatedTotal] = useState(0);
     const [filterTag, setFilterTag] = useState<string | null>(null);
 
+    // Advanced Filters
+    const [filterDifficulty, setFilterDifficulty] = useState<string | null>(null);
+    const [filterMaxTime, setFilterMaxTime] = useState<number | null>(null);
+    const [filterMaxCost, setFilterMaxCost] = useState<number | null>(null);
+    const [filterMealType, setFilterMealType] = useState<string | null>(null);
+    const [filterMeatType, setFilterMeatType] = useState<string | null>(null);
+    const [filterDietaryRestrictions, setFilterDietaryRestrictions] = useState<string[]>([]);
+    const [showFilters, setShowFilters] = useState(false);
+
+    // Profile data
+    const [profileRestrictions, setProfileRestrictions] = useState<string[]>([]);
+
     // Batch Cooking State
     const [showBatchModal, setShowBatchModal] = useState(false);
     const [batchPlan, setBatchPlan] = useState<any>(null);
@@ -122,9 +135,9 @@ export default function PlanPage() {
     // View Recipe Modal State
     const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
 
-    // Lock body scroll when modal is open
+    // Lock body scroll when modal or filter sidebar is open
     useEffect(() => {
-        if (viewRecipe) {
+        if (viewRecipe || showFilters) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = '';
@@ -132,7 +145,7 @@ export default function PlanPage() {
         return () => {
             document.body.style.overflow = '';
         };
-    }, [viewRecipe]);
+    }, [viewRecipe, showFilters]);
 
     // Fetch recipes and profile
     const fetchData = useCallback(async () => {
@@ -160,8 +173,11 @@ export default function PlanPage() {
                     else if (nutritionalGoals?.includes('VEGETARIAN')) setFilterTag('Vegetarian');
                     else if (nutritionalGoals?.includes('HIGH_PROTEIN')) setFilterTag('High Protein');
 
-                    // You could also use strict filtering for restrictions, 
-                    // but for now we just use the goal as the primary filter.
+                    // Store and apply dietary restrictions from profile
+                    if (dietaryRestrictions && Array.isArray(dietaryRestrictions)) {
+                        setProfileRestrictions(dietaryRestrictions);
+                        setFilterDietaryRestrictions(dietaryRestrictions);
+                    }
                 }
             }
 
@@ -215,10 +231,93 @@ export default function PlanPage() {
     // Get all unique tags
     const allTags = [...new Set(recipes.flatMap(r => r.tags))];
 
-    // Filter recipes by tag
-    const filteredRecipes = filterTag
-        ? recipes.filter(r => r.tags.includes(filterTag))
-        : recipes;
+    // Count active filters
+    const activeFilterCount = [
+        filterTag, filterDifficulty, filterMaxTime, filterMaxCost,
+        filterMealType, filterMeatType,
+        ...filterDietaryRestrictions
+    ].filter(Boolean).length;
+
+    // Clear all filters (but keep profile restrictions)
+    const clearAllFilters = () => {
+        setFilterTag(null);
+        setFilterDifficulty(null);
+        setFilterMaxTime(null);
+        setFilterMaxCost(null);
+        setFilterMealType(null);
+        setFilterMeatType(null);
+        setFilterDietaryRestrictions(profileRestrictions);
+    };
+
+    // Meal type mapping
+    const mealTypeMapping: Record<string, string[]> = {
+        'Mic Dejun': ['Mic dejun', 'Breakfast', 'mic dejun'],
+        'Prânz': ['Pranz', 'Prânz', 'Lunch', 'pranz'],
+        'Cină': ['Cina', 'Cină', 'Dinner', 'cina'],
+    };
+
+    // Meat type mapping  
+    const meatTypeMapping: Record<string, string[]> = {
+        'Pui': ['pui', 'Pui', 'chicken', 'Chicken'],
+        'Porc': ['porc', 'Porc', 'pork', 'Pork'],
+        'Vită': ['vita', 'Vită', 'beef', 'Beef'],
+        'Pește': ['peste', 'Pește', 'fish', 'Fish'],
+        'Vegetarian': ['vegetarian', 'Vegetarian', 'vegan', 'Vegan'],
+    };
+
+    // Filter recipes by all criteria
+    const filteredRecipes = recipes.filter(recipe => {
+        // Tag filter
+        if (filterTag && !recipe.tags.includes(filterTag)) return false;
+
+        // Difficulty filter
+        if (filterDifficulty && recipe.difficulty !== filterDifficulty) return false;
+
+        // Time filter
+        if (filterMaxTime && (recipe.totalTime || 0) > filterMaxTime) return false;
+
+        // Cost filter (scaled by portions)
+        if (filterMaxCost) {
+            const scaledCost = recipe.estimatedCost
+                ? (recipe.estimatedCost / recipe.servings) * portions
+                : 0;
+            if (scaledCost > filterMaxCost) return false;
+        }
+
+        // Meal type filter
+        if (filterMealType) {
+            const mealTags = mealTypeMapping[filterMealType] || [];
+            const hasMealTag = recipe.tags.some(tag => mealTags.includes(tag));
+            if (!hasMealTag) return false;
+        }
+
+        // Meat type filter
+        if (filterMeatType) {
+            const meatTags = meatTypeMapping[filterMeatType] || [];
+            const hasMeatTag = recipe.tags.some(tag => meatTags.includes(tag)) ||
+                recipe.title.toLowerCase().includes(filterMeatType.toLowerCase());
+            if (!hasMeatTag) return false;
+        }
+
+        // Dietary Restrictions mapping
+        if (filterDietaryRestrictions.length > 0) {
+            const hasRestrictions = filterDietaryRestrictions.every(restriction => {
+                if (restriction === 'Fără Gluten') return recipe.isGlutenFree;
+                if (restriction === 'Fără Lactoză') return recipe.isDairyFree;
+                if (restriction === 'Vegan') return recipe.isVegan;
+                if (restriction === 'Vegetarian') return recipe.isVegetarian || recipe.isVegan; // Vegan is also Vegetarian
+                if (restriction === 'Fără Nuci') {
+                    // Fallback to tags for now
+                    const tagsStr = (recipe.tags || []).join(' ').toLowerCase();
+                    return !tagsStr.includes('nuci') && !tagsStr.includes('alune') && !recipe.title.toLowerCase().includes('nuci');
+                }
+                return true;
+            });
+            if (!hasRestrictions) return false;
+        }
+
+        return true;
+    });
 
     const generateBatchPlan = async () => {
         if (selectedRecipes.length === 0) return;
@@ -349,33 +448,316 @@ export default function PlanPage() {
                 )}
             </div>
 
-            {/* Tag Filters */}
-            <div className="px-4 pb-4 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                <button
-                    onClick={() => setFilterTag(null)}
-                    className={cn(
-                        "px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors",
-                        filterTag === null
-                            ? "bg-primary-600 text-white"
-                            : "bg-white border border-neutral-200 text-neutral-600 hover:border-primary-300"
-                    )}
-                >
-                    Toate
-                </button>
-                {allTags.slice(0, 6).map(tag => (
+            {/* Smart Filter Bar */}
+            <div className="px-4 pb-4">
+                {/* Filter Button + Quick Tags Row */}
+                <div className="flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] mb-3">
+                    {/* Filter Button */}
                     <button
-                        key={tag}
-                        onClick={() => setFilterTag(tag === filterTag ? null : tag)}
+                        onClick={() => setShowFilters(!showFilters)}
                         className={cn(
-                            "px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors",
-                            filterTag === tag
+                            "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors",
+                            showFilters || activeFilterCount > 0
                                 ? "bg-primary-600 text-white"
                                 : "bg-white border border-neutral-200 text-neutral-600 hover:border-primary-300"
                         )}
                     >
-                        {tag}
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        Filtre
+                        {activeFilterCount > 0 && (
+                            <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-xs">
+                                {activeFilterCount}
+                            </span>
+                        )}
                     </button>
-                ))}
+
+                    {/* Quick Tag Filters */}
+                    {allTags.slice(0, 5).map(tag => (
+                        <button
+                            key={tag}
+                            onClick={() => setFilterTag(tag === filterTag ? null : tag)}
+                            className={cn(
+                                "px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors",
+                                filterTag === tag
+                                    ? "bg-primary-600 text-white"
+                                    : "bg-white border border-neutral-200 text-neutral-600 hover:border-primary-300"
+                            )}
+                        >
+                            {tag}
+                        </button>
+                    ))}
+                </div>
+
+
+                {/* Slide-in Filter Sidebar */}
+                {showFilters && (
+                    <>
+                        {/* Backdrop */}
+                        <div
+                            className="fixed inset-0 bg-black/40 z-40 transition-opacity"
+                            onClick={() => setShowFilters(false)}
+                        />
+
+                        {/* Sidebar */}
+                        <div className="fixed inset-y-0 right-0 w-full max-w-[340px] bg-white shadow-2xl flex flex-col z-50 animate-slide-in">
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-white">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-neutral-900 flex items-center justify-center shadow-lg shadow-neutral-900/20">
+                                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                        </svg>
+                                    </div>
+                                    <h2 className="font-display text-lg font-bold text-neutral-900">Filtre</h2>
+                                </div>
+                                <button
+                                    onClick={() => setShowFilters(false)}
+                                    className="w-10 h-10 flex items-center justify-center hover:bg-neutral-100 rounded-xl transition-colors"
+                                >
+                                    <svg className="w-5 h-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Filter Content */}
+                            <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+                                {/* Difficulty */}
+                                <div className="pb-5 border-b border-neutral-100">
+                                    <h3 className="text-sm font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                                        <span className="text-primary-500">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                        </span>
+                                        Dificultate
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[
+                                            { value: 'USOR', label: 'Ușor' },
+                                            { value: 'MEDIU', label: 'Mediu' },
+                                            { value: 'DIFICIL', label: 'Dificil' },
+                                        ].map(({ value, label }) => (
+                                            <button
+                                                key={value}
+                                                onClick={() => setFilterDifficulty(filterDifficulty === value ? null : value)}
+                                                className={cn(
+                                                    "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
+                                                    filterDifficulty === value
+                                                        ? "bg-primary-600 text-white"
+                                                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                                                )}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Meal Type */}
+                                <div className="pb-5 border-b border-neutral-100">
+                                    <h3 className="text-sm font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                                        <span className="text-primary-500">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                            </svg>
+                                        </span>
+                                        Tip de masă
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Mic Dejun', 'Prânz', 'Cină'].map(meal => (
+                                            <button
+                                                key={meal}
+                                                onClick={() => setFilterMealType(filterMealType === meal ? null : meal)}
+                                                className={cn(
+                                                    "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
+                                                    filterMealType === meal
+                                                        ? "bg-primary-600 text-white"
+                                                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                                                )}
+                                            >
+                                                {meal}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Meat Type */}
+                                <div className="pb-5 border-b border-neutral-100">
+                                    <h3 className="text-sm font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                                        <span className="text-primary-500">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                            </svg>
+                                        </span>
+                                        Tip de carne
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Pui', 'Porc', 'Vită', 'Pește', 'Vegetarian'].map(meat => (
+                                            <button
+                                                key={meat}
+                                                onClick={() => setFilterMeatType(filterMeatType === meat ? null : meat)}
+                                                className={cn(
+                                                    "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
+                                                    filterMeatType === meat
+                                                        ? "bg-primary-600 text-white"
+                                                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                                                )}
+                                            >
+                                                {meat}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Time */}
+                                <div className="pb-5 border-b border-neutral-100">
+                                    <h3 className="text-sm font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                                        <span className="text-primary-500">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </span>
+                                        Timp de preparare
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            { value: 15, label: '< 15 min' },
+                                            { value: 30, label: '< 30 min' },
+                                            { value: 60, label: '< 1 oră' },
+                                            { value: 120, label: '< 2 ore' },
+                                        ].map(({ value, label }) => (
+                                            <button
+                                                key={value}
+                                                onClick={() => setFilterMaxTime(filterMaxTime === value ? null : value)}
+                                                className={cn(
+                                                    "px-3 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5",
+                                                    filterMaxTime === value
+                                                        ? "bg-primary-600 text-white"
+                                                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                                                )}
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Cost */}
+                                <div className="pb-5 border-b border-neutral-100">
+                                    <h3 className="text-sm font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                                        <span className="text-primary-500">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </span>
+                                        Buget maxim ({portions} porții)
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[
+                                            { value: 15, label: '≤ 15 lei' },
+                                            { value: 25, label: '≤ 25 lei' },
+                                            { value: 40, label: '≤ 40 lei' },
+                                            { value: 60, label: '≤ 60 lei' },
+                                        ].map(({ value, label }) => (
+                                            <button
+                                                key={value}
+                                                onClick={() => setFilterMaxCost(filterMaxCost === value ? null : value)}
+                                                className={cn(
+                                                    "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
+                                                    filterMaxCost === value
+                                                        ? "bg-secondary-600 text-white"
+                                                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                                                )}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Dietary Restrictions */}
+                                <div>
+                                    <h3 className="text-sm font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                                        <span className="text-primary-500">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                            </svg>
+                                        </span>
+                                        Intoleranțe
+                                        {profileRestrictions.length > 0 && (
+                                            <span className="text-xs text-neutral-400 font-normal">(din profil)</span>
+                                        )}
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[
+                                            { value: 'GLUTEN_FREE', label: 'Fără Gluten' },
+                                            { value: 'LACTOSE_FREE', label: 'Fără Lactoză' },
+                                            { value: 'NUT_FREE', label: 'Fără Nuci' },
+                                            { value: 'VEGETARIAN', label: 'Vegetarian' },
+                                            { value: 'VEGAN', label: 'Vegan' },
+                                        ].map(({ value, label }) => {
+                                            const isFromProfile = profileRestrictions.includes(value);
+                                            const isActive = filterDietaryRestrictions.includes(value);
+                                            return (
+                                                <button
+                                                    key={value}
+                                                    onClick={() => {
+                                                        if (isActive) {
+                                                            setFilterDietaryRestrictions(prev => prev.filter(r => r !== value));
+                                                        } else {
+                                                            setFilterDietaryRestrictions(prev => [...prev, value]);
+                                                        }
+                                                    }}
+                                                    className={cn(
+                                                        "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
+                                                        isActive
+                                                            ? "bg-red-600 text-white"
+                                                            : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200",
+                                                        isFromProfile && !isActive && "ring-2 ring-red-200"
+                                                    )}
+                                                >
+                                                    {label}
+                                                    {isFromProfile && <span className="ml-1 text-xs">⚙️</span>}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-5 border-t border-neutral-100 bg-white">
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={clearAllFilters}
+                                        disabled={activeFilterCount === 0}
+                                        className="flex-1 px-4 py-3 text-sm font-semibold text-neutral-600 bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Resetează
+                                    </button>
+                                    <button
+                                        onClick={() => setShowFilters(false)}
+                                        className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-neutral-900 rounded-xl shadow-lg shadow-neutral-900/20 hover:bg-neutral-800 transition-all"
+                                    >
+                                        Aplică ({filteredRecipes.length} rețete)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {/* Results Count */}
+                <p className="text-center text-xs font-medium text-neutral-400">
+                    {filteredRecipes.length} {filteredRecipes.length === 1 ? 'rețetă' : 'rețete'}
+                    {activeFilterCount > 0 && ` (${activeFilterCount} filtre active)`}
+                </p>
             </div>
 
             {/* Selected Count & Actions */}
@@ -448,17 +830,22 @@ export default function PlanPage() {
                                             className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 rounded-xl overflow-hidden bg-neutral-100 cursor-pointer"
                                             onClick={() => setViewRecipe(recipe)}
                                         >
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                {recipe.tags.includes('Mic dejun') ? (
-                                                    <svg className="w-10 h-10 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                                                    </svg>
-                                                ) : (
+                                            {recipe.imageUrl ? (
+                                                <Image
+                                                    src={recipe.imageUrl}
+                                                    alt={recipe.title}
+                                                    fill
+                                                    className="object-cover"
+                                                    sizes="(max-width: 640px) 96px, 112px"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="absolute inset-0 flex items-center justify-center">
                                                     <svg className="w-10 h-10 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                                     </svg>
-                                                )}
-                                            </div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Recipe Content - Clickable to view */}
@@ -648,11 +1035,24 @@ export default function PlanPage() {
 
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto p-5">
-                            {/* Recipe Image Placeholder */}
-                            <div className="aspect-video bg-neutral-100 rounded-2xl mb-6 flex items-center justify-center">
-                                <svg className="w-20 h-20 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                </svg>
+                            {/* Recipe Image */}
+                            <div className="relative aspect-video bg-neutral-100 rounded-2xl mb-6 overflow-hidden">
+                                {viewRecipe.imageUrl ? (
+                                    <Image
+                                        src={viewRecipe.imageUrl}
+                                        alt={viewRecipe.title}
+                                        fill
+                                        className="object-cover"
+                                        sizes="(max-width: 768px) 100vw, 500px"
+                                        unoptimized
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <svg className="w-20 h-20 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                        </svg>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Quick Info */}
