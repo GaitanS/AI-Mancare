@@ -119,6 +119,21 @@ export default function PlanPage() {
     const [isPartyMode, setIsPartyMode] = useState(false);
     const [defaultPortions, setDefaultPortions] = useState(4);
 
+    // View Recipe Modal State
+    const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
+
+    // Lock body scroll when modal is open
+    useEffect(() => {
+        if (viewRecipe) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [viewRecipe]);
+
     // Fetch recipes and profile
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -399,7 +414,7 @@ export default function PlanPage() {
                 </div>
             )}
 
-            {/* Recipe Grid */}
+            {/* Recipe List */}
             <div className="px-4 pb-20">
                 <h2 className="text-xl font-display font-bold text-neutral-900 mb-4">
                     {filterTag ? `Rețete ${filterTag}` : 'Top alegeri pentru tine'}
@@ -411,48 +426,93 @@ export default function PlanPage() {
                         <p className="text-neutral-500">Se încarcă rețetele...</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="space-y-4">
                         {filteredRecipes.map((recipe) => {
                             const isSelected = selectedRecipes.includes(recipe.id);
                             const scaledCost = recipe.estimatedCost
                                 ? Math.round((recipe.estimatedCost * portions / recipe.servings) * 100) / 100
                                 : null;
+                            const originalCost = scaledCost ? Math.round(scaledCost * 1.25) : null;
 
                             return (
                                 <div
                                     key={recipe.id}
                                     className={cn(
-                                        "relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border-2 transition-all cursor-pointer",
-                                        isSelected ? "border-primary-500 shadow-warm" : "border-neutral-200 hover:border-neutral-300"
+                                        "relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border-2 transition-all",
+                                        isSelected ? "border-primary-500 shadow-warm" : "border-neutral-100 hover:border-neutral-200"
                                     )}
-                                    onClick={() => toggleRecipe(recipe.id)}
                                 >
-                                    {/* Recipe Image Placeholder */}
-                                    <div className="relative aspect-[4/3] bg-neutral-100 group-hover:bg-neutral-50 transition-colors">
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            {/* Simple Culinary Icon based on tag or default */}
-                                            {recipe.tags.includes('Mic dejun') ? (
-                                                <svg className="w-16 h-16 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                                                </svg>
-                                            ) : recipe.tags.includes('Vegetarian') ? (
-                                                <svg className="w-16 h-16 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                                </svg>
-                                            ) : (
-                                                <svg className="w-16 h-16 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                                </svg>
-                                            )}
+                                    <div className="flex gap-4 p-4">
+                                        {/* Recipe Image */}
+                                        <div
+                                            className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 rounded-xl overflow-hidden bg-neutral-100 cursor-pointer"
+                                            onClick={() => setViewRecipe(recipe)}
+                                        >
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                {recipe.tags.includes('Mic dejun') ? (
+                                                    <svg className="w-10 h-10 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg className="w-10 h-10 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                    </svg>
+                                                )}
+                                            </div>
                                         </div>
 
-                                        {/* Selection Checkbox */}
+                                        {/* Recipe Content - Clickable to view */}
                                         <div
+                                            className="flex-1 min-w-0 cursor-pointer"
+                                            onClick={() => setViewRecipe(recipe)}
+                                        >
+                                            {/* Title & Price Row */}
+                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                                <h3 className="font-bold text-neutral-900 text-base leading-tight line-clamp-2">
+                                                    {recipe.title}
+                                                </h3>
+                                                {scaledCost && (
+                                                    <div className="text-right flex-shrink-0">
+                                                        <span className="text-primary-600 font-bold text-base">
+                                                            {scaledCost} RON
+                                                        </span>
+                                                        {originalCost && (
+                                                            <p className="text-neutral-400 text-xs line-through">
+                                                                {originalCost} RON
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Discount Badges */}
+                                            <div className="flex flex-wrap gap-1.5 mb-2">
+                                                {recipe.difficulty === 'USOR' && (
+                                                    <span className="px-2 py-0.5 bg-amber-400 text-amber-900 text-xs font-bold rounded">
+                                                        -20%
+                                                    </span>
+                                                )}
+                                                {recipe.tags.includes('Ieftin') && (
+                                                    <span className="px-2 py-0.5 bg-orange-400 text-orange-900 text-xs font-bold rounded">
+                                                        -30%
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Description/Tags */}
+                                            <p className="text-sm text-neutral-500 line-clamp-2">
+                                                {recipe.tags.join(', ')}
+                                            </p>
+                                        </div>
+
+                                        {/* Add Button */}
+                                        <button
+                                            onClick={() => toggleRecipe(recipe.id)}
                                             className={cn(
-                                                "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm border",
+                                                "self-center w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 border-2",
                                                 isSelected
-                                                    ? "bg-primary-600 text-white border-primary-600"
-                                                    : "bg-white text-neutral-300 border-neutral-200 hover:border-primary-300"
+                                                    ? "bg-primary-600 text-white border-primary-600 shadow-lg shadow-primary-500/30"
+                                                    : "bg-white text-neutral-400 border-neutral-200 hover:border-primary-400 hover:text-primary-500"
                                             )}
                                         >
                                             {isSelected ? (
@@ -464,44 +524,7 @@ export default function PlanPage() {
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                                                 </svg>
                                             )}
-                                        </div>
-
-                                        {/* Cost Badge - Softer */}
-                                        {scaledCost && (
-                                            <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-neutral-100 shadow-sm">
-                                                <span className="text-xs font-bold text-neutral-700">~{scaledCost} lei</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Recipe Info */}
-                                    <div className="p-3">
-                                        <h3 className="font-bold text-neutral-900 text-sm line-clamp-2 mb-2 min-h-[2.5rem]">
-                                            {recipe.title}
-                                        </h3>
-
-                                        <div className="flex items-center gap-2 text-xs text-neutral-500">
-                                            <span className="flex items-center gap-1">
-                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                {recipe.totalTime} min
-                                            </span>
-                                            <span>•</span>
-                                            <span>{getDifficultyLabel(recipe.difficulty)}</span>
-                                        </div>
-
-                                        {/* Tags */}
-                                        <div className="flex flex-wrap gap-1 mt-2">
-                                            {recipe.tags.slice(0, 2).map(tag => (
-                                                <span
-                                                    key={tag}
-                                                    className="px-2 py-0.5 bg-primary-50 text-primary-600 text-[10px] font-semibold rounded-full"
-                                                >
-                                                    {tag}
-                                                </span>
-                                            ))}
-                                        </div>
+                                        </button>
                                     </div>
                                 </div>
                             );
@@ -592,6 +615,121 @@ export default function PlanPage() {
                             >
                                 Am înțeles, să trecem la treabă!
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Recipe Detail Modal */}
+            {viewRecipe && (
+                <div className="fixed inset-0 z-50">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+                        onClick={() => setViewRecipe(null)}
+                    />
+
+                    {/* Modal */}
+                    <div className="absolute inset-x-0 bottom-0 max-h-[85vh] bg-white rounded-t-3xl shadow-2xl flex flex-col animate-slide-up">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-white rounded-t-3xl">
+                            <h2 className="font-display text-xl font-bold text-neutral-900 line-clamp-1">
+                                {viewRecipe.title}
+                            </h2>
+                            <button
+                                onClick={() => setViewRecipe(null)}
+                                className="w-10 h-10 flex items-center justify-center hover:bg-neutral-100 rounded-full transition-colors"
+                                aria-label="Închide"
+                            >
+                                <svg className="w-6 h-6 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-5">
+                            {/* Recipe Image Placeholder */}
+                            <div className="aspect-video bg-neutral-100 rounded-2xl mb-6 flex items-center justify-center">
+                                <svg className="w-20 h-20 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
+
+                            {/* Quick Info */}
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="flex items-center gap-1.5 text-sm text-neutral-600">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>{viewRecipe.totalTime} min</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-sm text-neutral-600">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    <span>{viewRecipe.servings} porții</span>
+                                </div>
+                                <span className={cn(
+                                    "px-2 py-1 rounded-full text-xs font-semibold",
+                                    viewRecipe.difficulty === 'USOR' ? "bg-green-100 text-green-700" :
+                                        viewRecipe.difficulty === 'MEDIU' ? "bg-amber-100 text-amber-700" :
+                                            "bg-red-100 text-red-700"
+                                )}>
+                                    {getDifficultyLabel(viewRecipe.difficulty)}
+                                </span>
+                            </div>
+
+                            {/* Description */}
+                            <p className="text-neutral-600 mb-6">{viewRecipe.description}</p>
+
+                            {/* Tags */}
+                            <div className="flex flex-wrap gap-2 mb-6">
+                                {viewRecipe.tags.map(tag => (
+                                    <span
+                                        key={tag}
+                                        className="px-3 py-1.5 bg-primary-50 text-primary-600 text-sm font-semibold rounded-full"
+                                    >
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+
+                            {/* Cost */}
+                            {viewRecipe.estimatedCost && (
+                                <div className="bg-neutral-50 rounded-xl p-4 mb-6">
+                                    <p className="text-sm text-neutral-500 mb-1">Cost estimat</p>
+                                    <p className="text-2xl font-bold text-primary-600">
+                                        ~{Math.round((viewRecipe.estimatedCost * portions / viewRecipe.servings) * 100) / 100} RON
+                                    </p>
+                                    <p className="text-xs text-neutral-400">pentru {portions} porții</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="p-5 border-t border-neutral-100 bg-white safe-area-inset-bottom">
+                            <div className="flex gap-3">
+                                <Link
+                                    href={`/retete/${viewRecipe.slug}`}
+                                    className="flex-1 px-4 py-3 text-sm font-semibold text-neutral-600 bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors text-center"
+                                >
+                                    Vezi rețeta completă
+                                </Link>
+                                <button
+                                    onClick={() => {
+                                        toggleRecipe(viewRecipe.id);
+                                        setViewRecipe(null);
+                                    }}
+                                    className={cn(
+                                        "flex-1 px-4 py-3 text-sm font-semibold rounded-xl transition-all text-center",
+                                        selectedRecipes.includes(viewRecipe.id)
+                                            ? "bg-neutral-200 text-neutral-600"
+                                            : "bg-primary-600 text-white shadow-lg shadow-primary-500/30 hover:bg-primary-700"
+                                    )}
+                                >
+                                    {selectedRecipes.includes(viewRecipe.id) ? 'Elimină din plan' : 'Adaugă la plan'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
