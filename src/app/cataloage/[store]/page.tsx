@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import prisma from '@/lib/db';
-import { cached, productsCache, cacheKeys } from '@/lib/cache';
+
 import ProductCard, { ProductCardSkeleton } from '@/components/ProductCard';
 import FilterSidebar, { ProductFilterConfig } from '@/components/FilterSidebar';
 import type { Product, ProductFilters } from '@/types';
