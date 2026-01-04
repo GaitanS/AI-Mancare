@@ -213,7 +213,7 @@ export async function getProcessingCatalogsByStore(store: string) {
 /**
  * Batch insert products (optimizat pentru performance)
  */
-export async function batchInsertProducts(products: Prisma.ProductCreateInput[]) {
+export async function batchInsertProducts(products: any[]) {
   return trackQuery('batchInsertProducts', async () => {
     // Split în batch-uri de 100 pentru a evita timeout
     const batchSize = 100;
