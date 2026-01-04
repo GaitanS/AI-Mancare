@@ -2,10 +2,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Suspense } from 'react';
 import prisma from '@/lib/db';
-import { cached, productsCache, recipesCache, cacheKeys } from '@/lib/cache';
+import { cache, CacheKeys } from '@/lib/cache';
 import ProductCard, { ProductCardSkeleton } from '@/components/ProductCard';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
-import OnboardingTour from '@/components/OnboardingTour';
 import type { Product, Recipe } from '@/types';
 import type { Metadata } from 'next';
 
@@ -20,9 +19,8 @@ export const metadata: Metadata = {
 
 // Fetch featured offers (best discounts)
 async function getFeaturedOffers(): Promise<Product[]> {
-  return cached(
-    cacheKeys.activeOffers(),
-    3600,
+  return cache.getOrSet(
+    CacheKeys.offers({ type: 'featured_home' }),
     async () => {
       const now = new Date();
       const products = await prisma.product.findMany({
@@ -48,15 +46,14 @@ async function getFeaturedOffers(): Promise<Product[]> {
         allergens: p.allergens as string[] | null,
       }));
     },
-    productsCache
+    3600
   );
 }
 
 // Fetch featured recipes
 async function getFeaturedRecipes(): Promise<Recipe[]> {
-  return cached(
-    cacheKeys.weeklyRecipes(),
-    7200,
+  return cache.getOrSet(
+    CacheKeys.recipesPopular(),
     async () => {
       const recipes = await prisma.recipe.findMany({
         orderBy: [{ viewCount: 'desc' }, { favoriteCount: 'desc' }],
@@ -73,15 +70,14 @@ async function getFeaturedRecipes(): Promise<Recipe[]> {
         nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
       }));
     },
-    recipesCache
+    7200
   );
 }
 
 // Get statistics
 async function getStats() {
-  return cached(
+  return cache.getOrSet(
     'stats:home',
-    3600,
     async () => {
       const now = new Date();
       const [productCount, recipeCount, storeCount] = await Promise.all([
@@ -106,7 +102,8 @@ async function getStats() {
         recipes: recipeCount,
         stores: storeCount.length,
       };
-    }
+    },
+    3600
   );
 }
 
@@ -129,7 +126,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <OnboardingTour />
       <section className="relative min-h-[85vh] md:min-h-[550px] flex items-center overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-900 via-neutral-950 to-black text-white">
         {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -189,7 +185,7 @@ export default async function HomePage() {
 
             {/* Subheadline - SEO + Features */}
             <p className="text-lg text-neutral-300 mb-8 max-w-2xl mx-auto leading-relaxed px-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              Vezi cataloagele de la <span className="text-white font-semibold">Lidl, Kaufland, Penny</span>.
+              Vezi toate ofertele din cataloagele de la <span className="text-white font-semibold">Lidl, Kaufland, Penny etc</span>.
               AI-ul extrage ofertele și generează <span className="text-white font-semibold">rețete automate</span> cu produsele la reducere.
             </p>
 
@@ -301,7 +297,7 @@ export default async function HomePage() {
               href="/cataloage"
               className="hidden sm:inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 shadow-warm hover:shadow-lg transition-all duration-300 group"
             >
-              Vezi toate cataloagele
+              Vezi toate ofertele
               <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -327,7 +323,7 @@ export default async function HomePage() {
 
           <div className="mt-8 text-center sm:hidden">
             <Link href="/cataloage" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100 transition-colors border border-primary-100">
-              Vezi toate cataloagele
+              Vezi toate ofertele
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>

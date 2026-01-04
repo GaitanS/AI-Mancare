@@ -592,231 +592,231 @@ export default function PlanPage() {
                             </div>
                         )}
                     </div>
+                </main>
             </div>
         </div>
-    </div>
 
-    {/* Batch Cooking Modal */ }
-    {
-        showBatchModal && (
-            <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:items-center justify-center p-4">
-                <div className="bg-white w-full max-w-lg rounded-3xl max-h-[85vh] overflow-hidden flex flex-col">
-                    <div className="p-4 border-b border-neutral-100 flex items-center justify-between bg-white">
-                        <div>
-                            <h3 className="font-display font-bold text-xl text-neutral-900">Plan de Gătire Batch</h3>
-                            <p className="text-sm text-neutral-500">Optimizat pentru eficiență</p>
-                        </div>
-                        <button
-                            onClick={() => setShowBatchModal(false)}
-                            className="p-2 hover:bg-neutral-100 rounded-full"
-                        >
-                            <svg className="w-6 h-6 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 bg-neutral-50">
-                        {loadingBatch ? (
-                            <div className="flex flex-col items-center justify-center py-12">
-                                <div className="w-12 h-12 border-4 border-secondary-200 border-t-secondary-600 rounded-full animate-spin mb-4" />
-                                <p className="text-neutral-600 font-medium">Inteligența Artificială optimizează pașii...</p>
+        {/* Batch Cooking Modal */}
+        {
+            showBatchModal && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-end lg:items-center justify-center p-4">
+                    <div className="bg-white w-full max-w-lg rounded-3xl max-h-[85vh] overflow-hidden flex flex-col">
+                        <div className="p-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+                            <div>
+                                <h3 className="font-display font-bold text-xl text-neutral-900">Plan de Gătire Batch</h3>
+                                <p className="text-sm text-neutral-500">Optimizat pentru eficiență</p>
                             </div>
-                        ) : batchPlan ? (
-                            <div className="space-y-6">
-                                {/* Summary Card */}
-                                <div className="bg-secondary-50 border border-secondary-200 rounded-2xl p-4">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="bg-white p-2 rounded-full shadow-sm">
-                                            <svg className="w-6 h-6 text-secondary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-secondary-900">Timp Total Estimat</p>
-                                            <p className="text-secondary-700 text-sm">{batchPlan.totalPrepTime} pentru {selectedRecipes.length} rețete</p>
+                            <button
+                                onClick={() => setShowBatchModal(false)}
+                                className="p-2 hover:bg-neutral-100 rounded-full"
+                            >
+                                <svg className="w-6 h-6 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 bg-neutral-50">
+                            {loadingBatch ? (
+                                <div className="flex flex-col items-center justify-center py-12">
+                                    <div className="w-12 h-12 border-4 border-secondary-200 border-t-secondary-600 rounded-full animate-spin mb-4" />
+                                    <p className="text-neutral-600 font-medium">Inteligența Artificială optimizează pașii...</p>
+                                </div>
+                            ) : batchPlan ? (
+                                <div className="space-y-6">
+                                    {/* Summary Card */}
+                                    <div className="bg-secondary-50 border border-secondary-200 rounded-2xl p-4">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="bg-white p-2 rounded-full shadow-sm">
+                                                <svg className="w-6 h-6 text-secondary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-secondary-900">Timp Total Estimat</p>
+                                                <p className="text-secondary-700 text-sm">{batchPlan.totalPrepTime} pentru {selectedRecipes.length} rețete</p>
+                                            </div>
                                         </div>
                                     </div>
+
+                                    {/* Steps Timeline */}
+                                    <div className="relative pl-4 border-l-2 border-neutral-200 space-y-8">
+                                        {batchPlan.optimizedSchedule.map((step: any, idx: number) => (
+                                            <div key={idx} className="relative">
+                                                {/* Step Dot */}
+                                                <div className="absolute -left-[21px] top-0 w-4 h-4 rounded-full border-2 border-white ring-2 ring-primary-500 bg-primary-500" />
+
+                                                <h4 className="font-bold text-lg text-neutral-900 mb-1">
+                                                    Pasul {step.step}: {step.title}
+                                                </h4>
+                                                <p className="text-neutral-600 mb-3 leading-relaxed">
+                                                    {step.description}
+                                                </p>
+
+                                                {/* Related Recipes Tags */}
+                                                {step.relatedRecipes && (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {step.relatedRecipes.map((r: string) => (
+                                                            <span key={r} className="px-2 py-1 bg-white border border-neutral-200 rounded-lg text-xs font-semibold text-neutral-500">
+                                                                {r}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-
-                                {/* Steps Timeline */}
-                                <div className="relative pl-4 border-l-2 border-neutral-200 space-y-8">
-                                    {batchPlan.optimizedSchedule.map((step: any, idx: number) => (
-                                        <div key={idx} className="relative">
-                                            {/* Step Dot */}
-                                            <div className="absolute -left-[21px] top-0 w-4 h-4 rounded-full border-2 border-white ring-2 ring-primary-500 bg-primary-500" />
-
-                                            <h4 className="font-bold text-lg text-neutral-900 mb-1">
-                                                Pasul {step.step}: {step.title}
-                                            </h4>
-                                            <p className="text-neutral-600 mb-3 leading-relaxed">
-                                                {step.description}
-                                            </p>
-
-                                            {/* Related Recipes Tags */}
-                                            {step.relatedRecipes && (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {step.relatedRecipes.map((r: string) => (
-                                                        <span key={r} className="px-2 py-1 bg-white border border-neutral-200 rounded-lg text-xs font-semibold text-neutral-500">
-                                                            {r}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <p className="text-center text-neutral-500">Nu s-a putut genera planul.</p>
-                        )}
-                    </div>
-
-                    <div className="p-4 bg-white border-t border-neutral-100">
-                        <button
-                            onClick={() => setShowBatchModal(false)}
-                            className="w-full py-3 bg-neutral-900 text-white rounded-xl font-bold hover:bg-neutral-800 transition-colors"
-                        >
-                            Am înțeles, să trecem la treabă!
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-    {/* Recipe Detail Modal */ }
-    {
-        viewRecipe && (
-            <div className="fixed inset-0 z-50">
-                {/* Backdrop */}
-                <div
-                    className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
-                    onClick={() => setViewRecipe(null)}
-                />
-
-                {/* Modal */}
-                <div className="absolute inset-x-0 bottom-0 max-h-[85vh] bg-white rounded-t-3xl shadow-2xl flex flex-col animate-slide-up">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-white rounded-t-3xl">
-                        <h2 className="font-display text-xl font-bold text-neutral-900 line-clamp-1">
-                            {viewRecipe.title}
-                        </h2>
-                        <button
-                            onClick={() => setViewRecipe(null)}
-                            className="w-10 h-10 flex items-center justify-center hover:bg-neutral-100 rounded-full transition-colors"
-                            aria-label="Închide"
-                        >
-                            <svg className="w-6 h-6 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-5">
-                        {/* Recipe Image */}
-                        <div className="relative aspect-video bg-neutral-100 rounded-2xl mb-6 overflow-hidden">
-                            {viewRecipe.imageUrl ? (
-                                <Image
-                                    src={viewRecipe.imageUrl}
-                                    alt={viewRecipe.title}
-                                    fill
-                                    className="object-cover"
-                                    sizes="(max-width: 768px) 100vw, 500px"
-                                    unoptimized
-                                />
                             ) : (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <svg className="w-20 h-20 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                    </svg>
-                                </div>
+                                <p className="text-center text-neutral-500">Nu s-a putut genera planul.</p>
                             )}
                         </div>
 
-                        {/* Quick Info */}
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="flex items-center gap-1.5 text-sm text-neutral-600">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>{viewRecipe.totalTime} min</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-sm text-neutral-600">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                                <span>{viewRecipe.servings} porții</span>
-                            </div>
-                            <span className={cn(
-                                "px-2 py-1 rounded-full text-xs font-semibold",
-                                viewRecipe.difficulty === 'USOR' ? "bg-green-100 text-green-700" :
-                                    viewRecipe.difficulty === 'MEDIU' ? "bg-amber-100 text-amber-700" :
-                                        "bg-red-100 text-red-700"
-                            )}>
-                                {getDifficultyLabel(viewRecipe.difficulty)}
-                            </span>
-                        </div>
-
-                        {/* Description */}
-                        <p className="text-neutral-600 mb-6">{viewRecipe.description}</p>
-
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-2 mb-6">
-                            {viewRecipe.tags.map(tag => (
-                                <span
-                                    key={tag}
-                                    className="px-3 py-1.5 bg-primary-50 text-primary-600 text-sm font-semibold rounded-full"
-                                >
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
-
-                        {/* Cost */}
-                        {viewRecipe.estimatedCost && (
-                            <div className="bg-neutral-50 rounded-xl p-4 mb-6">
-                                <p className="text-sm text-neutral-500 mb-1">Cost estimat</p>
-                                <p className="text-2xl font-bold text-primary-600">
-                                    ~{Math.round((viewRecipe.estimatedCost * portions / viewRecipe.servings) * 100) / 100} RON
-                                </p>
-                                <p className="text-xs text-neutral-400">pentru {portions} porții</p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Footer Actions */}
-                    <div className="p-5 border-t border-neutral-100 bg-white safe-area-inset-bottom">
-                        <div className="flex gap-3">
-                            <Link
-                                href={`/retete/${viewRecipe.slug}`}
-                                className="flex-1 px-4 py-3 text-sm font-semibold text-neutral-600 bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors text-center"
-                            >
-                                Vezi rețeta completă
-                            </Link>
+                        <div className="p-4 bg-white border-t border-neutral-100">
                             <button
-                                onClick={() => {
-                                    toggleRecipe(viewRecipe.id);
-                                    setViewRecipe(null);
-                                }}
-                                className={cn(
-                                    "flex-1 px-4 py-3 text-sm font-semibold rounded-xl transition-all text-center",
-                                    selectedRecipes.includes(viewRecipe.id)
-                                        ? "bg-neutral-200 text-neutral-600"
-                                        : "bg-primary-600 text-white shadow-lg shadow-primary-500/30 hover:bg-primary-700"
-                                )}
+                                onClick={() => setShowBatchModal(false)}
+                                className="w-full py-3 bg-neutral-900 text-white rounded-xl font-bold hover:bg-neutral-800 transition-colors"
                             >
-                                {selectedRecipes.includes(viewRecipe.id) ? 'Elimină din plan' : 'Adaugă la plan'}
+                                Am înțeles, să trecem la treabă!
                             </button>
                         </div>
                     </div>
                 </div>
-            </div>
-        )
-    }
+            )
+        }
+        {/* Recipe Detail Modal */}
+        {
+            viewRecipe && (
+                <div className="fixed inset-0 z-50">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+                        onClick={() => setViewRecipe(null)}
+                    />
 
-    {/* Spacer for bottom nav */ }
-    <div className="h-8" />
-        </div >
-    );
+                    {/* Modal */}
+                    <div className="absolute inset-x-0 bottom-0 max-h-[85vh] bg-white rounded-t-3xl shadow-2xl flex flex-col animate-slide-up">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-white rounded-t-3xl">
+                            <h2 className="font-display text-xl font-bold text-neutral-900 line-clamp-1">
+                                {viewRecipe.title}
+                            </h2>
+                            <button
+                                onClick={() => setViewRecipe(null)}
+                                className="w-10 h-10 flex items-center justify-center hover:bg-neutral-100 rounded-full transition-colors"
+                                aria-label="Închide"
+                            >
+                                <svg className="w-6 h-6 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-5">
+                            {/* Recipe Image */}
+                            <div className="relative aspect-video bg-neutral-100 rounded-2xl mb-6 overflow-hidden">
+                                {viewRecipe.imageUrl ? (
+                                    <Image
+                                        src={viewRecipe.imageUrl}
+                                        alt={viewRecipe.title}
+                                        fill
+                                        className="object-cover"
+                                        sizes="(max-width: 768px) 100vw, 500px"
+                                        unoptimized
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <svg className="w-20 h-20 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                        </svg>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Quick Info */}
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="flex items-center gap-1.5 text-sm text-neutral-600">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>{viewRecipe.totalTime} min</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-sm text-neutral-600">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    <span>{viewRecipe.servings} porții</span>
+                                </div>
+                                <span className={cn(
+                                    "px-2 py-1 rounded-full text-xs font-semibold",
+                                    viewRecipe.difficulty === 'USOR' ? "bg-green-100 text-green-700" :
+                                        viewRecipe.difficulty === 'MEDIU' ? "bg-amber-100 text-amber-700" :
+                                            "bg-red-100 text-red-700"
+                                )}>
+                                    {getDifficultyLabel(viewRecipe.difficulty)}
+                                </span>
+                            </div>
+
+                            {/* Description */}
+                            <p className="text-neutral-600 mb-6">{viewRecipe.description}</p>
+
+                            {/* Tags */}
+                            <div className="flex flex-wrap gap-2 mb-6">
+                                {viewRecipe.tags.map(tag => (
+                                    <span
+                                        key={tag}
+                                        className="px-3 py-1.5 bg-primary-50 text-primary-600 text-sm font-semibold rounded-full"
+                                    >
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+
+                            {/* Cost */}
+                            {viewRecipe.estimatedCost && (
+                                <div className="bg-neutral-50 rounded-xl p-4 mb-6">
+                                    <p className="text-sm text-neutral-500 mb-1">Cost estimat</p>
+                                    <p className="text-2xl font-bold text-primary-600">
+                                        ~{Math.round((viewRecipe.estimatedCost * portions / viewRecipe.servings) * 100) / 100} RON
+                                    </p>
+                                    <p className="text-xs text-neutral-400">pentru {portions} porții</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="p-5 border-t border-neutral-100 bg-white safe-area-inset-bottom">
+                            <div className="flex gap-3">
+                                <Link
+                                    href={`/retete/${viewRecipe.slug}`}
+                                    className="flex-1 px-4 py-3 text-sm font-semibold text-neutral-600 bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors text-center"
+                                >
+                                    Vezi rețeta completă
+                                </Link>
+                                <button
+                                    onClick={() => {
+                                        toggleRecipe(viewRecipe.id);
+                                        setViewRecipe(null);
+                                    }}
+                                    className={cn(
+                                        "flex-1 px-4 py-3 text-sm font-semibold rounded-xl transition-all text-center",
+                                        selectedRecipes.includes(viewRecipe.id)
+                                            ? "bg-neutral-200 text-neutral-600"
+                                            : "bg-primary-600 text-white shadow-lg shadow-primary-500/30 hover:bg-primary-700"
+                                    )}
+                                >
+                                    {selectedRecipes.includes(viewRecipe.id) ? 'Elimină din plan' : 'Adaugă la plan'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+
+        {/* Spacer for bottom nav */}
+        <div className="h-8" />
+    </div>
 }
+
