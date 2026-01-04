@@ -170,9 +170,9 @@ export async function POST(request: NextRequest) {
     });
 
     const suggestions = [
-      ...productNames.map((p) => ({ type: 'product', text: p.name })),
-      ...recipeTitles.map((r) => ({ type: 'recipe', text: r.title })),
-      ...categories.map((c) => ({ type: 'category', text: c.category })),
+      ...productNames.map((p: { name: string }) => ({ type: 'product', text: p.name })),
+      ...recipeTitles.map((r: { title: string }) => ({ type: 'recipe', text: r.title })),
+      ...categories.map((c: { category: string }) => ({ type: 'category', text: c.category })),
     ].slice(0, 10);
 
     return NextResponse.json({

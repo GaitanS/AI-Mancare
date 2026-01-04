@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
                 }
             }
         } else if (ingredientsParam) {
-            ingredientNames = ingredientsParam.split(',').map(s => s.trim().toLowerCase());
+            ingredientNames = ingredientsParam.split(',').map((s: string) => s.trim().toLowerCase());
         }
 
         if (ingredientNames.length === 0) {

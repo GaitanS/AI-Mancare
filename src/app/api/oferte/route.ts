@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger'
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache'
 import { productRepository } from '@/lib/repositories'
 import { Metrics } from '@/lib/metrics'
+import type { Product } from '@/types'
 
 /**
  * GET /api/oferte
@@ -17,6 +18,8 @@ import { Metrics } from '@/lib/metrics'
  */
 export async function GET(request: NextRequest) {
     const start = Date.now()
+
+
 
     try {
         const { searchParams } = new URL(request.url)
@@ -70,7 +73,7 @@ export async function GET(request: NextRequest) {
         // Transform for API response
         const response = {
             success: true,
-            data: result.data.map(p => ({
+            data: result.data.map((p: Product) => ({
                 ...p,
                 price: Number(p.price),
                 originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
