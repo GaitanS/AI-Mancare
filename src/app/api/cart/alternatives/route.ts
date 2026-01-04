@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import type { Product } from '@prisma/client';
+import type { Product } from '@/types';
 
 interface AlternativeProduct {
     id: string;
