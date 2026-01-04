@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { cached, cache } from '@/lib/cache';
 import type { Product, Recipe, ApiResponse } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -29,83 +28,75 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const cacheKey = `search:${query}:${limit}:${type || 'all'}`;
+    // Fetch data directly (cache removed for production)
+    const now = new Date();
+    const searchResult: SearchResult = {
+      products: [],
+      recipes: [],
+    };
 
-    const result = await cached(
-      cacheKey,
-      300, // 5 minutes cache
-      async () => {
-        const now = new Date();
-        const searchResult: SearchResult = {
-          products: [],
-          recipes: [],
-        };
+    // Search products
+    if (!type || type === 'products') {
+      const products = await prisma.product.findMany({
+        where: {
+          validFrom: { lte: now },
+          validUntil: { gte: now },
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { brand: { contains: query, mode: 'insensitive' } },
+            { category: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: [
+          { discountPercentage: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: limit,
+      });
 
-        // Search products
-        if (!type || type === 'products') {
-          const products = await prisma.product.findMany({
-            where: {
-              validFrom: { lte: now },
-              validUntil: { gte: now },
-              OR: [
-                { name: { contains: query, mode: 'insensitive' } },
-                { brand: { contains: query, mode: 'insensitive' } },
-                { category: { contains: query, mode: 'insensitive' } },
-              ],
-            },
-            orderBy: [
-              { discountPercentage: 'desc' },
-              { createdAt: 'desc' },
-            ],
-            take: limit,
-          });
+      searchResult.products = products.map((p) => ({
+        ...p,
+        price: Number(p.price),
+        originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+        extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
+        validFrom: p.validFrom.toISOString(),
+        validUntil: p.validUntil.toISOString(),
+        createdAt: p.createdAt.toISOString(),
+        updatedAt: p.updatedAt.toISOString(),
+        nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
+        allergens: p.allergens as string[] | null,
+      }));
+    }
 
-          searchResult.products = products.map((p) => ({
-            ...p,
-            price: Number(p.price),
-            originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-            extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
-            validFrom: p.validFrom.toISOString(),
-            validUntil: p.validUntil.toISOString(),
-            createdAt: p.createdAt.toISOString(),
-            updatedAt: p.updatedAt.toISOString(),
-            nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-            allergens: p.allergens as string[] | null,
-          }));
-        }
+    // Search recipes
+    if (!type || type === 'recipes') {
+      const recipes = await prisma.recipe.findMany({
+        where: {
+          OR: [
+            { title: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+            { tags: { hasSome: [query.toLowerCase()] } },
+          ],
+        },
+        orderBy: [
+          { viewCount: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: limit,
+      });
 
-        // Search recipes
-        if (!type || type === 'recipes') {
-          const recipes = await prisma.recipe.findMany({
-            where: {
-              OR: [
-                { title: { contains: query, mode: 'insensitive' } },
-                { description: { contains: query, mode: 'insensitive' } },
-                { tags: { hasSome: [query.toLowerCase()] } },
-              ],
-            },
-            orderBy: [
-              { viewCount: 'desc' },
-              { createdAt: 'desc' },
-            ],
-            take: limit,
-          });
+      searchResult.recipes = recipes.map((r) => ({
+        ...r,
+        estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
+        costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
+        instructions: r.instructions as Recipe['instructions'],
+        tips: r.tips as string[] | null,
+        tags: r.tags as string[] | null,
+        nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
+      }));
+    }
 
-          searchResult.recipes = recipes.map((r) => ({
-            ...r,
-            estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-            costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
-            instructions: r.instructions as Recipe['instructions'],
-            tips: r.tips as string[] | null,
-            tags: r.tags as string[] | null,
-            nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
-          }));
-        }
-
-        return searchResult;
-      },
-      cache
-    );
+    const result = searchResult;
 
     const response: ApiResponse<SearchResult> = {
       success: true,
@@ -142,55 +133,47 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const cacheKey = `suggestions:${query}`;
+    // Fetch data directly (cache removed for production)
+    const now = new Date();
 
-    const suggestions = await cached(
-      cacheKey,
-      600, // 10 minutes cache
-      async () => {
-        const now = new Date();
-
-        // Get product name suggestions
-        const productNames = await prisma.product.findMany({
-          where: {
-            validFrom: { lte: now },
-            validUntil: { gte: now },
-            name: { contains: query, mode: 'insensitive' },
-          },
-          select: { name: true },
-          distinct: ['name'],
-          take: 5,
-        });
-
-        // Get recipe title suggestions
-        const recipeTitles = await prisma.recipe.findMany({
-          where: {
-            title: { contains: query, mode: 'insensitive' },
-          },
-          select: { title: true },
-          take: 5,
-        });
-
-        // Get category suggestions
-        const categories = await prisma.product.findMany({
-          where: {
-            validFrom: { lte: now },
-            validUntil: { gte: now },
-            category: { contains: query, mode: 'insensitive' },
-          },
-          select: { category: true },
-          distinct: ['category'],
-          take: 3,
-        });
-
-        return [
-          ...productNames.map((p) => ({ type: 'product', text: p.name })),
-          ...recipeTitles.map((r) => ({ type: 'recipe', text: r.title })),
-          ...categories.map((c) => ({ type: 'category', text: c.category })),
-        ].slice(0, 10);
+    // Get product name suggestions
+    const productNames = await prisma.product.findMany({
+      where: {
+        validFrom: { lte: now },
+        validUntil: { gte: now },
+        name: { contains: query, mode: 'insensitive' },
       },
-      cache
-    );
+      select: { name: true },
+      distinct: ['name'],
+      take: 5,
+    });
+
+    // Get recipe title suggestions
+    const recipeTitles = await prisma.recipe.findMany({
+      where: {
+        title: { contains: query, mode: 'insensitive' },
+      },
+      select: { title: true },
+      take: 5,
+    });
+
+    // Get category suggestions
+    const categories = await prisma.product.findMany({
+      where: {
+        validFrom: { lte: now },
+        validUntil: { gte: now },
+        category: { contains: query, mode: 'insensitive' },
+      },
+      select: { category: true },
+      distinct: ['category'],
+      take: 3,
+    });
+
+    const suggestions = [
+      ...productNames.map((p) => ({ type: 'product', text: p.name })),
+      ...recipeTitles.map((r) => ({ type: 'recipe', text: r.title })),
+      ...categories.map((c) => ({ type: 'category', text: c.category })),
+    ].slice(0, 10);
 
     return NextResponse.json({
       success: true,

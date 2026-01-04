@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { cached, recipesCache, cacheKeys } from '@/lib/cache';
 import { generateSlug } from '@/lib/utils';
 import { calculateDietaryFlags } from '@/lib/dietary';
 import type { Recipe, RecipeFilters, PaginatedResponse, ApiResponse } from '@/types';
@@ -85,44 +84,34 @@ export async function GET(request: NextRequest) {
         orderBy.createdAt = sortOrder;
     }
 
-    // Create cache key based on params
-    const cacheKey = `recipes:${JSON.stringify({ where, orderBy, skip, pageSize })}`;
+    // Fetch data directly (cache removed for production)
+    const [recipes, total] = await Promise.all([
+      prisma.recipe.findMany({
+        where,
+        orderBy,
+        skip,
+        take: pageSize,
+      }),
+      prisma.recipe.count({ where }),
+    ]);
 
-    // Fetch data with caching
-    const result = await cached(
-      cacheKey,
-      600, // 10 minutes cache
-      async () => {
-        const [recipes, total] = await Promise.all([
-          prisma.recipe.findMany({
-            where,
-            orderBy,
-            skip,
-            take: pageSize,
-          }),
-          prisma.recipe.count({ where }),
-        ]);
-
-        return {
-          recipes: recipes.map((r) => ({
-            ...r,
-            estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-            costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
-            instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
-            tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : null,
-            tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
-            nutritionPerServing: r.nutritionPerServing ? (typeof r.nutritionPerServing === 'string' ? JSON.parse(r.nutritionPerServing) : r.nutritionPerServing) : null,
-            // Dietary Flags
-            isGlutenFree: r.isGlutenFree,
-            isDairyFree: r.isDairyFree,
-            isVegan: r.isVegan,
-            isVegetarian: r.isVegetarian
-          })),
-          total,
-        };
-      },
-      recipesCache
-    );
+    const result = {
+      recipes: recipes.map((r) => ({
+        ...r,
+        estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
+        costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
+        instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
+        tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : null,
+        tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
+        nutritionPerServing: r.nutritionPerServing ? (typeof r.nutritionPerServing === 'string' ? JSON.parse(r.nutritionPerServing) : r.nutritionPerServing) : null,
+        // Dietary Flags
+        isGlutenFree: r.isGlutenFree,
+        isDairyFree: r.isDairyFree,
+        isVegan: r.isVegan,
+        isVegetarian: r.isVegetarian
+      })),
+      total,
+    };
 
     const response: ApiResponse<PaginatedResponse<Recipe>> = {
       success: true,
@@ -231,8 +220,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Invalidate cache
-    recipesCache.flushAll();
+    // Cache removed for production
 
     const response: ApiResponse<Recipe> = {
       success: true,

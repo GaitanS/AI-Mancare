@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { cached, productsCache, cacheKeys } from '@/lib/cache';
 import type { Product, ProductFilters, PaginatedResponse, ApiResponse } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -83,42 +82,32 @@ export async function GET(request: NextRequest) {
         orderBy.createdAt = sortOrder;
     }
 
-    // Create cache key based on params
-    const cacheKey = `products:${JSON.stringify({ where, orderBy, skip, pageSize })}`;
+    // Fetch data directly (cache removed for production)
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        orderBy,
+        skip,
+        take: pageSize,
+      }),
+      prisma.product.count({ where }),
+    ]);
 
-    // Fetch data with caching
-    const result = await cached(
-      cacheKey,
-      300, // 5 minutes cache
-      async () => {
-        const [products, total] = await Promise.all([
-          prisma.product.findMany({
-            where,
-            orderBy,
-            skip,
-            take: pageSize,
-          }),
-          prisma.product.count({ where }),
-        ]);
-
-        return {
-          products: products.map((p) => ({
-            ...p,
-            price: Number(p.price),
-            originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-            extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
-            validFrom: p.validFrom.toISOString(),
-            validUntil: p.validUntil.toISOString(),
-            createdAt: p.createdAt.toISOString(),
-            updatedAt: p.updatedAt.toISOString(),
-            nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-            allergens: p.allergens as string[] | null,
-          })),
-          total,
-        };
-      },
-      productsCache
-    );
+    const result = {
+      products: products.map((p) => ({
+        ...p,
+        price: Number(p.price),
+        originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+        extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
+        validFrom: p.validFrom.toISOString(),
+        validUntil: p.validUntil.toISOString(),
+        createdAt: p.createdAt.toISOString(),
+        updatedAt: p.updatedAt.toISOString(),
+        nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
+        allergens: p.allergens as string[] | null,
+      })),
+      total,
+    };
 
     const response: ApiResponse<PaginatedResponse<Product>> = {
       success: true,
@@ -196,8 +185,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Invalidate cache
-    productsCache.flushAll();
+    // Cache removed for production
 
     const response: ApiResponse<Product> = {
       success: true,
