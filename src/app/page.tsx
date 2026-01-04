@@ -33,7 +33,7 @@ async function getFeaturedOffers(): Promise<Product[]> {
         take: 8,
       });
 
-      return products.map((p) => ({
+      return products.map((p: any) => ({
         ...p,
         price: Number(p.price),
         originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
@@ -60,7 +60,7 @@ async function getFeaturedRecipes(): Promise<Recipe[]> {
         take: 6,
       });
 
-      return recipes.map((r) => ({
+      return recipes.map((r: any) => ({
         ...r,
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
         costPerServing: r.costPerServing ? Number(r.costPerServing) : null,

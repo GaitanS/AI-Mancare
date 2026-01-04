@@ -103,7 +103,7 @@ async function getRecipes(filters: RecipeFilters, page: number, pageSize: number
   ]);
 
   return {
-    recipes: recipes.map((r) => ({
+    recipes: recipes.map((r: any) => ({
       ...r,
       estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
       costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
@@ -143,12 +143,12 @@ async function getFilterOptions(): Promise<RecipeFilterConfig> {
   };
 
   return {
-    difficulties: difficultyGroups.map((g) => ({
+    difficulties: difficultyGroups.map((g: any) => ({
       value: g.difficulty,
       label: difficultyLabels[g.difficulty] || g.difficulty,
       count: g._count,
     })),
-    tags: (tagGroups || []).map((t) => ({
+    tags: (tagGroups || []).map((t: any) => ({
       value: t.tag,
       label: t.tag,
       count: t.count,

@@ -130,7 +130,7 @@ async function getStoreProducts(
   ]);
 
   return {
-    products: products.map((p) => ({
+    products: products.map((p: any) => ({
       ...p,
       price: Number(p.price),
       originalPrice: p.originalPrice ? Number(p.originalPrice) : null,

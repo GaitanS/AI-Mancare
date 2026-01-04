@@ -57,7 +57,7 @@ async function getRecipeIngredients(ingredientIds: string[]): Promise<Product[]>
       },
     });
 
-    return products.map((p) => ({
+    return products.map((p: any) => ({
       ...p,
       price: Number(p.price),
       originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
@@ -96,7 +96,7 @@ async function getRelatedRecipes(
     orderBy: { viewCount: 'desc' },
   });
 
-  return recipes.map((r) => ({
+  return recipes.map((r: any) => ({
     ...r,
     estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
     costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
