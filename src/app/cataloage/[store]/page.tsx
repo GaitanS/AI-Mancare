@@ -346,7 +346,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
               <Suspense fallback={<ProductsGridSkeleton />}>
                 {products.length > 0 ? (
                   <div className="grid-products">
-                    {products.map((product) => (
+                    {products.map((product: any) => (
                       <ProductCard
                         key={product.id}
                         product={product}
