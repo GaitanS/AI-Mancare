@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
             name: product.name,
             price: Number(product.price),
             originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
-            discount: product.discountPercentage,
+            discount: product.discountPercentage ?? null,
             store: product.store,
             savings: basePrice > 0 ? Math.round((basePrice - Number(product.price)) * 100) / 100 : 0,
             unit: product.unit,
