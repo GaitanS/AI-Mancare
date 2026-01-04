@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import type { UserPantry } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
     try {
@@ -99,7 +98,7 @@ export async function GET(request: NextRequest) {
         });
 
         return NextResponse.json({
-            items: items.map((item: UserPantry) => ({
+            items: items.map((item: any) => ({
                 id: item.id,
                 ingredientName: item.ingredientName,
                 quantity: item.quantity ? Number(item.quantity) : null,

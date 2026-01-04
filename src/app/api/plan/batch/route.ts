@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import type { Recipe } from '@prisma/client';
+import type { Recipe } from '@/types';
 
 export async function POST(request: NextRequest) {
     try {
