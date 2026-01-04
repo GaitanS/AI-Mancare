@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import type { Recipe } from '@/types';
+
 
 export async function POST(request: NextRequest) {
     try {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         const prepGroups: any[] = [];
 
         // Check for Chicken recipes
-        const chickenRecipes = recipes.filter((r: Recipe) =>
+        const chickenRecipes = recipes.filter((r: any) =>
             r.title.toLowerCase().includes('pui') ||
             (r.tags && r.tags.toLowerCase().includes('pui'))
         );
@@ -43,14 +43,14 @@ export async function POST(request: NextRequest) {
             prepGroups.push({
                 group: "Carne",
                 action: `Pregătește puiul pentru ${chickenRecipes.length} rețete`,
-                details: chickenRecipes.map((r: Recipe) => `Pentru "${r.title}": Taie puiul cubulețe/fâșii conform rețetei.`),
+                details: chickenRecipes.map((r: any) => `Pentru "${r.title}": Taie puiul cubulețe/fâșii conform rețetei.`),
                 estimatedTime: "10 min",
-                recipes: chickenRecipes.map((r: Recipe) => r.title)
+                recipes: chickenRecipes.map((r: any) => r.title)
             });
         }
 
         // Check for Vegetable heavy recipes
-        const vegRecipes = recipes.filter((r: Recipe) =>
+        const vegRecipes = recipes.filter((r: any) =>
             r.title.toLowerCase().includes('legume') ||
             r.title.toLowerCase().includes('salata') ||
             (r.tags && r.tags.toLowerCase().includes('vegetarian'))
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
                     "Toacă legumele după cum urmează: mărunt pentru ciorbă, felii pentru salată."
                 ],
                 estimatedTime: "15 min",
-                recipes: vegRecipes.map((r: Recipe) => r.title)
+                recipes: vegRecipes.map((r: any) => r.title)
             });
         }
 
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
             action: "Gătit simultan",
             details: ["Dacă folosești cuptorul, poți găti mai multe feluri deodată pentru a economisi energie."],
             estimatedTime: "Variabil",
-            recipes: recipes.map((r: Recipe) => r.title)
+            recipes: recipes.map((r: any) => r.title)
         });
 
 
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             data: {
-                recipes: recipes.map((r: Recipe) => ({ id: r.id, title: r.title })),
+                recipes: recipes.map((r: any) => ({ id: r.id, title: r.title })),
                 optimizedSchedule: schedule,
                 totalPrepTime: "Approx. 45-60 min" // heuristic
             }
