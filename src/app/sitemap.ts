@@ -47,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       take: 1000, // Limit to prevent timeout
     });
 
-    recipes.forEach((recipe) => {
+    recipes.forEach((recipe: any) => {
       routes.push({
         url: `${SITE_URL}/retete/${recipe.slug}`,
         lastModified: recipe.updatedAt,
