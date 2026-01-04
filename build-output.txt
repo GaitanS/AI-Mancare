@@ -1,0 +1,90 @@
+
+> retete-ieftine@1.0.0 build
+> next build
+
+   Γû▓ Next.js 15.0.3
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ΓÜá Compiled with warnings
+
+./src/app/api/products/route.ts
+Attempted import error: 'cached' is not exported from '@/lib/cache' (imported as 'cached').
+
+Import trace for requested module:
+./src/app/api/products/route.ts
+
+./src/app/api/products/route.ts
+Attempted import error: 'productsCache' is not exported from '@/lib/cache' (imported as 'productsCache').
+
+Import trace for requested module:
+./src/app/api/products/route.ts
+
+./src/app/api/products/route.ts
+Attempted import error: 'productsCache' is not exported from '@/lib/cache' (imported as 'productsCache').
+
+Import trace for requested module:
+./src/app/api/products/route.ts
+
+./src/app/api/recipes/route.ts
+Attempted import error: 'cached' is not exported from '@/lib/cache' (imported as 'cached').
+
+Import trace for requested module:
+./src/app/api/recipes/route.ts
+
+./src/app/api/recipes/route.ts
+Attempted import error: 'recipesCache' is not exported from '@/lib/cache' (imported as 'recipesCache').
+
+Import trace for requested module:
+./src/app/api/recipes/route.ts
+
+./src/app/api/recipes/route.ts
+Attempted import error: 'recipesCache' is not exported from '@/lib/cache' (imported as 'recipesCache').
+
+Import trace for requested module:
+./src/app/api/recipes/route.ts
+
+./src/app/api/search/route.ts
+Attempted import error: 'cached' is not exported from '@/lib/cache' (imported as 'cached').
+
+Import trace for requested module:
+./src/app/api/search/route.ts
+
+./src/app/api/search/route.ts
+Attempted import error: 'cached' is not exported from '@/lib/cache' (imported as 'cached').
+
+Import trace for requested module:
+./src/app/api/search/route.ts
+
+./src/app/api/v2/oferte/route.ts
+Attempted import error: 'offerRepository' is not exported from '@/lib/repositories' (imported as 'offerRepository').
+
+Import trace for requested module:
+./src/app/api/v2/oferte/route.ts
+
+./src/app/api/v2/oferte/stats/route.ts
+Attempted import error: 'offerRepository' is not exported from '@/lib/repositories' (imported as 'offerRepository').
+
+Import trace for requested module:
+./src/app/api/v2/oferte/stats/route.ts
+
+./src/app/api/v2/oferte/trending/route.ts
+Attempted import error: 'offerRepository' is not exported from '@/lib/repositories' (imported as 'offerRepository').
+
+Import trace for requested module:
+./src/app/api/v2/oferte/trending/route.ts
+
+   Skipping linting
+   Checking validity of types ...
+Failed to compile.
+
+./jest.setup.ts:17:1
+Type error: Cannot use namespace 'jest' as a value.
+
+  15 |
+  16 | // Increase timeout for slow tests
+> 17 | jest.setTimeout(10000)
+     | ^
+  18 |
+  19 | // Global mocks
+  20 | jest.mock('@prisma/client', () => {

@@ -10,6 +10,7 @@ const navigation = [
   { name: 'Acasa', href: '/' },
   { name: 'Plan', href: '/plan' },
   { name: 'Oferte', href: '/cataloage' },
+  { name: 'Cataloage', href: '/cataloage-digitale' },
   { name: 'Retete', href: '/retete' },
   { name: 'Lista', href: '/cart' },
   { name: 'Profil', href: '/profile' },
@@ -57,7 +58,7 @@ export default function Header() {
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center gap-2.5 focus-ring rounded-xl group"
+            className="flex items-center gap-3.5 focus-ring rounded-xl group"
           >
             <div className="w-14 h-14 flex items-center justify-center">
               <img

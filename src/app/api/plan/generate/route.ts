@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Generate shopping list
-        const shoppingList = this.generateShoppingList(weeklyMenu)
+        const shoppingList = generateShoppingList(weeklyMenu)
 
         const duration = Date.now() - start
         logger.apiRequest(request, duration, 200)
@@ -154,5 +154,3 @@ function generateShoppingList(weeklyMenu: DayMenu[]) {
     }))
 }
 
-// Export for use in function
-export { generateShoppingList }

@@ -10,8 +10,8 @@ describe('Validators', () => {
         let OfferQuerySchema: z.ZodSchema
 
         beforeAll(async () => {
-            const module = await import('@/lib/validators/offer')
-            OfferQuerySchema = module.OfferQuerySchema
+            const validatorModule = await import('@/lib/validators/offer')
+            OfferQuerySchema = validatorModule.OfferQuerySchema
         })
 
         it('should parse valid query parameters', () => {
@@ -73,8 +73,8 @@ describe('Validators', () => {
         let CreateRecipeSchema: z.ZodSchema
 
         beforeAll(async () => {
-            const module = await import('@/lib/validators/recipe')
-            CreateRecipeSchema = module.CreateRecipeSchema
+            const validatorModule = await import('@/lib/validators/recipe')
+            CreateRecipeSchema = validatorModule.CreateRecipeSchema
         })
 
         it('should validate complete recipe', () => {
@@ -133,8 +133,8 @@ describe('Validators', () => {
         let StoreQuerySchema: z.ZodSchema
 
         beforeAll(async () => {
-            const module = await import('@/lib/validators/store')
-            StoreQuerySchema = module.StoreQuerySchema
+            const validatorModule = await import('@/lib/validators/store')
+            StoreQuerySchema = validatorModule.StoreQuerySchema
         })
 
         it('should parse valid query', () => {

@@ -3,13 +3,16 @@
  */
 
 import { describe, it, expect } from '@jest/globals'
+import { env } from '../lib/env'
+import { NotFoundError, ValidationError, handleApiError } from '../lib/api-error'
+import { z } from 'zod'
+import { OfferQuerySchema } from '../lib/validators/offer'
+import { CreateRecipeSchema } from '../lib/validators/recipe'
+import { logger } from '../lib/logger'
 
 // Test 1: Environment Validation
 describe('Environment Validation', () => {
     it('should validate environment variables', () => {
-        // This will throw if env vars are invalid
-        const { env } = require('../lib/env')
-
         expect(env.DATABASE_URL).toBeDefined()
         expect(env.OPENAI_API_KEY).toMatch(/^sk-/)
         expect(env.NODE_ENV).toMatch(/development|production|test/)
@@ -19,8 +22,6 @@ describe('Environment Validation', () => {
 // Test 2: Error Handling
 describe('Error Handling', () => {
     it('should create API errors with correct status codes', () => {
-        const { ApiError, NotFoundError, ValidationError } = require('../lib/api-error')
-
         const notFound = NotFoundError('User', '123')
         expect(notFound.statusCode).toBe(404)
         expect(notFound.message).toContain('not found')
@@ -30,9 +31,6 @@ describe('Error Handling', () => {
     })
 
     it('should handle Zod validation errors', () => {
-        const { z } = require('zod')
-        const { handleApiError } = require('../lib/api-error')
-
         const schema = z.object({ email: z.string().email() })
 
         try {
@@ -47,8 +45,6 @@ describe('Error Handling', () => {
 // Test 3: Input Validation
 describe('Input Validation', () => {
     it('should validate offer query parameters', () => {
-        const { OfferQuerySchema } = require('../lib/validators/offer')
-
         const valid = OfferQuerySchema.parse({
             page: '1',
             limit: '20',
@@ -61,8 +57,6 @@ describe('Input Validation', () => {
     })
 
     it('should reject invalid query parameters', () => {
-        const { OfferQuerySchema } = require('../lib/validators/offer')
-
         expect(() => {
             OfferQuerySchema.parse({ page: 'invalid' })
         }).toThrow()
@@ -73,8 +67,6 @@ describe('Input Validation', () => {
     })
 
     it('should validate recipe creation', () => {
-        const { CreateRecipeSchema } = require('../lib/validators/recipe')
-
         const valid = CreateRecipeSchema.parse({
             title: 'Test Recipe',
             description: 'Test description',
@@ -99,8 +91,6 @@ describe('Input Validation', () => {
 // Test 4: Logger
 describe('Logger', () => {
     it('should log messages without errors', () => {
-        const { logger } = require('../lib/logger')
-
         // These should not throw
         expect(() => {
             logger.info('Test message')
@@ -111,8 +101,6 @@ describe('Logger', () => {
     })
 
     it('should log API requests', () => {
-        const { logger } = require('../lib/logger')
-
         const mockRequest = {
             method: 'GET',
             url: 'http://localhost:3000/api/test',
@@ -127,8 +115,6 @@ describe('Logger', () => {
     })
 
     it('should log AI operations', () => {
-        const { logger } = require('../lib/logger')
-
         expect(() => {
             logger.aiOperation('test_operation', 1000, 0.05, 2000)
         }).not.toThrow()

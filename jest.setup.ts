@@ -11,7 +11,7 @@ process.env.DATABASE_URL = 'file:./test.db'
 process.env.OPENAI_API_KEY = 'sk-test-key'
 process.env.OPENROUTER_API_KEY = 'test-key'
 process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000'
-process.env.NODE_ENV = 'test'
+// NODE_ENV is already set by Jest and is read-only
 
 // Increase timeout for slow tests
 jest.setTimeout(10000)
