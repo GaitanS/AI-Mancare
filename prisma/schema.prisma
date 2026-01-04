@@ -91,6 +91,12 @@ model Recipe {
   isPublished Boolean @default(false) @map("is_published")
   isFeatured  Boolean @default(false) @map("is_featured")
 
+  // Dietary Flags
+  isGlutenFree Boolean @default(false) @map("is_gluten_free")
+  isDairyFree  Boolean @default(false) @map("is_dairy_free")
+  isVegan      Boolean @default(false) @map("is_vegan")
+  isVegetarian Boolean @default(false) @map("is_vegetarian")
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -99,6 +105,10 @@ model Recipe {
   @@index([cuisine])
   @@index([difficulty])
   @@index([isPublished])
+  @@index([isGlutenFree])
+  @@index([isDairyFree])
+  @@index([isVegan])
+  @@index([isVegetarian])
 
   @@map("recipes")
 }
