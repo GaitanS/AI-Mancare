@@ -298,7 +298,7 @@ export default async function RetetePage({ searchParams }: PageProps) {
               <Suspense fallback={<RecipesGridSkeleton />}>
                 {recipes.length > 0 ? (
                   <div className="grid-recipes">
-                    {recipes.map((recipe: any, index) => (
+                    {recipes.map((recipe: any, index: number) => (
                       <div
                         key={recipe.id}
                         className="opacity-0 animate-fade-in-up"
@@ -425,7 +425,7 @@ function Pagination({
   return (
     <nav className="mt-12 flex justify-center" aria-label="Paginare">
       <ul className="inline-flex items-center gap-2">
-        {pages.map((page: any, index) => (
+        {pages.map((page: any, index: number) => (
           <li key={index}>
             {page === '...' ? (
               <span className="w-10 h-10 flex items-center justify-center text-neutral-400">...</span>
@@ -455,7 +455,7 @@ function FilterSidebarSkeleton() {
       <div className="bg-white rounded-xl border border-neutral-200 p-5">
         <div className="h-6 bg-neutral-100 rounded mb-6 w-24 animate-pulse" />
         <div className="space-y-6">
-          {Array.from({ length: 4 }).map((_: any, i) => (
+          {Array.from({ length: 4 }).map((_: any, i: number) => (
             <div key={i} className="space-y-2">
               <div className="h-4 bg-neutral-100 rounded w-20 animate-pulse" />
               <div className="h-4 bg-neutral-50 rounded w-full animate-pulse" />

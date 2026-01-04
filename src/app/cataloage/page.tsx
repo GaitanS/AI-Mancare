@@ -322,7 +322,7 @@ export default async function OfertePage({ searchParams }: PageProps) {
               <Suspense fallback={<ProductsGridSkeleton />}>
                 {products.length > 0 ? (
                   <div className="grid-products">
-                    {products.map((product: any, index) => (
+                    {products.map((product: any, index: number) => (
                       <div key={product.id} className="stagger-item" style={{ animationDelay: `${index * 30}ms` }}>
                         <ProductCard product={product} />
                       </div>
@@ -413,7 +413,7 @@ function Pagination({
         </li>
 
         {/* Pages */}
-        {pages.map((page: any, index) => (
+        {pages.map((page: any, index: number) => (
           <li key={index}>
             {page === '...' ? (
               <span className="flex items-center justify-center w-10 h-10 text-neutral-400">

@@ -271,7 +271,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 </div>
                 <Suspense fallback={<ProductsGridSkeleton />}>
                   <div className="grid-products">
-                    {products.map((product: any, index) => (
+                    {products.map((product: any, index: number) => (
                       <div
                         key={product.id}
                         className="stagger-item"
@@ -312,7 +312,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 </div>
                 <Suspense fallback={<RecipesGridSkeleton />}>
                   <div className="grid-recipes">
-                    {recipes.map((recipe: any, index) => (
+                    {recipes.map((recipe: any, index: number) => (
                       <div
                         key={recipe.id}
                         className="stagger-item"

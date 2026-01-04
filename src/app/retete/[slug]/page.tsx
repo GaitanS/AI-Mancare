@@ -342,7 +342,7 @@ export default async function RecipePage({ params }: PageProps) {
                 Mod de preparare
               </h2>
               <div className="space-y-6">
-                {recipe.instructions.map((step: any, idx) => (
+                {recipe.instructions.map((step: any, idx: number) => (
                   <div key={idx} className="flex gap-4">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold text-sm mt-1">
                       {step.step}
@@ -363,7 +363,7 @@ export default async function RecipePage({ params }: PageProps) {
                     Sfaturi utile
                   </h3>
                   <ul className="space-y-2">
-                    {recipe.tips.map((tip: any, i) => (
+                    {recipe.tips.map((tip: any, i: number) => (
                       <li key={i} className="flex gap-2 text-sm font-medium text-amber-900">
                         <span className="text-amber-600 font-bold">•</span>
                         <span>{tip}</span>
