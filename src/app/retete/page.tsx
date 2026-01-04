@@ -65,7 +65,7 @@ async function getRecipes(filters: RecipeFilters, page: number, pageSize: number
   }
 
   if (filters.tags && filters.tags.length > 0) {
-    const tagArray = Array.isArray(filters.tags) ? filters.tags : filters.tags.split(',');
+    const tagArray = filters.tags;
     where.tags = { hasSome: tagArray };
   }
 
