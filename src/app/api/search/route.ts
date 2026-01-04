@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         take: limit,
       });
 
-      searchResult.products = products.map((p) => ({
+      searchResult.products = products.map((p: any) => ({
         ...p,
         price: Number(p.price),
         originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
         take: limit,
       });
 
-      searchResult.recipes = recipes.map((r) => ({
+      searchResult.recipes = recipes.map((r: any) => ({
         ...r,
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
         costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
