@@ -177,8 +177,8 @@ export async function getCacheHitRatio() {
         )
     `;
 
-    const readRequests = result.find(r => r.Variable_name === 'Innodb_buffer_pool_read_requests')?.Value || 0;
-    const reads = result.find(r => r.Variable_name === 'Innodb_buffer_pool_reads')?.Value || 0;
+    const readRequests = result.find((r: any) => r.Variable_name === 'Innodb_buffer_pool_read_requests')?.Value || 0;
+    const reads = result.find((r: any) => r.Variable_name === 'Innodb_buffer_pool_reads')?.Value || 0;
 
     const hitRatio = readRequests > 0
       ? ((readRequests - reads) / readRequests) * 100
