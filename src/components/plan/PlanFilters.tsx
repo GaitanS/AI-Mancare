@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils";
 
 interface PlanFiltersProps {
-    filterDifficulty: string | null;
-    setFilterDifficulty: (val: string | null) => void;
-    filterMealType: string | null;
-    setFilterMealType: (val: string | null) => void;
-    filterMeatType: string | null;
-    setFilterMeatType: (val: string | null) => void;
+    filterDifficulty: string[];
+    setFilterDifficulty: (val: string[]) => void;
+    filterMealType: string[];
+    setFilterMealType: (val: string[]) => void;
+    filterMeatType: string[];
+    setFilterMeatType: (val: string[]) => void;
     filterDietaryRestrictions: string[];
     setFilterDietaryRestrictions: (val: string[]) => void;
     filterMaxTime: number | null;
@@ -51,6 +51,14 @@ export function PlanFilters({
         }
     };
 
+    const toggleSelection = (current: string[], set: (val: string[]) => void, item: string) => {
+        if (current.includes(item)) {
+            set(current.filter(i => i !== item));
+        } else {
+            set([...current, item]);
+        }
+    };
+
     return (
         <div className={cn("flex flex-col h-full", className)}>
             <div className="flex-1 overflow-y-auto px-1 py-2 space-y-6">
@@ -72,10 +80,10 @@ export function PlanFilters({
                         ].map(({ value, label }) => (
                             <button
                                 key={value}
-                                onClick={() => setFilterDifficulty(filterDifficulty === value ? null : value)}
+                                onClick={() => toggleSelection(filterDifficulty, setFilterDifficulty, value)}
                                 className={cn(
                                     "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
-                                    filterDifficulty === value
+                                    filterDifficulty.includes(value)
                                         ? "bg-primary-600 text-white"
                                         : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                                 )}
@@ -100,10 +108,10 @@ export function PlanFilters({
                         {['Mic Dejun', 'Prânz', 'Cină'].map(meal => (
                             <button
                                 key={meal}
-                                onClick={() => setFilterMealType(filterMealType === meal ? null : meal)}
+                                onClick={() => toggleSelection(filterMealType, setFilterMealType, meal)}
                                 className={cn(
                                     "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
-                                    filterMealType === meal
+                                    filterMealType.includes(meal)
                                         ? "bg-primary-600 text-white"
                                         : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                                 )}
@@ -128,10 +136,10 @@ export function PlanFilters({
                         {['Pui', 'Porc', 'Vită', 'Pește', 'Vegetarian'].map(meat => (
                             <button
                                 key={meat}
-                                onClick={() => setFilterMeatType(filterMeatType === meat ? null : meat)}
+                                onClick={() => toggleSelection(filterMeatType, setFilterMeatType, meat)}
                                 className={cn(
                                     "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
-                                    filterMeatType === meat
+                                    filterMeatType.includes(meat)
                                         ? "bg-primary-600 text-white"
                                         : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                                 )}
