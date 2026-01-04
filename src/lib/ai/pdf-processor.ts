@@ -62,7 +62,7 @@ export async function convertPDFPageToImage(
     return pngBuffer.toString('base64');
   } catch (error) {
     console.error(`Error converting PDF page ${pageIndex}:`, error);
-    throw new Error(`Failed to convert PDF page to image: ${error.message}`);
+    throw new Error(`Failed to convert PDF page to image: ${(error as any).message}`);
   }
 }
 
@@ -163,7 +163,7 @@ REGULI IMPORTANTE:
     }));
   } catch (error) {
     console.error('Error extracting products from image:', error);
-    throw new Error(`Failed to extract products: ${error.message}`);
+    throw new Error(`Failed to extract products: ${(error as any).message}`);
   }
 }
 
@@ -256,7 +256,7 @@ export async function processCatalog(catalogId: string): Promise<{
             });
             productsExtracted++;
           } catch (dbError) {
-            const error = `Failed to insert product ${product.name}: ${dbError.message}`;
+            const error = `Failed to insert product ${product.name}: ${(dbError as any).message}`;
             console.error(`[PROCESSOR] ${error}`);
             errors.push(error);
           }
@@ -271,7 +271,7 @@ export async function processCatalog(catalogId: string): Promise<{
         // Rate limiting - don't spam OpenAI API
         await sleep(RATE_LIMIT_DELAY);
       } catch (pageError) {
-        const error = `Error on page ${i + 1}: ${pageError.message}`;
+        const error = `Error on page ${i + 1}: ${(pageError as any).message}`;
         console.error(`[PROCESSOR] ${error}`);
         errors.push(error);
         // Continue processing next pages
@@ -303,14 +303,14 @@ export async function processCatalog(catalogId: string): Promise<{
       where: { id: catalogId },
       data: {
         status: 'FAILED',
-        processingErrors: { error: error.message, errors },
+        processingErrors: { error: (error as any).message, errors },
       },
     });
 
     return {
       success: false,
       productsExtracted,
-      errors: [...errors, error.message],
+      errors: [...errors, (error as any).message],
     };
   } finally {
     await prisma.$disconnect();
