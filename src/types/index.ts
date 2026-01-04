@@ -49,6 +49,7 @@ export interface ExtractedProduct {
   extraction_confidence: number;
   nutritionalInfo?: NutritionalInfo;
   allergens?: string[];
+  store?: string;
 }
 
 // ==========================================
