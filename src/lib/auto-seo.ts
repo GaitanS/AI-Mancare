@@ -399,7 +399,7 @@ export function generateDynamicSitemapEntries(content: {
     catalogs: { store: string; weekStart: Date }[]
     blogPosts: { slug: string; publishDate: Date }[]
 }) {
-    const entries = []
+    const entries: any[] = []
 
     // Recipes
     content.recipes.forEach(r => {
