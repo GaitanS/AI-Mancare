@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     const result = {
-      recipes: recipes.map((r) => ({
+      recipes: recipes.map((r: any) => ({
         ...r,
         difficulty: r.difficulty as 'USOR' | 'MEDIU' | 'DIFICIL',
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,

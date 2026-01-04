@@ -146,7 +146,7 @@ function generateShoppingList(weeklyMenu: DayMenu[]) {
         }
     }
 
-    return Object.entries(ingredients).map(([name, data]) => ({
+    return Object.entries(ingredients).map(([name, data]: [string, any]) => ({
         name,
         quantity: data.quantity,
         unit: data.unit,

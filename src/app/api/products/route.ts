@@ -35,13 +35,13 @@ export async function GET(request: NextRequest) {
 
     if (store) {
       where.store = {
-        in: store.split(',').map((s) => s.trim()),
+        in: store.split(',').map((s: string) => s.trim()),
       };
     }
 
     if (category) {
       where.category = {
-        in: category.split(',').map((c) => c.trim()),
+        in: category.split(',').map((c: string) => c.trim()),
       };
     }
 
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     const result = {
-      products: products.map((p) => ({
+      products: products.map((p: any) => ({
         ...p,
         price: Number(p.price),
         originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
