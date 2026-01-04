@@ -73,11 +73,8 @@ export async function GET(request: NextRequest) {
       case 'time':
         orderBy.totalTime = sortOrder;
         break;
-      case 'views':
-        orderBy.viewCount = sortOrder;
-        break;
-      case 'favorites':
-        orderBy.favoriteCount = sortOrder;
+      case 'calories':
+        orderBy.calories = sortOrder;
         break;
       case 'created':
       default:
@@ -100,7 +97,6 @@ export async function GET(request: NextRequest) {
         ...r,
         difficulty: r.difficulty as 'USOR' | 'MEDIU' | 'DIFICIL',
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-        costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
         instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
         tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : null,
         tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
@@ -190,11 +186,6 @@ export async function POST(request: NextRequest) {
     // Calculate total time
     const totalTime = (body.prepTime || 0) + (body.cookTime || 0);
 
-    // Calculate cost per serving
-    const costPerServing = body.estimatedCost
-      ? body.estimatedCost / body.servings
-      : null;
-
     const recipe = await prisma.recipe.create({
       data: {
         title: body.title,
@@ -206,10 +197,9 @@ export async function POST(request: NextRequest) {
         difficulty: body.difficulty,
         instructions: body.instructions,
         tips: body.tips,
-        ingredientIds: body.ingredientIds || [],
+        ingredientIds: body.ingredientIds || '[]',
         estimatedCost: body.estimatedCost,
-        costPerServing,
-        totalCalories: body.totalCalories,
+        calories: body.calories,
         nutritionPerServing: body.nutritionPerServing,
         slug,
         metaDescription: body.metaDescription || body.description.substring(0, 160),
@@ -231,7 +221,6 @@ export async function POST(request: NextRequest) {
       data: {
         ...recipe,
         estimatedCost: recipe.estimatedCost ? Number(recipe.estimatedCost) : null,
-        costPerServing: recipe.costPerServing ? Number(recipe.costPerServing) : null,
         instructions: recipe.instructions as Recipe['instructions'],
         tips: recipe.tips as string[] | null,
         tags: recipe.tags as string[] | null,
