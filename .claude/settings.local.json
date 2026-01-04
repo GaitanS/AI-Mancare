@@ -41,7 +41,12 @@
       "Bash(exit 0)",
       "Bash(netstat:*)",
       "Bash(cmd /c \"taskkill /F /PID 24292\")",
-      "Skill(example-skills:frontend-design)"
+      "Skill(example-skills:frontend-design)",
+      "Bash(rd /s /q \"c:\\\\Users\\\\Silviu\\\\Downloads\\\\AI Mancare\\\\node_modules\\\\.prisma\")",
+      "Bash(cmd /c \"rd /s /q \"\"c:\\\\Users\\\\Silviu\\\\Downloads\\\\AI Mancare\\\\node_modules\\\\.prisma\"\"\")",
+      "Bash(cmd /c \"tasklist | findstr node\")",
+      "Bash(cmd /c \"dir \"\"c:\\\\Users\\\\Silviu\\\\Downloads\\\\AI Mancare\\\\node_modules\\\\.prisma\"\"\")",
+      "Bash(cmd /c \"cd /d \"\"c:\\\\Users\\\\Silviu\\\\Downloads\\\\AI Mancare\"\" && npx prisma generate\")"
     ]
   }
 }

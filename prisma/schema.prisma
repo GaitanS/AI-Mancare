@@ -1,5 +1,5 @@
 // Prisma Schema pentru Retete Ieftine
-// SQLite pentru dezvoltare locală
+// MySQL database
 
 generator client {
   provider = "prisma-client-js"
@@ -14,11 +14,11 @@ datasource db {
 // PRODUCTS TABLE
 // ==========================================
 model Product {
-  id        String   @id @default(uuid())
-  name      String
-  category  String
+  id          String   @id @default(uuid())
+  name        String
+  category    String
   subcategory String?
-  brand     String?
+  brand       String?
 
   // Price Info
   price              Decimal
@@ -36,106 +36,245 @@ model Product {
   allergens       String? @db.Text
 
   // Source Tracking
-  sourceUrl             String? @map("source_url") @db.Text
+  sourceUrl String? @map("source_url") @db.Text
+  catalogId String? @map("catalog_id")
 
-// ... (Catalog model omitted as it looks fine mostly, mainly strings)
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([store])
+  @@index([category])
+  @@index([validFrom, validUntil])
+  @@index([catalogId])
+
+  @@map("products")
 }
 
-// ...
-
+// ==========================================
+// RECIPE TABLE
+// ==========================================
 model Recipe {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
-  description String @db.Text
+  slug        String  @unique
+  description String  @db.Text
   imageUrl    String? @map("image_url") @db.Text
 
-  // ...
+  // Recipe Details
+  prepTime    Int?    @map("prep_time")    // in minutes
+  cookTime    Int?    @map("cook_time")    // in minutes
+  totalTime   Int?    @map("total_time")   // in minutes
+  servings    Int     @default(4)
+  difficulty  String  @default("medium")   // easy, medium, hard
+  cuisine     String?
 
   // AI Generated Content (JSON stored as String)
   instructions String @db.LongText
   tips         String? @db.Text
 
   // Ingredients (JSON array stored as String)
-  ingredientIds   String   @map("ingredient_ids") @db.Text
-  
-  // ...
+  ingredientIds String @map("ingredient_ids") @db.Text
+
+  // Cost
+  estimatedCost Decimal? @map("estimated_cost")
 
   // Nutrition
   nutritionPerServing String? @map("nutrition_per_serving") @db.Text
-  
+  calories            Int?
+
   // SEO
   metaDescription String? @map("meta_description") @db.Text
   tags            String? @db.Text
 
-  // ...
+  // Status
+  isPublished Boolean @default(false) @map("is_published")
+  isFeatured  Boolean @default(false) @map("is_featured")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([cuisine])
+  @@index([difficulty])
+  @@index([isPublished])
+
+  @@map("recipes")
 }
 
+// ==========================================
+// WEEKLY MENU TABLE
+// ==========================================
 model WeeklyMenu {
-  id     String  @id @default(uuid())
-  
-  // ...
+  id        String @id @default(uuid())
+  name      String?
+  weekStart DateTime @map("week_start")
+
+  // User Preferences
+  userId    String? @map("user_id")
+  sessionId String? @map("session_id")
+  budget    Decimal?
+  servings  Int     @default(4)
 
   // Generated Menu (JSON stored as String)
-  menuData     String  @map("menu_data") @db.LongText
+  menuData     String   @map("menu_data") @db.LongText
   totalCost    Decimal? @map("total_cost")
   shoppingList String?  @map("shopping_list") @db.Text
-  
-  // ...
+
+  // Status
+  status String @default("ACTIVE") // ACTIVE, ARCHIVED
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([weekStart])
+
+  @@map("weekly_menus")
 }
 
+// ==========================================
+// SCRAPING SOURCE TABLE
+// ==========================================
 model ScrapingSource {
-  // ...
+  id       String @id @default(uuid())
+  store    String
+  name     String
+  url      String @db.Text
+  type     String @default("CATALOG") // CATALOG, WEBSITE, API
+
   // Scraping Config (JSON stored as String)
-  selectorConfig     String   @map("selector_config") @db.Text
-  // ...
+  selectorConfig String @map("selector_config") @db.Text
+
+  // Schedule
+  cronSchedule String? @map("cron_schedule")
+  isActive     Boolean @default(true) @map("is_active")
+
+  // Last Run Info
+  lastRunAt     DateTime? @map("last_run_at")
+  lastRunStatus String?   @map("last_run_status")
+  lastRunError  String?   @map("last_run_error") @db.Text
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([store])
+  @@index([isActive])
+
+  @@map("scraping_sources")
 }
 
+// ==========================================
+// USER TABLE
+// ==========================================
 model User {
-  // ...
+  id       String  @id @default(uuid())
+  email    String? @unique
+  name     String?
+
   // Preferences (JSON stored as String)
-  preferredStores      String?  @map("preferred_stores") @db.Text
-  dietaryRestrictions  String?  @map("dietary_restrictions") @db.Text
-  // ...
-  excludedIngredients  String?  @map("excluded_ingredients") @db.Text
-  // ...
+  preferredStores     String? @map("preferred_stores") @db.Text
+  dietaryRestrictions String? @map("dietary_restrictions") @db.Text
+  excludedIngredients String? @map("excluded_ingredients") @db.Text
+  familySize          Int     @default(4) @map("family_size")
+  weeklyBudget        Decimal? @map("weekly_budget")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
 }
 
+// ==========================================
+// SHOPPING CART TABLE
+// ==========================================
 model ShoppingCart {
-  // ...
+  id        String  @id @default(uuid())
+  userId    String? @map("user_id")
+  sessionId String? @map("session_id")
+
   // Cart Items (JSON stored as String)
-  items String @default("[]") @db.Text
-  // ...
+  items     String @default("[]") @db.Text
+  storeMode String @default("OPTIMAL") @map("store_mode") // OPTIMAL, SINGLE_STORE
+
+  // Totals
+  totalCost Decimal? @map("total_cost")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([sessionId])
+
+  @@map("shopping_carts")
 }
 
-// StoreMode: "OPTIMAL" | "SINGLE_STORE"
+// ==========================================
+// CATALOG TABLE
+// ==========================================
+model Catalog {
+  id     String @id @default(uuid())
+  store  String
+  pdfUrl String @map("pdf_url") @db.Text
+
+  // Validity Period
+  validFrom  DateTime @map("valid_from")
+  validUntil DateTime @map("valid_until")
+
+  // Processing Status
+  status                String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  processingStartedAt   DateTime? @map("processing_started_at")
+  processingCompletedAt DateTime? @map("processing_completed_at")
+  processingErrors      String?   @map("processing_errors") @db.Text
+
+  // Page Info
+  totalPages     Int? @map("total_pages")
+  processedPages Int? @map("processed_pages")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([store])
+  @@index([status])
+  @@index([validFrom, validUntil])
+
+  @@map("catalogs")
+}
 
 // ==========================================
 // INGREDIENT MAPPING TABLE
 // ==========================================
 model IngredientMapping {
   id             String @id @default(uuid())
-  ingredientName String @unique @map("ingredient_name")  // "iaurt", "smântână", "pui", etc.
-  
+  ingredientName String @unique @map("ingredient_name")
+
   // Product matching config
-  categoryMatch  String  @map("category_match")   // Product category to search in
-  keywords       String  @map("keywords")         // JSON array of search terms
-  defaultUnit    String  @default("buc") @map("default_unit")  // kg, L, buc, g
-  
+  categoryMatch String @map("category_match")
+  keywords      String @map("keywords") @db.Text
+  defaultUnit   String @default("buc") @map("default_unit")
+
   // Aisle sorting for physical stores
-  aisleOrder     Int     @default(99) @map("aisle_order")  // 1=Fructe/Legume, 2=Lactate, 3=Carne, etc.
-  aisleName      String? @map("aisle_name")  // "Fructe și Legume", "Lactate", etc.
-  
+  aisleOrder Int     @default(99) @map("aisle_order")
+  aisleName  String? @map("aisle_name")
+
   // Dietary Flags
-  isGlutenFree   Boolean @default(false) @map("is_gluten_free")
-  isDairyFree    Boolean @default(false) @map("is_dairy_free")
-  isVegan        Boolean @default(false) @map("is_vegan")
-  isVegetarian   Boolean @default(false) @map("is_vegetarian")
-  
+  isGlutenFree Boolean @default(false) @map("is_gluten_free")
+  isDairyFree  Boolean @default(false) @map("is_dairy_free")
+  isVegan      Boolean @default(false) @map("is_vegan")
+  isVegetarian Boolean @default(false) @map("is_vegetarian")
+
   createdAt DateTime @default(now()) @map("created_at")
-  
+
   @@index([categoryMatch])
   @@index([aisleOrder])
-  
+
   @@map("ingredient_mappings")
 }
 
@@ -143,24 +282,24 @@ model IngredientMapping {
 // USER PANTRY TABLE
 // ==========================================
 model UserPantry {
-  id        String   @id @default(uuid())
-  userId    String?  @map("user_id")
-  sessionId String?  @map("session_id")
-  
+  id        String  @id @default(uuid())
+  userId    String? @map("user_id")
+  sessionId String? @map("session_id")
+
   // Pantry item details
-  ingredientName String  @map("ingredient_name")
+  ingredientName String   @map("ingredient_name")
   quantity       Decimal?
   unit           String?
-  
+
   // Tracking
-  addedAt    DateTime  @default(now()) @map("added_at")
-  expiresAt  DateTime? @map("expires_at")
-  isAvailable Boolean  @default(true) @map("is_available")
-  
+  addedAt     DateTime  @default(now()) @map("added_at")
+  expiresAt   DateTime? @map("expires_at")
+  isAvailable Boolean   @default(true) @map("is_available")
+
   @@index([userId])
   @@index([sessionId])
   @@index([ingredientName])
   @@index([isAvailable])
-  
+
   @@map("user_pantry")
 }
