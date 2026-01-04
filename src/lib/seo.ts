@@ -202,7 +202,7 @@ export function generateRecipeSchema(recipe: {
             name: siteConfig.name,
             logo: {
                 '@type': 'ImageObject',
-                url: `${siteConfig.url}/images/logo.png`
+                url: `${siteConfig.url}/logo.png`
             }
         },
 
@@ -220,7 +220,7 @@ export function generateOrganizationSchema() {
         '@type': 'Organization',
         name: siteConfig.name,
         url: siteConfig.url,
-        logo: `${siteConfig.url}/images/logo.png`,
+        logo: `${siteConfig.url}/logo.png`,
         description: siteConfig.description,
         sameAs: [
             'https://facebook.com/catalogsmart',
