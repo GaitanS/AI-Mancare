@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        const storeNames = stores.map(s => s.store);
+        const storeNames = stores.map((s: { store: string }) => s.store);
         const storeResults: StoreTotal[] = [];
 
         for (const storeName of storeNames) {
