@@ -174,7 +174,7 @@ async function getStoreFilterOptions(storeName: string): Promise<ProductFilterCo
 
   return {
     stores: [{ value: storeName, label: storeName, count: 0 }],
-    categories: categoryGroups.map((g) => ({
+    categories: categoryGroups.map((g: any) => ({
       value: g.category,
       label: g.category,
       count: g._count,

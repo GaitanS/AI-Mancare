@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import prisma from '@/lib/db';
-import { cached, productsCache, cacheKeys } from '@/lib/cache';
+
 import ProductCard, { ProductCardSkeleton } from '@/components/ProductCard';
 import FilterSidebar, { ProductFilterConfig } from '@/components/FilterSidebar';
 import SortSelect from '@/components/SortSelect';
@@ -113,7 +113,7 @@ async function getProducts(filters: ProductFilters, page: number, pageSize: numb
   ]);
 
   return {
-    products: products.map((p) => ({
+    products: products.map((p: any) => ({
       ...p,
       price: Number(p.price),
       originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
@@ -162,12 +162,12 @@ async function getFilterOptions(): Promise<ProductFilterConfig> {
   ]);
 
   return {
-    stores: storeGroups.map((g) => ({
+    stores: storeGroups.map((g: any) => ({
       value: g.store,
       label: g.store,
       count: g._count,
     })),
-    categories: categoryGroups.map((g) => ({
+    categories: categoryGroups.map((g: any) => ({
       value: g.category,
       label: g.category,
       count: g._count,
