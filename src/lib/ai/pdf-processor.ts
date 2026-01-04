@@ -244,7 +244,7 @@ export async function processCatalog(catalogId: string): Promise<{
                 originalPrice: product.original_price || null,
                 discountPercentage: product.discount_percentage || null,
                 unit: product.unit,
-                store: product.store,
+                store: catalog.store,
                 validFrom: catalog.validFrom,
                 validUntil: catalog.validUntil,
                 sourceUrl: catalog.pdfUrl,
