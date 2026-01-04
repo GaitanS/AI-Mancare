@@ -104,6 +104,7 @@ export async function GET(request: NextRequest) {
         instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
         tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : null,
         tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
+        ingredientIds: typeof r.ingredientIds === 'string' ? JSON.parse(r.ingredientIds) : r.ingredientIds,
         nutritionPerServing: r.nutritionPerServing ? (typeof r.nutritionPerServing === 'string' ? JSON.parse(r.nutritionPerServing) : r.nutritionPerServing) : null,
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
         isDairyFree: r.isDairyFree,
         isVegan: r.isVegan,
         isVegetarian: r.isVegetarian
-      })) as Recipe[],
+      })) as unknown as Recipe[],
       total,
     };
 
