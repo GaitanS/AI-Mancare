@@ -64,7 +64,7 @@ export function reportWebVitals(metric: WebVitalsMetric) {
 
   // Store în cache pentru agregare
   const key = `webvitals:${metric.name}`;
-  const existing = cache.get<WebVitalsMetric[]>(key) || [];
+  const existing = cache.getSync<WebVitalsMetric[]>(key) || [];
 
   existing.push(metricWithRating);
 
@@ -87,7 +87,7 @@ export function getWebVitalsStats() {
 
   const stats = metrics.map((name) => {
     const key = `webvitals:${name}`;
-    const data = cache.get<WebVitalsMetric[]>(key) || [];
+    const data = cache.getSync<WebVitalsMetric[]>(key) || [];
 
     if (data.length === 0) {
       return {
