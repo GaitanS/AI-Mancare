@@ -42,9 +42,9 @@ export async function GET(request: NextRequest) {
           validFrom: { lte: now },
           validUntil: { gte: now },
           OR: [
-            { name: { contains: query, mode: 'insensitive' } },
-            { brand: { contains: query, mode: 'insensitive' } },
-            { category: { contains: query, mode: 'insensitive' } },
+            { name: { contains: query } },
+            { brand: { contains: query } },
+            { category: { contains: query } },
           ],
         },
         orderBy: [
@@ -58,7 +58,6 @@ export async function GET(request: NextRequest) {
         ...p,
         price: Number(p.price),
         originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-        extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
         validFrom: p.validFrom.toISOString(),
         validUntil: p.validUntil.toISOString(),
         createdAt: p.createdAt.toISOString(),
@@ -73,13 +72,12 @@ export async function GET(request: NextRequest) {
       const recipes = await prisma.recipe.findMany({
         where: {
           OR: [
-            { title: { contains: query, mode: 'insensitive' } },
-            { description: { contains: query, mode: 'insensitive' } },
-            { tags: { hasSome: [query.toLowerCase()] } },
+            { title: { contains: query } },
+            { description: { contains: query } },
+            { tags: { contains: query.toLowerCase() } },
           ],
         },
         orderBy: [
-          { viewCount: 'desc' },
           { createdAt: 'desc' },
         ],
         take: limit,
@@ -88,7 +86,6 @@ export async function GET(request: NextRequest) {
       searchResult.recipes = recipes.map((r: any) => ({
         ...r,
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-        costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
         instructions: r.instructions as Recipe['instructions'],
         tips: r.tips as string[] | null,
         tags: r.tags as string[] | null,
@@ -141,7 +138,7 @@ export async function POST(request: NextRequest) {
       where: {
         validFrom: { lte: now },
         validUntil: { gte: now },
-        name: { contains: query, mode: 'insensitive' },
+        name: { contains: query },
       },
       select: { name: true },
       distinct: ['name'],
@@ -151,7 +148,7 @@ export async function POST(request: NextRequest) {
     // Get recipe title suggestions
     const recipeTitles = await prisma.recipe.findMany({
       where: {
-        title: { contains: query, mode: 'insensitive' },
+        title: { contains: query },
       },
       select: { title: true },
       take: 5,
@@ -162,7 +159,7 @@ export async function POST(request: NextRequest) {
       where: {
         validFrom: { lte: now },
         validUntil: { gte: now },
-        category: { contains: query, mode: 'insensitive' },
+        category: { contains: query },
       },
       select: { category: true },
       distinct: ['category'],
