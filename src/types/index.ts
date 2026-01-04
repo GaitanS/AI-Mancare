@@ -18,12 +18,10 @@ export interface Product {
   store: string;
   validFrom: Date | string;
   validUntil: Date | string;
-  nutritionalInfo?: NutritionalInfo | null;
-  allergens?: string[] | null;
+  nutritionalInfo?: NutritionalInfo | string | null;
+  allergens?: string[] | string | null;
   sourceUrl?: string | null;
-  catalogPageNumber?: number | null;
-  catalogPageImage?: string | null;  // Path to catalog page screenshot
-  extractionConfidence?: number | null;
+  catalogId?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -91,17 +89,17 @@ export interface Recipe {
   prepTime?: number | null;
   cookTime?: number | null;
   totalTime?: number | null;
-  difficulty: 'USOR' | 'MEDIU' | 'DIFICIL';
-  instructions: RecipeStep[];
-  tips?: string[] | null;
-  ingredientIds: string[];
+  difficulty: 'USOR' | 'MEDIU' | 'DIFICIL' | string;
+  cuisine?: string | null;
+  instructions: RecipeStep[] | string;
+  tips?: string[] | string | null;
+  ingredientIds: string[] | string;
   estimatedCost?: number | null;
-  costPerServing?: number | null;
-  totalCalories?: number | null;
+  calories?: number | null;
   nutritionPerServing?: NutritionalInfo | null;
   slug: string;
   metaDescription?: string | null;
-  tags?: string[] | null;
+  tags?: string[] | string | null;
 
   // Dietary Flags
   isGlutenFree?: boolean;
@@ -109,10 +107,12 @@ export interface Recipe {
   isVegan?: boolean;
   isVegetarian?: boolean;
 
-  viewCount: number;
-  favoriteCount: number;
-  createdAt: Date;
-  updatedAt: Date;
+  // Status
+  isPublished?: boolean;
+  isFeatured?: boolean;
+
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface RecipeStep {
