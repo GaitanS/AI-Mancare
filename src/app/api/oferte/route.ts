@@ -10,7 +10,6 @@ import { logger } from '@/lib/logger'
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache'
 import { productRepository } from '@/lib/repositories'
 import { Metrics } from '@/lib/metrics'
-import type { Product } from '@/types'
 
 /**
  * GET /api/oferte
@@ -73,11 +72,10 @@ export async function GET(request: NextRequest) {
         // Transform for API response
         const response = {
             success: true,
-            data: result.data.map((p: Product) => ({
+            data: result.data.map((p) => ({
                 ...p,
                 price: Number(p.price),
-                originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-                extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null
+                originalPrice: p.originalPrice ? Number(p.originalPrice) : null
             })),
             meta: result.meta
         }
