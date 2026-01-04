@@ -4,6 +4,7 @@ import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
 
 // Display font - Serif for headlines (optimized: 2 weights for ~60% smaller font bundle)
 const fraunces = Fraunces({
@@ -35,31 +36,32 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'),
   title: {
-    default: 'CatalogSmart - Oferte si Retete Economice pentru Toata Familia',
+    default: 'CatalogSmart - Oferte și Rețete Economice | 2026',
     template: '%s | CatalogSmart',
   },
   description:
-    'Descopera cele mai bune oferte din supermarketuri si retete delicioase la preturi mici. Economiseste bani cu CatalogSmart!',
+    'Descoperă rețete economice bazate pe reducerile din Kaufland, Lidl, Carrefour. Economisești 30% la cumpărături. Gratis!',
   keywords: [
-    'retete ieftine',
-    'catalog smart',
+    'rețete ieftine',
+    'mâncare ieftină',
+    'rețete economice',
+    'meniu săptămânal',
+    'gătit economic',
     'oferte supermarket',
-    'retete economice',
-    'mancare ieftina',
-    'catalog oferte',
+    'rețete simple',
+    'meal planning',
     'Kaufland',
     'Lidl',
-    'Penny',
     'Carrefour',
     'Mega Image',
-    'Auchan',
-    'retete Romania',
+    'Penny',
     'buget mic',
-    'economii',
+    'economii mâncare',
+    'bucătărie românească',
   ],
-  authors: [{ name: 'CatalogSmart' }],
-  creator: 'CatalogSmart',
-  publisher: 'CatalogSmart',
+  authors: [{ name: 'Rețete Ieftine' }],
+  creator: 'Rețete Ieftine',
+  publisher: 'Rețete Ieftine',
   formatDetection: {
     email: false,
     address: false,
@@ -69,25 +71,26 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ro_RO',
     url: '/',
-    siteName: 'CatalogSmart',
-    title: 'CatalogSmart - Oferte si Retete Economice',
+    siteName: 'Rețete Ieftine',
+    title: 'Rețete Ieftine - Gătește gustos cu buget mic',
     description:
-      'Descopera cele mai bune oferte din supermarketuri si retete delicioase la preturi mici.',
+      'Descoperă rețete economice bazate pe reducerile săptămânale. Economisești 30% la cumpărături!',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'CatalogSmart - Oferte si Retete Economice',
+        alt: 'Rețete Ieftine - Gătește gustos cu buget mic',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CatalogSmart - Oferte si Retete Economice',
+    title: 'Rețete Ieftine - Gătește gustos cu buget mic',
     description:
-      'Descopera cele mai bune oferte din supermarketuri si retete delicioase la preturi mici.',
+      'Descoperă rețete economice bazate pe reducerile săptămânale. Economisești 30% la cumpărături!',
     images: ['/og-image.jpg'],
+    creator: '@reteteieftine',
   },
   robots: {
     index: true,
@@ -167,6 +170,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen flex flex-col bg-background font-body text-foreground">
+        <GoogleAnalytics />
         <Header />
         <main className="flex-1 pb-20 lg:pb-0">{children}</main>
         <Footer />

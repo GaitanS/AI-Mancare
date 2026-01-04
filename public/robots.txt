@@ -1,0 +1,32 @@
+# Robots.txt for CatalogSmart
+# https://catalogsmart.ro
+
+User-agent: *
+Allow: /
+
+# Block admin/API routes from search engines
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /admin/
+
+# Allow specific API docs
+Allow: /docs
+
+# Sitemap location
+Sitemap: https://catalogsmart.ro/sitemap.xml
+
+# Crawl delay (optional, be nice to our server)
+Crawl-delay: 1
+
+# Block common bots that waste bandwidth
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
