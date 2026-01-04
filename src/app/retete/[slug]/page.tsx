@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import prisma from '@/lib/db';
-import { cached, recipesCache, cacheKeys } from '@/lib/cache';
+import { cache, CacheKeys } from '@/lib/cache';
 import { formatPrice, formatDate } from '@/lib/utils';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
 import PrintButton from '@/components/PrintButton';

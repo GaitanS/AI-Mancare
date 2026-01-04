@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import prisma from '@/lib/db';
-import { cached, recipesCache, cacheKeys } from '@/lib/cache';
+import { cache, CacheKeys } from '@/lib/cache';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
 import FilterSidebar, { RecipeFilterConfig } from '@/components/FilterSidebar';
 import SortSelect from '@/components/SortSelect';
