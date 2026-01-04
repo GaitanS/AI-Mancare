@@ -98,7 +98,6 @@ export async function GET(request: NextRequest) {
         ...p,
         price: Number(p.price),
         originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-        extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
         validFrom: p.validFrom.toISOString(),
         validUntil: p.validUntil.toISOString(),
         createdAt: p.createdAt.toISOString(),
@@ -180,8 +179,7 @@ export async function POST(request: NextRequest) {
         nutritionalInfo: body.nutritionalInfo,
         allergens: body.allergens,
         sourceUrl: body.sourceUrl,
-        catalogPageNumber: body.catalogPageNumber,
-        extractionConfidence: body.extractionConfidence,
+        catalogId: body.catalogId,
       },
     });
 
@@ -193,7 +191,6 @@ export async function POST(request: NextRequest) {
         ...product,
         price: Number(product.price),
         originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
-        extractionConfidence: product.extractionConfidence ? Number(product.extractionConfidence) : null,
         validFrom: product.validFrom.toISOString(),
         validUntil: product.validUntil.toISOString(),
         createdAt: product.createdAt.toISOString(),
