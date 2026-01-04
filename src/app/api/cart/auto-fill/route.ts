@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
                     ingredientNames.push(...recipeIngredients.map((i: { name: string }) => i.name?.toLowerCase() || i));
                 } catch {
                     // If not valid JSON, treat as comma-separated
-                    ingredientNames.push(...recipe.ingredientIds.split(',').map(s => s.trim().toLowerCase()));
+                    ingredientNames.push(...recipe.ingredientIds.split(',').map((s: string) => s.trim().toLowerCase()));
                 }
             }
         } else if (rawIngredients && rawIngredients.length > 0) {
