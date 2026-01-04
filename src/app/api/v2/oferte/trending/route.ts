@@ -7,7 +7,7 @@ import { NextRequest } from 'next/server'
 import { handleApiError } from '@/lib/api-error'
 import { logger } from '@/lib/logger'
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache'
-import { offerRepository } from '@/lib/repositories'
+import { productRepository } from '@/lib/repositories'
 
 export async function GET(request: NextRequest) {
     const start = Date.now()
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Fetch from repository
-        const offers = await offerRepository.findTrending(limit)
+        const offers = await productRepository.findTrending(limit)
 
         // Cache for 15 minutes (trending offers don't change often)
         await cache.set(cacheKey, { data: offers }, CacheTTL.LONG)

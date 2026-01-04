@@ -7,7 +7,7 @@ import { NextRequest } from 'next/server'
 import { handleApiError } from '@/lib/api-error'
 import { logger } from '@/lib/logger'
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache'
-import { offerRepository } from '@/lib/repositories'
+import { productRepository } from '@/lib/repositories'
 
 export async function GET(request: NextRequest) {
     const start = Date.now()
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Fetch from repository
-        const stats = await offerRepository.getStats()
+        const stats = await productRepository.getStats()
 
         // Cache for 1 hour (stats don't need real-time updates)
         await cache.set(cacheKey, stats, CacheTTL.HOUR)

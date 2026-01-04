@@ -8,7 +8,7 @@ import { OfferQuerySchema } from '@/lib/validators/offer'
 import { handleApiError, NotFoundError } from '@/lib/api-error'
 import { logger } from '@/lib/logger'
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache'
-import { offerRepository } from '@/lib/repositories'
+import { productRepository } from '@/lib/repositories'
 
 /**
  * GET /api/v2/oferte
@@ -52,9 +52,9 @@ export async function GET(request: NextRequest) {
         }
 
         // Fetch from repository
-        const result = await offerRepository.findMany(
+        const result = await productRepository.findMany(
             {
-                storeId: query.store,
+                store: query.store,
                 category: query.category,
                 minPrice: query.minPrice,
                 maxPrice: query.maxPrice,
