@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Decimal } from '@prisma/client/runtime/library';
-import type { Product } from '@/types';
 
 interface CartItem {
     ingredientName: string;
@@ -124,12 +122,12 @@ export async function POST(request: NextRequest) {
             });
 
             const bestMatch = products[0] || null;
-            const alternatives = products.slice(1).map((p: Product) => ({
+            const alternatives = products.slice(1).map((p) => ({
                 id: p.id,
                 name: p.name,
                 price: Number(p.price),
                 originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-                discount: p.discountPercentage,
+                discount: p.discountPercentage ?? null,
                 store: p.store,
                 savings: bestMatch ? Number(bestMatch.price) - Number(p.price) : 0,
             }));
@@ -144,10 +142,10 @@ export async function POST(request: NextRequest) {
                         name: bestMatch.name,
                         price: Number(bestMatch.price),
                         originalPrice: bestMatch.originalPrice ? Number(bestMatch.originalPrice) : null,
-                        discount: bestMatch.discountPercentage,
+                        discount: bestMatch.discountPercentage ?? null,
                         store: bestMatch.store,
                         unit: bestMatch.unit,
-                        catalogPageImage: bestMatch.catalogPageImage,
+                        catalogPageImage: null,
                     }
                     : null,
                 alternatives,
