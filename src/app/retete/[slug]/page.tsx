@@ -163,7 +163,7 @@ export default async function RecipePage({ params }: PageProps) {
 
   const [ingredients, relatedRecipes] = await Promise.all([
     getRecipeIngredients(recipe.ingredientIds),
-    getRelatedRecipes(recipe.id, recipe.tags, recipe.difficulty),
+    getRelatedRecipes(recipe.id, recipe.tags || [], recipe.difficulty),
   ]);
 
   const difficultyInfo = difficultyConfig[recipe.difficulty as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
