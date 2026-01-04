@@ -52,6 +52,23 @@ class CacheManager {
   }
 
   /**
+   * Get value from cache synchronously
+   */
+  getSync<T>(key: string): T | undefined {
+    const value = this.cache.get<T>(key)
+
+    if (value !== undefined) {
+      this.stats.hits++
+      logger.cache('hit', key)
+      return value
+    }
+
+    this.stats.misses++
+    logger.cache('miss', key)
+    return undefined
+  }
+
+  /**
    * Set value in cache
    */
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
