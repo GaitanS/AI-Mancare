@@ -98,18 +98,21 @@ export async function GET(request: NextRequest) {
     const result = {
       recipes: recipes.map((r) => ({
         ...r,
+        difficulty: r.difficulty as 'USOR' | 'MEDIU' | 'DIFICIL',
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
         costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
         instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
         tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : null,
         tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
         nutritionPerServing: r.nutritionPerServing ? (typeof r.nutritionPerServing === 'string' ? JSON.parse(r.nutritionPerServing) : r.nutritionPerServing) : null,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
         // Dietary Flags
         isGlutenFree: r.isGlutenFree,
         isDairyFree: r.isDairyFree,
         isVegan: r.isVegan,
         isVegetarian: r.isVegetarian
-      })),
+      })) as Recipe[],
       total,
     };
 
