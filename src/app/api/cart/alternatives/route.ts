@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import type { Product } from '@prisma/client';
 
 interface AlternativeProduct {
     id: string;
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
             take: 10,
         });
 
-        const alternatives: AlternativeProduct[] = products.map(product => ({
+        const alternatives: AlternativeProduct[] = products.map((product: Product) => ({
             id: product.id,
             name: product.name,
             price: Number(product.price),
