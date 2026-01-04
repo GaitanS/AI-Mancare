@@ -35,6 +35,7 @@ const demoRecipes: Recipe[] = [
         estimatedCost: 25,
         tags: ['Vegetarian', 'Low Carb', 'Sănătos'],
         slug: 'ciorba-de-legume',
+        imageUrl: null,
     },
     {
         id: '2',
@@ -48,6 +49,7 @@ const demoRecipes: Recipe[] = [
         estimatedCost: 18,
         tags: ['Rapid', 'Vegetarian', 'Ieftin'],
         slug: 'paste-sos-rosii',
+        imageUrl: null,
     },
     {
         id: '3',
@@ -61,6 +63,7 @@ const demoRecipes: Recipe[] = [
         estimatedCost: 35,
         tags: ['High Protein', 'Low Carb', 'Fitness'],
         slug: 'piept-pui-gratar',
+        imageUrl: null,
     },
     {
         id: '4',
@@ -74,6 +77,7 @@ const demoRecipes: Recipe[] = [
         estimatedCost: 22,
         tags: ['Low Carb', 'High Protein', 'Rapid'],
         slug: 'salata-caesar',
+        imageUrl: null,
     },
     {
         id: '5',
@@ -87,6 +91,7 @@ const demoRecipes: Recipe[] = [
         estimatedCost: 42,
         tags: ['Tradițional', 'Comfort Food'],
         slug: 'tocanita-pui',
+        imageUrl: null,
     },
     {
         id: '6',
@@ -100,6 +105,7 @@ const demoRecipes: Recipe[] = [
         estimatedCost: 8,
         tags: ['Mic dejun', 'High Protein', 'Rapid'],
         slug: 'omleta-legume',
+        imageUrl: null,
     },
 ];
 
