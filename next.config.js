@@ -1,7 +1,15 @@
 /** @type {import('next').NextConfig} */
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
+// Bundle analyzer is optional - only load if installed and ANALYZE=true
+let withBundleAnalyzer = (config) => config;
+try {
+  if (process.env.ANALYZE === 'true') {
+    withBundleAnalyzer = require('@next/bundle-analyzer')({
+      enabled: true,
+    });
+  }
+} catch {
+  // @next/bundle-analyzer not installed, skip
+}
 
 const nextConfig = {
   // CRUCIAL pentru Hostinger - generează bundle standalone
