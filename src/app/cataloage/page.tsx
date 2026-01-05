@@ -80,9 +80,9 @@ async function getProducts(filters: ProductFilters, page: number, pageSize: numb
 
   if (filters.search) {
     where.OR = [
-      { name: { contains: filters.search, mode: 'insensitive' } },
-      { brand: { contains: filters.search, mode: 'insensitive' } },
-      { category: { contains: filters.search, mode: 'insensitive' } },
+      { name: { contains: filters.search } },
+      { brand: { contains: filters.search } },
+      { category: { contains: filters.search } },
     ];
   }
 
@@ -117,7 +117,6 @@ async function getProducts(filters: ProductFilters, page: number, pageSize: numb
       ...p,
       price: Number(p.price),
       originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-      extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
       validFrom: p.validFrom.toISOString(),
       validUntil: p.validUntil.toISOString(),
       createdAt: p.createdAt.toISOString(),

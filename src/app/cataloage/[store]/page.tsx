@@ -98,8 +98,8 @@ async function getStoreProducts(
 
   if (filters.search) {
     where.OR = [
-      { name: { contains: filters.search, mode: 'insensitive' } },
-      { brand: { contains: filters.search, mode: 'insensitive' } },
+      { name: { contains: filters.search } },
+      { brand: { contains: filters.search } },
     ];
   }
 
@@ -134,7 +134,6 @@ async function getStoreProducts(
       ...p,
       price: Number(p.price),
       originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-      extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
       validFrom: p.validFrom.toISOString(),
       validUntil: p.validUntil.toISOString(),
       createdAt: p.createdAt.toISOString(),

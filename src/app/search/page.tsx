@@ -36,9 +36,9 @@ async function searchProducts(query: string): Promise<Product[]> {
       validFrom: { lte: now },
       validUntil: { gte: now },
       OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { brand: { contains: query, mode: 'insensitive' } },
-        { category: { contains: query, mode: 'insensitive' } },
+        { name: { contains: query } },
+        { brand: { contains: query } },
+        { category: { contains: query } },
       ],
     },
     orderBy: [
@@ -52,7 +52,6 @@ async function searchProducts(query: string): Promise<Product[]> {
     ...p,
     price: Number(p.price),
     originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-    extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
     validFrom: p.validFrom.toISOString(),
     validUntil: p.validUntil.toISOString(),
     createdAt: p.createdAt.toISOString(),
@@ -66,12 +65,11 @@ async function searchRecipes(query: string): Promise<Recipe[]> {
   const recipes = await prisma.recipe.findMany({
     where: {
       OR: [
-        { title: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
+        { title: { contains: query } },
+        { description: { contains: query } },
       ],
     },
     orderBy: [
-      { viewCount: 'desc' },
       { createdAt: 'desc' },
     ],
     take: 12,
@@ -80,7 +78,6 @@ async function searchRecipes(query: string): Promise<Recipe[]> {
   return recipes.map((r: any) => ({
     ...r,
     estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-    costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
     instructions: r.instructions as Recipe['instructions'],
     tips: r.tips as string[] | null,
     tags: r.tags as string[] | null,

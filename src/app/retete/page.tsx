@@ -71,8 +71,8 @@ async function getRecipes(filters: RecipeFilters, page: number, pageSize: number
 
   if (filters.search) {
     where.OR = [
-      { title: { contains: filters.search, mode: 'insensitive' } },
-      { description: { contains: filters.search, mode: 'insensitive' } },
+      { title: { contains: filters.search } },
+      { description: { contains: filters.search } },
     ];
   }
 
@@ -85,7 +85,7 @@ async function getRecipes(filters: RecipeFilters, page: number, pageSize: number
       orderBy.totalTime = filters.sortOrder || 'asc';
       break;
     case 'views':
-      orderBy.viewCount = filters.sortOrder || 'desc';
+      orderBy.createdAt = filters.sortOrder || 'desc';
       break;
     case 'created':
     default:
@@ -106,7 +106,6 @@ async function getRecipes(filters: RecipeFilters, page: number, pageSize: number
     recipes: recipes.map((r: any) => ({
       ...r,
       estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-      costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
       instructions: r.instructions as Recipe['instructions'],
       tips: r.tips as string[] | null,
       tags: r.tags as string[] | null,
