@@ -7,6 +7,9 @@ import ProductCard, { ProductCardSkeleton } from '@/components/ProductCard';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
 import type { Product, Recipe } from '@/types';
 import type { Metadata } from 'next';
+import heroVegetables from '../../public/hero-vegetables.png';
+import heroSpices from '../../public/hero-spices.png';
+import heroPlate from '../../public/hero-plate.png';
 
 export const metadata: Metadata = {
   title: 'CatalogSmart - Oferte si Retete Economice pentru Toata Familia',
@@ -153,8 +156,9 @@ export default async function HomePage() {
           {/* Floating Assets - Resized & Blended */}
           <div className="absolute -right-10 top-[15%] w-[250px] h-[250px] lg:w-[300px] lg:h-[300px] animate-float opacity-100 hidden lg:block mix-blend-screen" style={{ maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}>
             <Image
-              src="/hero-vegetables.png"
+              src={heroVegetables}
               alt="Fresh vegetables floating"
+              placeholder="blur"
               fill
               className="object-contain"
               sizes="(max-width: 1024px) 250px, 300px"
@@ -164,8 +168,9 @@ export default async function HomePage() {
           </div>
           <div className="absolute -left-10 bottom-[15%] w-[280px] h-[280px] lg:w-[340px] lg:h-[340px] animate-float opacity-90 hidden lg:block mix-blend-screen" style={{ animationDelay: '2s', animationDuration: '7s', maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}>
             <Image
-              src="/hero-spices.png"
+              src={heroSpices}
               alt="Spices and ingredients"
+              placeholder="blur"
               fill
               className="object-contain rotate-12"
               sizes="(max-width: 1024px) 280px, 340px"
@@ -237,8 +242,9 @@ export default async function HomePage() {
               <div className="relative aspect-square w-[240px] sm:w-[300px]">
                 <div className="absolute inset-0 bg-gradient-to-t from-primary-600/20 to-transparent blur-[60px] rounded-full opacity-60 animate-pulse-soft" />
                 <Image
-                  src="/hero-plate.png"
+                  src={heroPlate}
                   alt="Mâncare delicioasă"
+                  placeholder="blur"
                   fill
                   className="object-contain drop-shadow-2xl z-10 mix-blend-screen"
                   style={{ maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}
