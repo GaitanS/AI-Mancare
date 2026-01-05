@@ -57,7 +57,7 @@ export class CatalogRepository extends BaseRepository<Catalog, Prisma.CatalogCre
      */
     async findByPdfUrl(pdfUrl: string): Promise<Catalog | null> {
         return this.executeWithLogging('findByPdfUrl', () =>
-            this.db.catalog.findUnique({
+            this.db.catalog.findFirst({
                 where: { pdfUrl }
             })
         )

@@ -23,14 +23,17 @@ export function hashIngredients(ingredients: string[]): string {
 }
 
 /**
- * Find an existing recipe by ingredient hash
+ * Find an existing recipe by ingredient IDs
  * Returns the recipe if found, null otherwise
  */
 export async function findRecipeByIngredients(ingredients: string[]): Promise<any | null> {
-    const hash = hashIngredients(ingredients);
+    if (!ingredients || ingredients.length === 0) return null;
 
-    const recipe = await prisma.recipe.findUnique({
-        where: { ingredientHash: hash },
+    // Search for recipes with matching ingredientIds
+    const recipe = await prisma.recipe.findFirst({
+        where: {
+            ingredientIds: { contains: ingredients[0] }
+        },
     });
 
     return recipe;
@@ -74,7 +77,6 @@ export async function getOrCreateRecipe(
 
     // Generate new recipe
     console.log('[RecipeMatcher] No cached recipe found, generating new one...');
-    const hash = hashIngredients(ingredients);
     const recipeData = await generateRecipe();
 
     // Create slug from title
@@ -89,7 +91,7 @@ export async function getOrCreateRecipe(
     const existingSlug = await prisma.recipe.findUnique({ where: { slug } });
     const finalSlug = existingSlug ? `${slug}-${Date.now()}` : slug;
 
-    // Save to database with hash
+    // Save to database
     const newRecipe = await prisma.recipe.create({
         data: {
             title: recipeData.title,
@@ -104,11 +106,10 @@ export async function getOrCreateRecipe(
             tips: recipeData.tips,
             estimatedCost: recipeData.estimatedCost,
             ingredientIds: JSON.stringify(ingredients),
-            ingredientHash: hash,
             slug: finalSlug,
         },
     });
 
-    console.log(`[RecipeMatcher] Created new recipe: ${newRecipe.title} (hash: ${hash})`);
+    console.log(`[RecipeMatcher] Created new recipe: ${newRecipe.title}`);
     return newRecipe;
 }

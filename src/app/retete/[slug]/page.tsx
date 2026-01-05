@@ -6,7 +6,7 @@ import { cache, CacheKeys } from '@/lib/cache';
 import { formatPrice, formatDate } from '@/lib/utils';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
 import PrintButton from '@/components/PrintButton';
-import type { Recipe, Product } from '@/types';
+import type { Recipe, Product, RecipeStep } from '@/types';
 import type { Metadata } from 'next';
 
 interface PageProps {
@@ -161,12 +161,21 @@ export default async function RecipePage({ params }: PageProps) {
     ? recipe.tags
     : (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : []);
 
+  const tipsArray = Array.isArray(recipe.tips)
+    ? recipe.tips
+    : (typeof recipe.tips === 'string' ? JSON.parse(recipe.tips) : []);
+
   const [ingredients, relatedRecipes] = await Promise.all([
     getRecipeIngredients(ingredientIdsArray),
     getRelatedRecipes(recipe.id, tagsArray, recipe.difficulty),
   ]);
 
   const difficultyInfo = difficultyConfig[recipe.difficulty as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
+
+  // Ensure instructions is an array for TypeScript
+  const instructionsArray = Array.isArray(recipe.instructions)
+    ? recipe.instructions
+    : (typeof recipe.instructions === 'string' ? JSON.parse(recipe.instructions) : []) as RecipeStep[];
 
   // JSON-LD structured data for recipe
   const recipeJsonLd = {
@@ -188,7 +197,7 @@ export default async function RecipePage({ params }: PageProps) {
     recipeCuisine: 'Romanian',
     keywords: tagsArray.join(', '),
     recipeIngredient: ingredients.map((i) => i.name),
-    recipeInstructions: recipe.instructions.map((step) => ({
+    recipeInstructions: instructionsArray.map((step) => ({
       '@type': 'HowToStep',
       position: step.step,
       text: step.text,
@@ -250,9 +259,9 @@ export default async function RecipePage({ params }: PageProps) {
             {/* Header & Meta (Spans full width on mobile, left col on desktop) */}
             <div className="lg:col-span-8 flex flex-col justify-center text-center lg:text-left">
               {/* Tags */}
-              {recipe.tags && recipe.tags.length > 0 && (
+              {tagsArray && tagsArray.length > 0 && (
                 <div className="flex flex-wrap justify-center lg:justify-start gap-2 mb-4">
-                  {recipe.tags.slice(0, 3).map((tag: any) => (
+                  {tagsArray.slice(0, 3).map((tag: any) => (
                     <Link key={tag} href={`/retete?tags=${tag}`} className="px-2.5 py-1 rounded-md bg-white border border-neutral-200 text-neutral-800 text-[11px] font-bold uppercase tracking-wider hover:border-neutral-400 transition-colors shadow-sm">
                       {tag}
                     </Link>
@@ -342,7 +351,7 @@ export default async function RecipePage({ params }: PageProps) {
                 Mod de preparare
               </h2>
               <div className="space-y-6">
-                {recipe.instructions.map((step: any, idx: number) => (
+                {instructionsArray.map((step: any, idx: number) => (
                   <div key={idx} className="flex gap-4">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold text-sm mt-1">
                       {step.step}
@@ -357,13 +366,13 @@ export default async function RecipePage({ params }: PageProps) {
               </div>
 
               {/* Tips */}
-              {recipe.tips && recipe.tips.length > 0 && (
+              {tipsArray && tipsArray.length > 0 && (
                 <div className="mt-10 bg-amber-50 rounded-xl p-5 border border-amber-100">
                   <h3 className="font-bold text-amber-900 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide">
                     Sfaturi utile
                   </h3>
                   <ul className="space-y-2">
-                    {recipe.tips.map((tip: any, i: number) => (
+                    {tipsArray.map((tip: any, i: number) => (
                       <li key={i} className="flex gap-2 text-sm font-medium text-amber-900">
                         <span className="text-amber-600 font-bold">•</span>
                         <span>{tip}</span>

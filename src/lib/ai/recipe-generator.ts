@@ -186,7 +186,14 @@ export async function generateWeeklyRecipes(count: number = 10): Promise<string[
           dietary: i % 3 === 0 ? ['vegetarian'] : [],
         };
 
-        const recipe = await generateRecipe(products, constraints);
+        // Convert Prisma products to Product type
+        const typedProducts: Product[] = products.map(p => ({
+          ...p,
+          price: Number(p.price),
+          originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+        }));
+
+        const recipe = await generateRecipe(typedProducts, constraints);
 
         // Create slug
         const slug = generateSlug(recipe.title);
@@ -211,18 +218,18 @@ export async function generateWeeklyRecipes(count: number = 10): Promise<string[
             cookTime: recipe.cook_time,
             totalTime: recipe.prep_time + recipe.cook_time,
             difficulty: recipe.difficulty === 'ușor' ? 'USOR' : recipe.difficulty === 'mediu' ? 'MEDIU' : 'DIFICIL',
-            instructions: recipe.instructions,
-            tips: recipe.tips,
-            ingredientIds: recipe.ingredients.map((i) => i.product_id),
+            instructions: JSON.stringify(recipe.instructions),
+            tips: JSON.stringify(recipe.tips),
+            ingredientIds: JSON.stringify(recipe.ingredients.map((i) => i.product_id)),
             estimatedCost: recipe.estimated_cost,
             slug,
             metaDescription: recipe.description.substring(0, 160),
-            tags: [
+            tags: JSON.stringify([
               recipe.difficulty,
               'economic',
               `${recipe.servings} portii`,
               `${recipe.prep_time + recipe.cook_time} minute`,
-            ],
+            ]),
             // Automatic Dietary Classification
             ...calculateDietaryFlags(recipe.title + ' ' + recipe.instructions.map(s => s.text).join(' ') + ' ' + recipe.ingredients.map(i => i.product_id).join(' ')),
           },
@@ -284,7 +291,14 @@ export async function generateCustomRecipe(
       throw new Error('No products found matching criteria');
     }
 
-    const recipe = await generateRecipe(products, {
+    // Convert Prisma products to Product type
+    const typedProducts: Product[] = products.map(p => ({
+      ...p,
+      price: Number(p.price),
+      originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+    }));
+
+    const recipe = await generateRecipe(typedProducts, {
       maxCost: budget,
       maxTime: 60,
       dietary: dietaryRestrictions,

@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
   // Rate limiting pentru API routes
   if (pathname.startsWith('/api/')) {
     // Determine rate limit config based on endpoint
-    let rateLimitConfig = RATE_LIMITS.api;
+    let rateLimitConfig: { maxRequests: number; windowSeconds: number } = RATE_LIMITS.api;
 
     if (pathname.includes('/search')) {
       rateLimitConfig = RATE_LIMITS.search;

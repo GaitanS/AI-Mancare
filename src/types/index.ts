@@ -22,6 +22,8 @@ export interface Product {
   allergens?: string[] | string | null;
   sourceUrl?: string | null;
   catalogId?: string | null;
+  catalogPageImage?: string | null;
+  catalogPageNumber?: number | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

@@ -49,6 +49,7 @@
   ],
   "exclude": [
     "node_modules",
+    "prisma",
     "jest.setup.ts",
     "jest.config.ts",
     "**/*.test.ts",

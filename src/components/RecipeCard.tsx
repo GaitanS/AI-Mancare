@@ -50,7 +50,7 @@ export default function RecipeCard({
   className,
   priority = false,
 }: RecipeCardProps) {
-  const difficulty = difficultyConfig[recipe.difficulty] || difficultyConfig.MEDIU;
+  const difficulty = difficultyConfig[recipe.difficulty as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
 
   // Calculate if this is a budget-friendly recipe (under 15 lei)
   const isBudgetFriendly = recipe.estimatedCost && recipe.estimatedCost <= 15;

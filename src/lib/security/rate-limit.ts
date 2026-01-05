@@ -84,7 +84,7 @@ export async function checkRateLimit(
   const key = `ratelimit:${identifier}`;
 
   // Get current count from cache
-  let count = cache.get<number>(key) || 0;
+  let count = (await cache.get<number>(key)) || 0;
 
   // Check if limit exceeded
   if (count >= config.maxRequests) {
@@ -166,7 +166,7 @@ export async function checkBruteForce(
 }> {
   const key = `bruteforce:${identifier}`;
 
-  let attempts = cache.get<number>(key) || 0;
+  let attempts = (await cache.get<number>(key)) || 0;
 
   if (attempts >= maxAttempts) {
     const ttl = cache.getTtl(key);
@@ -193,11 +193,11 @@ export async function checkBruteForce(
 /**
  * Record failed login attempt
  */
-export function recordFailedLogin(identifier: string): void {
+export async function recordFailedLogin(identifier: string): Promise<void> {
   const key = `bruteforce:${identifier}`;
-  const attempts = (cache.get<number>(key) || 0) + 1;
+  const attempts = ((await cache.get<number>(key)) || 0) + 1;
 
-  cache.set(key, attempts, 900); // 15 minutes
+  await cache.set(key, attempts, 900); // 15 minutes
 }
 
 /**

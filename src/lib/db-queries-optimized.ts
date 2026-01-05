@@ -65,34 +65,32 @@ export async function getBestOffersByCategory(category: string, limit = 20) {
 }
 
 /**
- * Full-text search products (folosește idx_name_fulltext)
+ * Full-text search products (MySQL compatible)
  */
 export async function searchProducts(query: string, limit = 30) {
   return trackQuery('searchProducts', async () => {
     const now = new Date();
 
-    // Full-text search cu MySQL
-    return prisma.product.findRaw({
-      filter: {
-        $and: [
+    // MySQL full-text search using contains (case-insensitive)
+    return prisma.product.findMany({
+      where: {
+        AND: [
           {
-            $text: {
-              $search: query
-            }
+            OR: [
+              { name: { contains: query } },
+              { brand: { contains: query } },
+              { category: { contains: query } },
+            ],
           },
-          {
-            validFrom: { $lte: now },
-            validUntil: { $gte: now },
-          },
+          { validFrom: { lte: now } },
+          { validUntil: { gte: now } },
         ],
       },
-      options: {
-        limit,
-        sort: {
-          score: { $meta: 'textScore' },
-          discountPercentage: -1,
-        },
-      },
+      orderBy: [
+        { discountPercentage: 'desc' },
+        { price: 'asc' },
+      ],
+      take: limit,
     });
   });
 }
@@ -143,22 +141,20 @@ export async function getBudgetRecipes(maxCost: number, limit = 20) {
 }
 
 /**
- * Search recipes (folosește idx_recipe_fulltext)
+ * Search recipes (MySQL compatible)
  */
 export async function searchRecipes(query: string, limit = 20) {
   return trackQuery('searchRecipes', async () => {
-    return prisma.recipe.findRaw({
-      filter: {
-        $text: {
-          $search: query
-        },
+    return prisma.recipe.findMany({
+      where: {
+        OR: [
+          { title: { contains: query } },
+          { description: { contains: query } },
+          { tags: { contains: query } },
+        ],
       },
-      options: {
-        limit,
-        sort: {
-          score: { $meta: 'textScore' },
-        },
-      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
     });
   });
 }
@@ -178,11 +174,10 @@ export async function getUserRecentMenus(userId: string, limit = 10) {
       take: limit,
       select: {
         id: true,
-        slug: true,
-        title: true,
-        budgetLimit: true,
+        name: true,
+        budget: true,
         totalCost: true,
-        peopleCount: true,
+        servings: true,
         createdAt: true,
       },
     });
