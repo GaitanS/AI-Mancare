@@ -111,13 +111,15 @@ jobs:
 
       - name: Wait for MySQL to be ready
         run: |
+          sudo apt-get update && sudo apt-get install -y mysql-client
           for i in {1..30}; do
-            if mysqladmin ping -h 127.0.0.1 -u root -ppassword --silent 2>/dev/null; then
+            if mysql -h 127.0.0.1 -u root -ppassword -e "SELECT 1" &>/dev/null; then
               echo "MySQL is ready!"
+              mysql -h 127.0.0.1 -u root -ppassword -e "SHOW DATABASES;"
               break
             fi
             echo "Waiting for MySQL... ($i/30)"
-            sleep 2
+            sleep 3
           done
 
       - name: Install dependencies
@@ -140,103 +142,22 @@ jobs:
           retention-days: 7
 
   # =====================
-  # DEPLOY TO STAGING
+  # DEPLOY TO PRODUCTION (disabled until secrets are configured)
   # =====================
-  deploy-staging:
-    name: 🚀 Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/develop'
-    environment:
-      name: staging
-      url: ${{ vars.STAGING_URL }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to staging
-        run: |
-          echo "Deploying to staging..."
-          # Add your staging deployment commands here
-          # Example: rsync, SSH, or cloud CLI
-
-  # =====================
-  # DEPLOY TO PRODUCTION
-  # =====================
-  deploy-production:
-    name: 🚀 Deploy to Production
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
-      url: ${{ vars.PRODUCTION_URL }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --production
-
-      - name: Generate Prisma Client
-        run: npx prisma generate
-
-      - name: Build application
-        run: npm run build
-
-      - name: Deploy to Hostinger
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-        run: |
-          # Setup SSH
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          echo "Host *" >> ~/.ssh/config
-          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
-
-          # Sync files to server
-          rsync -avz --delete \
-            --exclude 'node_modules' \
-            --exclude '.git' \
-            --exclude '.env.local' \
-            --exclude 'storage' \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            ./ $SSH_USER@$SSH_HOST:$DEPLOY_PATH/
-
-          # Remote commands: install deps and restart
-          ssh -i ~/.ssh/deploy_key $SSH_USER@$SSH_HOST << 'EOF'
-            cd $DEPLOY_PATH
-            npm ci --production
-            npx prisma generate
-            npx prisma migrate deploy
-            pm2 reload retete-ieftine --update-env || pm2 start npm --name retete-ieftine -- run start
-          EOF
-
-      - name: Verify deployment
-        run: |
-          sleep 30
-          curl -f ${{ vars.PRODUCTION_URL }}/api/health || exit 1
-
-  # =====================
-  # NOTIFY ON FAILURE
-  # =====================
-  notify-failure:
-    name: 📢 Notify on Failure
-    runs-on: ubuntu-latest
-    needs: [lint, test, build, deploy-production]
-    if: failure()
-    steps:
-      - name: Send notification
-        run: |
-          echo "Pipeline failed! Check GitHub Actions for details."
-          # Add Slack/Discord/Email notification here
+  # To enable deployment, add these secrets in GitHub repository settings:
+  # - SSH_HOST: Your server hostname (e.g., ssh.hostinger.com)
+  # - SSH_USER: SSH username
+  # - SSH_KEY: SSH private key
+  # - DEPLOY_PATH: Deployment path on server
+  # - DATABASE_URL: Production database URL
+  #
+  # deploy-production:
+  #   name: 🚀 Deploy to Production
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   environment:
+  #     name: production
+  #   steps:
+  #     - name: Deploy
+  #       run: echo "Deployment configured"
