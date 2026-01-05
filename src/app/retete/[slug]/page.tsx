@@ -179,7 +179,7 @@ export default async function RecipePage({ params }: PageProps) {
       '@type': 'Organization',
       name: 'Retete Ieftine',
     },
-    datePublished: recipe.createdAt.toISOString(),
+    datePublished: typeof recipe.createdAt === 'string' ? recipe.createdAt : recipe.createdAt.toISOString(),
     prepTime: `PT${recipe.prepTime || 0}M`,
     cookTime: `PT${recipe.cookTime || 0}M`,
     totalTime: `PT${recipe.totalTime || 0}M`,
