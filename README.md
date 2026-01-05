@@ -1,40 +1,34 @@
-# Rețete Ieftine - Platformă Smart pentru Oferte & Rețete
+# 🍽️ Rețete Ieftine - Platformă Smart pentru Oferte & Rețete
 
-> Platformă web care agregă cataloage de oferte de la supermarketuri românești și generează rețete economice folosind inteligență artificială.
+[![Next.js](https://img.shields.io/badge/Next.js-15.1-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.1-2D3748?logo=prisma)](https://www.prisma.io/)
+[![License](https://img.shields.io/badge/License-Proprietary-red)]()
+
+> 🇷🇴 Platformă web românească care agregă cataloage de oferte de la supermarketuri și generează rețete economice folosind inteligență artificială.
+
+## ✨ Status: ALPHA COMPLETE
+
+Toate funcționalitățile de bază sunt implementate și funcționale.
 
 ## 🌟 Caracteristici Principale
 
-- **Scraping Automat**: Colectare săptămânală de cataloage PDF de la supermarketuri
-- **Extracție AI**: Procesare cataloage cu GPT-4o Vision pentru identificare produse
-- **Generare Rețete**: Crearea automată de rețete economice bazate pe oferte
-- **Meniuri Săptămânale**: Planificare meniuri personalizate în funcție de buget
-- **Listă de Cumpărături**: Export listă optimizată pe magazine
+- **📥 Scraping Automat**: Colectare săptămânală de cataloage PDF de la 6+ supermarketuri (Kaufland, Lidl, Penny, Profi, Mega Image, Carrefour)
+- **🤖 Extracție AI**: Procesare cataloage cu GPT-4o Vision / Gemini pentru identificare produse și prețuri
+- **🍳 Generare Rețete**: Crearea automată de rețete economice bazate pe ofertele curente
+- **📅 Meniuri Săptămânale**: Planificare meniuri personalizate în funcție de buget și preferințe
+- **🛒 Coș Inteligent**: Completare automată cu cele mai ieftine alternative din magazine
+- **💰 Optimizare Multi-Store**: Găsește cele mai bune prețuri comparând toate magazinele
 
 ## 🏗️ Stack Tehnologic
 
-### Backend
-- **Next.js 15**: Framework React cu App Router și Server Components
-- **TypeScript 5.7**: Type safety complet
-- **Prisma ORM**: Database toolkit pentru MySQL
-- **MySQL 8.0**: Bază de date relațională (Hostinger)
-
-### AI & Processing
-- **OpenAI GPT-4o**: Vision API pentru extracție produse din PDF
-- **LangChain**: Framework pentru generare rețete
-- **Puppeteer**: Web scraping automatizat
-- **pdf-lib + sharp**: Procesare și conversie PDF→Image
-
-### Infrastructure
-- **Hostinger Cloud Startup**: Hosting (2 CPU, 4GB RAM, 100GB NVMe)
-- **PM2**: Process manager pentru Node.js
-- **node-cache**: In-memory caching
-- **node-cron**: Scheduled tasks
-
-### Frontend
-- **React 19**: UI library
-- **Tailwind CSS 3.4**: Utility-first CSS
-- **Next.js Image**: Optimizare imagini automat
-- **TypeScript**: Type-safe components
+| Layer | Tehnologii |
+|-------|-----------|
+| **Frontend** | React 19, Next.js 15.1, TypeScript 5.x, Tailwind CSS 3.4, Radix UI |
+| **Backend** | Next.js API Routes, Prisma ORM 6.1, MySQL 8.0 |
+| **AI** | OpenRouter API, GPT-4o Vision, Gemini Vision, LangChain |
+| **Infrastructure** | Hostinger Cloud, PM2, node-cache, node-cron |
+| **Processing** | Cheerio (scraping), pdf-lib, Sharp (images) |
 
 ## 📋 Cerințe Sistem
 
@@ -238,58 +232,45 @@ pm2 restart retete-ieftine-web
 - **OpenAI API**: ~20 USD/month (~500 PDF pages)
 - **Total**: ~130 RON/month (~26€)
 
-## 🚢 Deployment
+## 🚢 Deployment pe Hostinger Cloud
 
-### Hostinger Deployment
+### Variabile de Mediu Necesare
 
-1. Build locally:
-```bash
-npm run build
+```env
+HOSTNAME=0.0.0.0          # OBLIGATORIU pentru Hostinger
+DATABASE_URL=mysql://...   # Connection string MySQL
+OPENAI_API_KEY=sk-...      # Pentru AI processing
+NEXT_PUBLIC_SITE_URL=https://retete-ieftine.ro
 ```
 
-2. Upload to server via SFTP/Git
+### Deployment via GitHub Integration
 
-3. On server:
-```bash
-cd /path/to/app
-npm install --production
-npx prisma migrate deploy
-pm2 start ecosystem.config.js --env production
-pm2 save
-```
+1. **Conectează repo-ul** în Hostinger → Implementări
+2. **Build Settings**:
+   - Build Command: `npm run build:prod`
+   - Start Command: `npm start`
+   - Output Directory: `.next`
+3. **Setează variabilele de mediu** în panoul Hostinger
+4. **Deploy!**
+
+> 📖 Vezi [DEPLOY_HOSTINGER.md](DEPLOY_HOSTINGER.md) pentru ghid complet.
 
 ### Update Deployment
 
 ```bash
-# Pull latest code
-git pull
-
-# Install dependencies
-npm install --production
-
-# Run migrations
-npx prisma migrate deploy
-
-# Restart
-pm2 reload ecosystem.config.js
+git add . && git commit -m "update" && git push
+# Hostinger va face auto-deploy din branch main
 ```
 
 ## 📝 Licență
 
-Proprietar - Toate drepturile rezervate
+Proprietar - Toate drepturile rezervate © 2024-2025
 
 ## 👤 Author
 
 Dezvoltat pentru optimizarea cheltuielilor familiale prin agregarea ofertelor și generarea automată de rețete economice.
 
-## 🙏 Credits
-
-- **OpenAI**: GPT-4o Vision pentru extracție produse
-- **Next.js**: Framework React
-- **Prisma**: Database toolkit
-- **Tailwind CSS**: Styling framework
-
 ---
 
-**Version**: 1.0.0
-**Last Updated**: 2024-12-28
+**Version**: 1.0.0 (Alpha)
+**Last Updated**: 2025-01-05
