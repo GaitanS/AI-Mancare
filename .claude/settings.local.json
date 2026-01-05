@@ -47,7 +47,8 @@
       "Bash(cmd /c \"tasklist | findstr node\")",
       "Bash(cmd /c \"dir \"\"c:\\\\Users\\\\Silviu\\\\Downloads\\\\AI Mancare\\\\node_modules\\\\.prisma\"\"\")",
       "Bash(cmd /c \"cd /d \"\"c:\\\\Users\\\\Silviu\\\\Downloads\\\\AI Mancare\"\" && npx prisma generate\")",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(ssh -p 65002 u596471450@72.62.153.174 \"ls -la ~/domains/catalogsmart.ro/public_html/ 2>/dev/null || ls -la ~/ | head -20\")"
     ]
   }
 }
