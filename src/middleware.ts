@@ -3,7 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+// import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -46,6 +46,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
 
+  /*
   // Rate limiting pentru API routes
   if (pathname.startsWith('/api/')) {
     // Determine rate limit config based on endpoint
@@ -86,6 +87,7 @@ export async function middleware(request: NextRequest) {
     response.headers.set('X-RateLimit-Remaining', rateLimit.remaining.toString());
     response.headers.set('X-RateLimit-Reset', rateLimit.resetAt.toISOString());
   }
+  */
 
   // Block known bad user agents
   const userAgent = request.headers.get('user-agent') || '';
