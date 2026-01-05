@@ -152,9 +152,18 @@ export default async function RecipePage({ params }: PageProps) {
     notFound();
   }
 
+  // Ensure ingredientIds is always an array
+  const ingredientIdsArray = Array.isArray(recipe.ingredientIds)
+    ? recipe.ingredientIds
+    : (typeof recipe.ingredientIds === 'string' ? JSON.parse(recipe.ingredientIds) : []);
+
+  const tagsArray = Array.isArray(recipe.tags)
+    ? recipe.tags
+    : (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : []);
+
   const [ingredients, relatedRecipes] = await Promise.all([
-    getRecipeIngredients(recipe.ingredientIds),
-    getRelatedRecipes(recipe.id, recipe.tags || [], recipe.difficulty),
+    getRecipeIngredients(ingredientIdsArray),
+    getRelatedRecipes(recipe.id, tagsArray, recipe.difficulty),
   ]);
 
   const difficultyInfo = difficultyConfig[recipe.difficulty as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
