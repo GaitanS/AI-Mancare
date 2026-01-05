@@ -140,6 +140,28 @@ class CacheManager {
   }
 
   /**
+   * Alias for clear() - for compatibility
+   */
+  flushAll(): void {
+    this.cache.flushAll()
+    this.stats = { hits: 0, misses: 0 }
+  }
+
+  /**
+   * Synchronous set
+   */
+  set<T>(key: string, value: T, ttl?: number): void {
+    this.cache.set(key, value, ttl || 300)
+  }
+
+  /**
+   * Synchronous delete
+   */
+  del(key: string): void {
+    this.cache.del(key)
+  }
+
+  /**
    * Check if key exists
    */
   has(key: string): boolean {
@@ -182,6 +204,15 @@ class CacheManager {
 
 // Singleton instance
 export const cache = new CacheManager()
+
+/**
+ * Helper function to invalidate by pattern (exported for tests)
+ */
+export function invalidatePattern(pattern: string): void {
+  const keys = cache.getStats().keys > 0 ? [] : []
+  // Use the cache's internal method
+  cache.invalidatePrefix(pattern.replace('*', ''))
+}
 
 /**
  * Cache key builders for consistent key naming

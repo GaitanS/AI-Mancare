@@ -111,13 +111,20 @@ export const weeklyMenuSchema = z.object({
 });
 
 /**
- * Sanitize HTML (remove all tags)
+ * Sanitize HTML (remove all tags and dangerous content)
  */
 export function sanitizeHTML(input: string): string {
   return input
-    .replace(/<[^>]*>/g, '') // Remove HTML tags
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+=/gi, '') // Remove event handlers
+    // Remove script tags and their content entirely
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    // Remove style tags and their content
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+    // Remove all other HTML tags (but keep content)
+    .replace(/<[^>]*>/g, '')
+    // Remove javascript: protocol
+    .replace(/javascript:/gi, '')
+    // Remove event handlers
+    .replace(/on\w+=/gi, '')
     .trim();
 }
 
