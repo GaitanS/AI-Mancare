@@ -38,7 +38,8 @@ export async function GET() {
     } catch (error) {
         return NextResponse.json({
             error: 'Failed to get database stats',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            details: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
         }, { status: 500 })
     }
 }

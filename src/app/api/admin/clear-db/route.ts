@@ -30,6 +30,9 @@ export async function POST(req: Request) {
 
     } catch (error) {
         console.error('Failed to clear database:', error);
-        return NextResponse.json({ error: 'Internal Database Error' }, { status: 500 });
+        return NextResponse.json({
+            error: 'Internal Database Error',
+            details: error instanceof Error ? error.message : String(error)
+        }, { status: 500 });
     }
 }
