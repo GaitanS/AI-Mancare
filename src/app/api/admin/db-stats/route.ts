@@ -1,45 +1,59 @@
 /**
- * Database Replica Monitoring API
- * Shows replica health and statistics
+ * Database Stats API
+ * Shows content statistics for admin dashboard
  */
 
 import { NextResponse } from 'next/server'
-import { dbReplicas } from '@/lib/db-replicas'
-import { checkDatabaseHealth } from '@/lib/db'
+import prisma from '@/lib/db'
 
 /**
  * GET /api/admin/db-stats
- * Returns database replica statistics
+ * Returns content statistics for admin dashboard
  */
 export async function GET() {
     try {
-        // Get master health
-        const masterHealth = await checkDatabaseHealth()
+        const now = new Date()
 
-        // Get replica stats
-        const replicaStats = dbReplicas.getStats()
-
-        // Force health check on replicas
-        await dbReplicas.checkReplicaHealth()
+        // Get counts in parallel
+        const [productCount, recipeCount, storeGroups, categoryGroups] = await Promise.all([
+            prisma.product.count({
+                where: {
+                    validFrom: { lte: now },
+                    validUntil: { gte: now },
+                },
+            }),
+            prisma.recipe.count(),
+            prisma.product.groupBy({
+                by: ['store'],
+                where: {
+                    validFrom: { lte: now },
+                    validUntil: { gte: now },
+                },
+            }),
+            prisma.product.groupBy({
+                by: ['category'],
+                where: {
+                    validFrom: { lte: now },
+                    validUntil: { gte: now },
+                },
+            }),
+        ])
 
         return NextResponse.json({
-            master: {
-                ...masterHealth,
-                status: masterHealth.healthy ? 'healthy' : 'unhealthy'
-            },
-            replicas: replicaStats.replicas,
-            summary: {
-                totalReplicas: Object.keys(replicaStats.replicas).length,
-                healthyReplicas: Object.values(replicaStats.replicas as Record<string, any>)
-                    .filter((r: any) => r.healthy).length,
-                timestamp: new Date().toISOString()
-            }
+            products: productCount,
+            recipes: recipeCount,
+            stores: storeGroups.length,
+            categories: categoryGroups.length,
+            timestamp: new Date().toISOString()
         })
     } catch (error) {
+        console.error('Failed to get database stats:', error)
         return NextResponse.json({
-            error: 'Failed to get database stats',
-            details: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
-        }, { status: 500 })
+            products: 0,
+            recipes: 0,
+            stores: 0,
+            categories: 0,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        })
     }
 }
