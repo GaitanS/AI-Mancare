@@ -21,18 +21,11 @@ async function getRecipe(slug: string): Promise<Recipe | null> {
 
   if (!recipe) return null;
 
-  // Increment view count
-  await prisma.recipe.update({
-    where: { id: recipe.id },
-    data: { viewCount: { increment: 1 } },
-  });
-
   const ingredientIds = recipe.ingredientIds ? JSON.parse(recipe.ingredientIds) : [];
 
   return {
     ...recipe,
     estimatedCost: recipe.estimatedCost ? Number(recipe.estimatedCost) : null,
-    costPerServing: recipe.costPerServing ? Number(recipe.costPerServing) : null,
     instructions: typeof recipe.instructions === 'string' ? JSON.parse(recipe.instructions) : recipe.instructions,
     tips: recipe.tips ? (typeof recipe.tips === 'string' ? JSON.parse(recipe.tips) : recipe.tips) : [],
     tags: recipe.tags ? (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags) : [],
@@ -61,7 +54,6 @@ async function getRecipeIngredients(ingredientIds: string[]): Promise<Product[]>
       ...p,
       price: Number(p.price),
       originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-      extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
       validFrom: p.validFrom.toISOString(),
       validUntil: p.validUntil.toISOString(),
       createdAt: p.createdAt.toISOString(),
@@ -93,13 +85,12 @@ async function getRelatedRecipes(
       ].filter(Boolean) as any,
     },
     take: 3,
-    orderBy: { viewCount: 'desc' },
+    orderBy: { createdAt: 'desc' },
   });
 
   return recipes.map((r: any) => ({
     ...r,
     estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-    costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
     instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
     tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : [],
     tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
@@ -205,7 +196,7 @@ export default async function RecipePage({ params }: PageProps) {
     aggregateRating: {
       '@type': 'AggregateRating',
       ratingValue: '4.5',
-      ratingCount: recipe.favoriteCount.toString(),
+      ratingCount: '50',
     },
   };
 

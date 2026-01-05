@@ -215,7 +215,6 @@ export async function generateWeeklyRecipes(count: number = 10): Promise<string[
             tips: recipe.tips,
             ingredientIds: recipe.ingredients.map((i) => i.product_id),
             estimatedCost: recipe.estimated_cost,
-            costPerServing: recipe.estimated_cost / recipe.servings,
             slug,
             metaDescription: recipe.description.substring(0, 160),
             tags: [

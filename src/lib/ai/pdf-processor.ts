@@ -248,8 +248,6 @@ export async function processCatalog(catalogId: string): Promise<{
                 validFrom: catalog.validFrom,
                 validUntil: catalog.validUntil,
                 sourceUrl: catalog.pdfUrl,
-                catalogPageNumber: i + 1,
-                extractionConfidence: product.extraction_confidence,
                 nutritionalInfo: product.nutritionalInfo || null,
                 allergens: product.allergens || null,
               },

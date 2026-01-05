@@ -25,9 +25,8 @@ export async function GET(request: NextRequest) {
                     data: {
                         id: DEMO_USER_ID,
                         email: DEMO_USER_EMAIL,
-                        householdSize: 2,
+                        familySize: 2,
                         dietaryRestrictions: JSON.stringify([]),
-                        nutritionalGoals: JSON.stringify([]),
                         preferredStores: JSON.stringify(['Lidl', 'Kaufland']),
                     },
                 });
@@ -39,11 +38,10 @@ export async function GET(request: NextRequest) {
             data: {
                 id: user.id,
                 email: user.email,
-                householdSize: user.householdSize,
+                familySize: user.familySize,
                 dietaryRestrictions: user.dietaryRestrictions ? JSON.parse(user.dietaryRestrictions) : [],
-                nutritionalGoals: user.nutritionalGoals ? JSON.parse(user.nutritionalGoals) : [],
                 preferredStores: user.preferredStores ? JSON.parse(user.preferredStores) : [],
-                budgetPreference: user.budgetPreference,
+                weeklyBudget: user.weeklyBudget ? Number(user.weeklyBudget) : null,
             },
         });
 
@@ -63,24 +61,20 @@ export async function POST(request: NextRequest) {
         // Normalize fields for JSON storage
         const updateData: any = {};
 
-        if (body.householdSize !== undefined) {
-            updateData.householdSize = body.householdSize;
+        if (body.familySize !== undefined) {
+            updateData.familySize = body.familySize;
         }
 
         if (body.dietaryRestrictions) {
             updateData.dietaryRestrictions = JSON.stringify(body.dietaryRestrictions);
         }
 
-        if (body.nutritionalGoals) {
-            updateData.nutritionalGoals = JSON.stringify(body.nutritionalGoals);
-        }
-
         if (body.preferredStores) {
             updateData.preferredStores = JSON.stringify(body.preferredStores);
         }
 
-        if (body.budgetPreference) {
-            updateData.budgetPreference = body.budgetPreference;
+        if (body.weeklyBudget !== undefined) {
+            updateData.weeklyBudget = body.weeklyBudget;
         }
 
         const user = await prisma.user.upsert({
@@ -89,9 +83,8 @@ export async function POST(request: NextRequest) {
             create: {
                 id: DEMO_USER_ID,
                 email: DEMO_USER_EMAIL,
-                householdSize: body.householdSize || 2,
+                familySize: body.familySize || 2,
                 dietaryRestrictions: JSON.stringify(body.dietaryRestrictions || []),
-                nutritionalGoals: JSON.stringify(body.nutritionalGoals || []),
                 preferredStores: JSON.stringify(body.preferredStores || ['Lidl', 'Kaufland']),
             },
         });
@@ -100,11 +93,10 @@ export async function POST(request: NextRequest) {
             success: true,
             data: {
                 id: user.id,
-                householdSize: user.householdSize,
+                familySize: user.familySize,
                 dietaryRestrictions: user.dietaryRestrictions ? JSON.parse(user.dietaryRestrictions) : [],
-                nutritionalGoals: user.nutritionalGoals ? JSON.parse(user.nutritionalGoals) : [],
                 preferredStores: user.preferredStores ? JSON.parse(user.preferredStores) : [],
-                budgetPreference: user.budgetPreference
+                weeklyBudget: user.weeklyBudget ? Number(user.weeklyBudget) : null,
             },
         });
 

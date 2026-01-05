@@ -37,7 +37,6 @@ async function getFeaturedOffers(): Promise<Product[]> {
         ...p,
         price: Number(p.price),
         originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-        extractionConfidence: p.extractionConfidence ? Number(p.extractionConfidence) : null,
         validFrom: p.validFrom.toISOString(),
         validUntil: p.validUntil.toISOString(),
         createdAt: p.createdAt.toISOString(),
@@ -56,14 +55,13 @@ async function getFeaturedRecipes(): Promise<Recipe[]> {
     CacheKeys.recipesPopular(),
     async () => {
       const recipes = await prisma.recipe.findMany({
-        orderBy: [{ viewCount: 'desc' }, { favoriteCount: 'desc' }],
+        orderBy: [{ createdAt: 'desc' }],
         take: 6,
       });
 
       return recipes.map((r: any) => ({
         ...r,
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-        costPerServing: r.costPerServing ? Number(r.costPerServing) : null,
         instructions: r.instructions as Recipe['instructions'],
         tips: r.tips as string[] | null,
         tags: r.tags as string[] | null,

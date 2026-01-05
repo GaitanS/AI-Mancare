@@ -104,7 +104,6 @@ export async function getPopularRecipes(limit = 20) {
   return trackQuery('getPopularRecipes', async () => {
     return prisma.recipe.findMany({
       orderBy: [
-        { viewCount: 'desc' },
         { createdAt: 'desc' },
       ],
       take: limit,
@@ -114,12 +113,9 @@ export async function getPopularRecipes(limit = 20) {
         description: true,
         slug: true,
         estimatedCost: true,
-        costPerServing: true,
         servings: true,
         difficulty: true,
         totalTime: true,
-        viewCount: true,
-        favoriteCount: true,
         createdAt: true,
       },
     });

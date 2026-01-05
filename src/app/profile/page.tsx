@@ -41,8 +41,8 @@ export default function ProfilePage() {
             if (res.ok) {
                 const data = await res.json();
                 const profile = data.data;
-                setHouseholdSize(profile.householdSize || 2);
-                setWeeklyBudget(Number(profile.budgetPreference) || 300);
+                setHouseholdSize(profile.familySize || 2);
+                setWeeklyBudget(Number(profile.weeklyBudget) || 300);
 
                 // Map backend arrays to multiple UI selection state
                 const newSelectedOptions: string[] = [];
@@ -50,13 +50,10 @@ export default function ProfilePage() {
                 if (profile.dietaryRestrictions) {
                     if (profile.dietaryRestrictions.includes('FARA_GLUTEN')) newSelectedOptions.push('fara_gluten');
                     if (profile.dietaryRestrictions.includes('FARA_LACTOZA')) newSelectedOptions.push('fara_lactoza');
-                }
-
-                if (profile.nutritionalGoals) {
-                    if (profile.nutritionalGoals.includes('LOW_CARB')) newSelectedOptions.push('low_carb');
-                    if (profile.nutritionalGoals.includes('VEGETARIAN')) newSelectedOptions.push('vegetarian');
-                    if (profile.nutritionalGoals.includes('HIGH_PROTEIN')) newSelectedOptions.push('high_protein');
-                    if (profile.nutritionalGoals.includes('BUDGET')) newSelectedOptions.push('budget');
+                    if (profile.dietaryRestrictions.includes('LOW_CARB')) newSelectedOptions.push('low_carb');
+                    if (profile.dietaryRestrictions.includes('VEGETARIAN')) newSelectedOptions.push('vegetarian');
+                    if (profile.dietaryRestrictions.includes('HIGH_PROTEIN')) newSelectedOptions.push('high_protein');
+                    if (profile.dietaryRestrictions.includes('BUDGET')) newSelectedOptions.push('budget');
                 }
 
                 if (newSelectedOptions.length === 0) {
@@ -114,17 +111,16 @@ export default function ProfilePage() {
         setMessage(null);
 
         // Map UI selection to backend structure
-        let nutritionalGoals: string[] = [];
         let dietaryRestrictions: string[] = [];
 
         selectedDietaryOptions.forEach(option => {
             switch (option) {
-                case 'low_carb': nutritionalGoals.push('LOW_CARB'); break;
-                case 'vegetarian': nutritionalGoals.push('VEGETARIAN'); break;
-                case 'high_protein': nutritionalGoals.push('HIGH_PROTEIN'); break;
+                case 'low_carb': dietaryRestrictions.push('LOW_CARB'); break;
+                case 'vegetarian': dietaryRestrictions.push('VEGETARIAN'); break;
+                case 'high_protein': dietaryRestrictions.push('HIGH_PROTEIN'); break;
                 case 'fara_lactoza': dietaryRestrictions.push('FARA_LACTOZA'); break;
                 case 'fara_gluten': dietaryRestrictions.push('FARA_GLUTEN'); break;
-                case 'budget': nutritionalGoals.push('BUDGET'); break;
+                case 'budget': dietaryRestrictions.push('BUDGET'); break;
             }
         });
 
@@ -133,10 +129,9 @@ export default function ProfilePage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    householdSize,
-                    budgetPreference: weeklyBudget,
+                    familySize: householdSize,
+                    weeklyBudget,
                     preferredStores,
-                    nutritionalGoals,
                     dietaryRestrictions
                 }),
             });

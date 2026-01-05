@@ -12,7 +12,7 @@ export const RecipeQuerySchema = z.object({
     maxPrepTime: z.coerce.number().positive().optional(),
     servings: z.coerce.number().int().positive().optional(),
     search: z.string().optional(),
-    sortBy: z.enum(['totalCost', 'prepTime', 'viewCount', 'createdAt']).default('createdAt'),
+    sortBy: z.enum(['totalCost', 'prepTime', 'createdAt']).default('createdAt'),
     sortOrder: z.enum(['asc', 'desc']).default('desc')
 })
 

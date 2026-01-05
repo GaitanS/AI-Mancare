@@ -241,61 +241,18 @@ export default function RecipeCard({
                 <span className="font-medium">{recipe.servings} portii</span>
               </div>
 
-              {/* Cost per Serving */}
-              {recipe.costPerServing && (
-                <div className="flex items-center gap-1 text-secondary-600 font-semibold">
-                  <span>{formatPrice(recipe.costPerServing)}/portie</span>
-                </div>
-              )}
-
               {/* Calories */}
-              {recipe.totalCalories && (
+              {recipe.calories && (
                 <div className="flex items-center gap-1 text-neutral-500">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                   </svg>
-                  <span className="font-medium">{Math.round(recipe.totalCalories / recipe.servings)} kcal</span>
+                  <span className="font-medium">{Math.round(recipe.calories / recipe.servings)} kcal</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Stats Row */}
-          <div className="mt-3 flex items-center gap-4 text-xs text-neutral-400">
-            <div className="flex items-center gap-1">
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                />
-              </svg>
-              <span>{recipe.viewCount} vizualizari</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <svg
-                className="w-3.5 h-3.5"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span>{recipe.favoriteCount}</span>
-            </div>
-          </div>
 
           {/* Schema.org Metadata */}
           <meta itemProp="prepTime" content={`PT${recipe.prepTime || 0}M`} />
