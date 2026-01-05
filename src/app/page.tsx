@@ -153,26 +153,26 @@ export default async function HomePage() {
           <div className="absolute -top-[20%] left-1/2 -translate-x-1/2 w-[120%] h-[80%] bg-primary-900/10 rounded-[100%] blur-[120px] opacity-40 mix-blend-screen pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black to-transparent z-10" />
 
-          {/* Floating Assets - Resized & Blended */}
-          <div className="absolute -right-10 top-[15%] w-[250px] h-[250px] lg:w-[300px] lg:h-[300px] animate-float opacity-100 hidden lg:block mix-blend-screen" style={{ maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}>
+          {/* Floating Assets */}
+          <div className="absolute -right-10 top-[15%] w-[250px] h-[250px] lg:w-[300px] lg:h-[300px] animate-float hidden lg:block" style={{ maskImage: 'radial-gradient(circle, black 70%, transparent 95%)', WebkitMaskImage: 'radial-gradient(circle, black 70%, transparent 95%)' }}>
             <Image
               src={heroVegetables}
               alt="Fresh vegetables floating"
               placeholder="blur"
               fill
-              className="object-contain"
+              className="object-contain drop-shadow-2xl"
               sizes="(max-width: 1024px) 250px, 300px"
               priority
               loading="eager"
             />
           </div>
-          <div className="absolute -left-10 bottom-[15%] w-[280px] h-[280px] lg:w-[340px] lg:h-[340px] animate-float opacity-90 hidden lg:block mix-blend-screen" style={{ animationDelay: '2s', animationDuration: '7s', maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}>
+          <div className="absolute -left-10 bottom-[15%] w-[280px] h-[280px] lg:w-[340px] lg:h-[340px] animate-float hidden lg:block" style={{ animationDelay: '2s', animationDuration: '7s', maskImage: 'radial-gradient(circle, black 70%, transparent 95%)', WebkitMaskImage: 'radial-gradient(circle, black 70%, transparent 95%)' }}>
             <Image
               src={heroSpices}
               alt="Spices and ingredients"
               placeholder="blur"
               fill
-              className="object-contain rotate-12"
+              className="object-contain rotate-12 drop-shadow-2xl"
               sizes="(max-width: 1024px) 280px, 340px"
               priority
               loading="eager"
@@ -238,16 +238,15 @@ export default async function HomePage() {
             {/* Compact Layout: Plate and Stats Side-by-Side on Desktop */}
             <div className="w-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 animate-fade-in-up relative z-20" style={{ animationDelay: '400ms' }}>
 
-              {/* Central Hero Plate - Smaller */}
+              {/* Central Hero Plate */}
               <div className="relative aspect-square w-[240px] sm:w-[300px]">
-                <div className="absolute inset-0 bg-gradient-to-t from-primary-600/20 to-transparent blur-[60px] rounded-full opacity-60 animate-pulse-soft" />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary-600/30 to-transparent blur-[60px] rounded-full opacity-70 animate-pulse-soft" />
                 <Image
                   src={heroPlate}
                   alt="Mâncare delicioasă"
                   placeholder="blur"
                   fill
-                  className="object-contain drop-shadow-2xl z-10 mix-blend-screen"
-                  style={{ maskImage: 'radial-gradient(circle, black 40%, transparent 70%)', WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 70%)' }}
+                  className="object-contain drop-shadow-2xl z-10"
                   priority
                   sizes="(max-width: 640px) 240px, 300px"
                 />
