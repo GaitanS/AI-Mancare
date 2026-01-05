@@ -35,15 +35,22 @@ export default function AdminPage() {
                 body: JSON.stringify({ script }),
             });
 
-            const data = await res.json();
-
-            if (res.ok) {
-                setActionStatus(`✅ ${data.message}`);
-                setTimeout(() => setActionStatus(null), 5000);
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const data = await res.json();
+                if (res.ok) {
+                    setActionStatus(`✅ ${data.message}`);
+                    setTimeout(() => setActionStatus(null), 5000);
+                } else {
+                    setActionStatus(`❌ Error: ${data.error || data.details}`);
+                }
             } else {
-                setActionStatus(`❌ Error: ${data.error}`);
+                const text = await res.text();
+                console.error("Non-JSON API response:", text);
+                setActionStatus(`❌ Server Error (Check Console)`);
             }
         } catch (e) {
+            console.error(e);
             setActionStatus('❌ Network Error');
         }
     };

@@ -44,9 +44,15 @@ class DatabaseReplicaManager {
     private roundRobinIndex = 0
 
     constructor() {
+        const url = process.env.DATABASE_URL
+        if (!url) {
+            logger.error('DATABASE_URL not found in environment')
+            // Don't throw here, allowing the app to start, but subsequent queries will fail gracefully
+        }
+
         // Initialize master connection
         this.master = globalForReplicas.masterClient || this.createClient(
-            process.env.DATABASE_URL!,
+            url || 'file:./dev.db', // Fallback to avoid crash on init, though it won't work for real queries
             'master'
         )
         globalForReplicas.masterClient = this.master
