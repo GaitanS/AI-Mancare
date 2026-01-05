@@ -209,7 +209,7 @@ model ShoppingCart {
   sessionId String? @map("session_id")
 
   // Cart Items (JSON stored as String)
-  items     String @default("[]") @db.Text
+  items     String? @db.Text
   storeMode String @default("OPTIMAL") @map("store_mode") // OPTIMAL, SINGLE_STORE
 
   // Totals
