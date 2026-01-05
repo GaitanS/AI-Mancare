@@ -24,8 +24,14 @@ export async function middleware(request: NextRequest) {
   // Protect /api/admin routes
   if (pathname.startsWith('/api/admin')) {
     const adminSession = request.cookies.get('admin_session');
+    const authHeader = request.headers.get('authorization');
 
-    if (!adminSession) {
+    // Allow access if:
+    // 1. Valid Admin Session Cookie (Browser)
+    // 2. Valid Bearer Token (Cron Job / API)
+    const isValidApiKey = process.env.ADMIN_SECRET && authHeader === `Bearer ${process.env.ADMIN_SECRET}`;
+
+    if (!adminSession && !isValidApiKey) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }

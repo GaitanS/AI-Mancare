@@ -48,6 +48,26 @@ export default function AdminPage() {
         }
     };
 
+    const handleClearDb = async () => {
+        if (!confirm('⚠️ ESTI SIGUR?\nAsta va sterge TOATE produsele si retetele din baza de date!\nNu exista Undo!')) {
+            return;
+        }
+
+        setActionStatus('Clearing Database...');
+        try {
+            const res = await fetch('/api/admin/clear-db', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                setActionStatus(`✅ ${data.message}`);
+                fetchStats(); // Refresh stats to show zeros
+            } else {
+                setActionStatus(`❌ Error: ${data.error}`);
+            }
+        } catch (e) {
+            setActionStatus('❌ Network Error');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-neutral-950 text-white p-8 font-sans">
             <div className="max-w-4xl mx-auto">
@@ -116,6 +136,27 @@ export default function AdminPage() {
                         </button>
                     </div>
 
+
+                </div>
+
+                {/* Danger Zone */}
+                <div className="mt-12 border-t border-red-900/30 pt-8">
+                    <h3 className="text-red-500 font-bold mb-4 uppercase text-xs tracking-wider">Danger Zone</h3>
+                    <div className="bg-red-950/20 border border-red-900/30 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div>
+                            <h4 className="font-bold text-white text-lg">Reset Database</h4>
+                            <p className="text-red-400/60 text-sm max-w-md">
+                                This action will permanently delete all products and recipes.
+                                Useful if you want to restart the scraping process from scratch.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleClearDb}
+                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors shadow-lg shadow-red-900/20 whitespace-nowrap"
+                        >
+                            ⚠️ Delete Everything
+                        </button>
+                    </div>
                 </div>
 
                 {/* Logs / Status */}
