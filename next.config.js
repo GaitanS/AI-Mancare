@@ -5,7 +5,7 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 
 const nextConfig = {
   // CRUCIAL pentru Hostinger - generează bundle standalone
-  output: 'standalone',
+  // output: 'standalone', // Disabled for standard deployment
 
   // Allow ESLint warnings during build (only block errors)
   // NOTE: Set to true temporarily to allow deployment while fixing warnings
