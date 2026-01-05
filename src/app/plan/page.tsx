@@ -21,96 +21,11 @@ interface Recipe {
     slug: string;
 }
 
-// Demo recipes - will be replaced with API data
-const demoRecipes: Recipe[] = [
-    {
-        id: '1',
-        title: 'Ciorbă de legume',
-        description: 'Ciorbă tradițională cu multe legume proaspete',
-        servings: 4,
-        prepTime: 15,
-        cookTime: 30,
-        totalTime: 45,
-        difficulty: 'USOR',
-        estimatedCost: 25,
-        tags: ['Vegetarian', 'Low Carb', 'Sănătos'],
-        slug: 'ciorba-de-legume',
-        imageUrl: null,
-    },
-    {
-        id: '2',
-        title: 'Paste cu sos de roșii',
-        description: 'Paste simple și gustoase cu roșii proaspete',
-        servings: 2,
-        prepTime: 5,
-        cookTime: 20,
-        totalTime: 25,
-        difficulty: 'USOR',
-        estimatedCost: 18,
-        tags: ['Rapid', 'Vegetarian', 'Ieftin'],
-        slug: 'paste-sos-rosii',
-        imageUrl: null,
-    },
-    {
-        id: '3',
-        title: 'Piept de pui la grătar',
-        description: 'Piept de pui suculent cu condimente',
-        servings: 2,
-        prepTime: 10,
-        cookTime: 15,
-        totalTime: 25,
-        difficulty: 'MEDIU',
-        estimatedCost: 35,
-        tags: ['High Protein', 'Low Carb', 'Fitness'],
-        slug: 'piept-pui-gratar',
-        imageUrl: null,
-    },
-    {
-        id: '4',
-        title: 'Salată Caesar',
-        description: 'Salată verde cu sos cremos și parmezan',
-        servings: 2,
-        prepTime: 15,
-        cookTime: 0,
-        totalTime: 15,
-        difficulty: 'USOR',
-        estimatedCost: 22,
-        tags: ['Low Carb', 'High Protein', 'Rapid'],
-        slug: 'salata-caesar',
-        imageUrl: null,
-    },
-    {
-        id: '5',
-        title: 'Tocăniță de pui',
-        description: 'Tocăniță aromată cu legume și sos bogat',
-        servings: 4,
-        prepTime: 20,
-        cookTime: 40,
-        totalTime: 60,
-        difficulty: 'MEDIU',
-        estimatedCost: 42,
-        tags: ['Tradițional', 'Comfort Food'],
-        slug: 'tocanita-pui',
-        imageUrl: null,
-    },
-    {
-        id: '6',
-        title: 'Omletă cu legume',
-        description: 'Omletă pufoasă cu legume proaspete',
-        servings: 1,
-        prepTime: 5,
-        cookTime: 10,
-        totalTime: 15,
-        difficulty: 'USOR',
-        estimatedCost: 8,
-        tags: ['Mic dejun', 'High Protein', 'Rapid'],
-        slug: 'omleta-legume',
-        imageUrl: null,
-    },
-];
+// Recipes state - loads from database (empty by default)
+const emptyRecipes: Recipe[] = [];
 
 export default function PlanPage() {
-    const [recipes, setRecipes] = useState<Recipe[]>(demoRecipes);
+    const [recipes, setRecipes] = useState<Recipe[]>(emptyRecipes);
     const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
     const [portions, setPortions] = useState(4);
     const [showPortionsSlider, setShowPortionsSlider] = useState(false);
@@ -485,6 +400,18 @@ export default function PlanPage() {
                             <div className="text-center py-12">
                                 <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
                                 <p className="text-neutral-500">Se încarcă rețetele...</p>
+                            </div>
+                        ) : filteredRecipes.length === 0 ? (
+                            <div className="bg-white rounded-2xl border border-neutral-100 p-12 text-center">
+                                <div className="w-20 h-20 mx-auto mb-6 bg-primary-50 rounded-full flex items-center justify-center">
+                                    <svg className="w-10 h-10 text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    </svg>
+                                </div>
+                                <h3 className="font-display text-xl font-bold text-neutral-900 mb-2">Nicio rețetă găsită</h3>
+                                <p className="text-neutral-500 max-w-sm mx-auto">
+                                    Momentan nu avem rețete disponibile. Încearcă să revii mai târziu!
+                                </p>
                             </div>
                         ) : (
                             <div className="space-y-4">

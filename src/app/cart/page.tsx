@@ -48,8 +48,7 @@ interface AlternativeProduct {
     unit: string;
 }
 
-// Demo ingredients for testing
-const demoIngredients = ['pui', 'roșii', 'ceapă', 'smântână', 'cartofi', 'usturoi'];
+// Empty ingredients - cart starts empty
 
 export default function CartPage() {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -83,10 +82,16 @@ export default function CartPage() {
     const fetchCartItems = useCallback(async (storeOverride?: string, ingredientsOverride?: string[]) => {
         setLoading(true);
         try {
-            // If we have an override (manual switch), use that. 
-            // Otherwise try to use current cart items names, or fallback to demo only if cart is empty.
+            // If we have an override (manual switch), use that.
+            // Otherwise use current cart items names
             const ingredientList = ingredientsOverride ||
-                (cartItems.length > 0 ? cartItems.map(i => i.ingredientName) : demoIngredients);
+                cartItems.map(i => i.ingredientName);
+
+            // If no ingredients, don't fetch
+            if (ingredientList.length === 0) {
+                setLoading(false);
+                return;
+            }
 
             const response = await fetch('/api/cart/auto-fill', {
                 method: 'POST',
@@ -112,9 +117,10 @@ export default function CartPage() {
     // Fetch store comparison
     const fetchStoreComparison = async () => {
         try {
-            const currentIngredients = cartItems.length > 0
-                ? cartItems.map(item => item.ingredientName)
-                : demoIngredients;
+            const currentIngredients = cartItems.map(item => item.ingredientName);
+
+            // If no ingredients, don't fetch
+            if (currentIngredients.length === 0) return;
 
             const response = await fetch('/api/cart/optimize', {
                 method: 'POST',
@@ -234,9 +240,8 @@ export default function CartPage() {
     };
 
     useEffect(() => {
-        // Initial load with demo ingredients
-        fetchCartItems(undefined, demoIngredients);
-        fetchStoreComparison();
+        // Initial load - cart starts empty, only fetch pantry
+        setLoading(false);
         fetchPantryItems();
     }, []); // Only on mount
 
@@ -375,7 +380,19 @@ export default function CartPage() {
                                 <h2 className="text-lg font-bold text-neutral-900">Listă de cumpărături</h2>
                             </div>
 
-                            {cartItems.map((item) => {
+                            {cartItems.length === 0 ? (
+                                <div className="bg-white rounded-2xl border border-neutral-100 p-12 text-center">
+                                    <div className="w-20 h-20 mx-auto mb-6 bg-primary-50 rounded-full flex items-center justify-center">
+                                        <svg className="w-10 h-10 text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="font-display text-xl font-bold text-neutral-900 mb-2">Coșul tău este gol</h3>
+                                    <p className="text-neutral-500 max-w-sm mx-auto">
+                                        Adaugă rețete în planificator pentru a genera automat lista de cumpărături!
+                                    </p>
+                                </div>
+                            ) : cartItems.map((item) => {
                                 const isOwned = ownedItems.has(item.ingredientName.toLowerCase());
 
                                 return (

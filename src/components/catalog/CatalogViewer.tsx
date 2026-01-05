@@ -132,7 +132,19 @@ export default function CatalogViewer() {
             </div>
 
             {/* Catalog Viewer */}
-            {catalogData && (
+            {catalogData && catalogData.totalPages === 0 ? (
+                <div className="bg-white rounded-2xl border border-neutral-100 p-12 text-center max-w-lg mx-auto">
+                    <div className="w-20 h-20 mx-auto mb-6 bg-primary-50 rounded-full flex items-center justify-center">
+                        <svg className="w-10 h-10 text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    </div>
+                    <h3 className="font-display text-xl font-bold text-neutral-900 mb-2">Niciun catalog disponibil</h3>
+                    <p className="text-neutral-500">
+                        Cataloagele pentru acest magazin nu sunt încă disponibile. Încearcă alt magazin sau revino mai târziu!
+                    </p>
+                </div>
+            ) : catalogData && (
                 <div className="w-full max-w-4xl mx-auto">
                     {/* Page Counter */}
                     <div className="text-center mb-1">
@@ -214,18 +226,9 @@ export default function CatalogViewer() {
 
 // Helper function to get catalog pages from public folder
 function getCatalogPages(store: string): CatalogData {
+    // Catalog patterns - empty until catalogs are uploaded
     const catalogPatterns: Record<string, { pattern: string; count: number; ext: string }> = {
-        'kaufland': {
-            pattern: '/catalog-images/kaufland-51887-page-',
-            count: 52,
-            ext: '.jpg'
-        },
-        'lidl': {
-            pattern: '/catalog-images/lidl-lidl-02-01-26-04-01-26-pxfva-page-',
-            count: 30,
-            ext: '.webp'
-        },
-        // Add more stores as needed
+        // Will be populated when catalogs are scraped
     };
 
     const config = catalogPatterns[store];
