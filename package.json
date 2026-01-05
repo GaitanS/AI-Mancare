@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npx prisma migrate deploy && next build",
     "build:analyze": "ANALYZE=true next build",
     "start": "node .next/standalone/server.js",
     "lint": "next lint",
