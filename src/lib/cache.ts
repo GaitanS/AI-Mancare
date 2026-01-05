@@ -140,25 +140,11 @@ class CacheManager {
   }
 
   /**
-   * Alias for clear() - for compatibility
+   * Alias for clear() - for compatibility with tests
    */
   flushAll(): void {
     this.cache.flushAll()
     this.stats = { hits: 0, misses: 0 }
-  }
-
-  /**
-   * Synchronous set
-   */
-  set<T>(key: string, value: T, ttl?: number): void {
-    this.cache.set(key, value, ttl || 300)
-  }
-
-  /**
-   * Synchronous delete
-   */
-  del(key: string): void {
-    this.cache.del(key)
   }
 
   /**
