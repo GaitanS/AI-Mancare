@@ -157,10 +157,10 @@ export function sanitizeUserInput(input: unknown): string {
     throw new Error('Input must be a string');
   }
 
-  const sanitized = sanitizeHTML(input);
-
-  // Check for common attack patterns
+  // Check for dangerous patterns BEFORE sanitization
+  // This ensures we catch and reject malicious input
   const dangerousPatterns = [
+    /<script\b[^>]*>[\s\S]*?<\/script>/gi,
     /<script/i,
     /javascript:/i,
     /on\w+=/i,
@@ -169,12 +169,13 @@ export function sanitizeUserInput(input: unknown): string {
   ];
 
   for (const pattern of dangerousPatterns) {
-    if (pattern.test(sanitized)) {
+    if (pattern.test(input)) {
       throw new Error('Potentially dangerous input detected');
     }
   }
 
-  return sanitized;
+  // Input is safe, apply sanitization for any remaining HTML
+  return sanitizeHTML(input);
 }
 
 /**
