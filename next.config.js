@@ -13,16 +13,18 @@ try {
 
 const nextConfig = {
   // CRUCIAL pentru Hostinger - generează bundle standalone
-  // output: 'standalone',
+  output: 'standalone',
 
   // Allow ESLint warnings during build (only block errors)
-  // NOTE: Set to true temporarily to allow deployment while fixing warnings
   eslint: {
-    ignoreDuringBuilds: true, // Bypass ESLint warnings during build
+    ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: false, // Still block TypeScript errors
+    ignoreBuildErrors: false,
   },
+
+  // Trailing slashes for better static hosting compatibility
+  trailingSlash: false,
 
   // Compress pentru performance
   compress: true,
