@@ -23,27 +23,32 @@ async function getFeaturedOffers(): Promise<Product[]> {
     CacheKeys.offers({ type: 'featured_home' }),
     async () => {
       const now = new Date();
-      const products = await prisma.product.findMany({
-        where: {
-          validFrom: { lte: now },
-          validUntil: { gte: now },
-          discountPercentage: { gte: 20 },
-        },
-        orderBy: { discountPercentage: 'desc' },
-        take: 8,
-      });
+      try {
+        const products = await prisma.product.findMany({
+          where: {
+            validFrom: { lte: now },
+            validUntil: { gte: now },
+            discountPercentage: { gte: 20 },
+          },
+          orderBy: { discountPercentage: 'desc' },
+          take: 8,
+        });
 
-      return products.map((p: any) => ({
-        ...p,
-        price: Number(p.price),
-        originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-        validFrom: p.validFrom.toISOString(),
-        validUntil: p.validUntil.toISOString(),
-        createdAt: p.createdAt.toISOString(),
-        updatedAt: p.updatedAt.toISOString(),
-        nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-        allergens: p.allergens as string[] | null,
-      }));
+        return products.map((p: any) => ({
+          ...p,
+          price: Number(p.price),
+          originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+          validFrom: p.validFrom.toISOString(),
+          validUntil: p.validUntil.toISOString(),
+          createdAt: p.createdAt.toISOString(),
+          updatedAt: p.updatedAt.toISOString(),
+          nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
+          allergens: p.allergens as string[] | null,
+        }));
+      } catch (error) {
+        console.warn('Failed to fetch featured offers:', error);
+        return [];
+      }
     },
     3600
   );
@@ -54,19 +59,24 @@ async function getFeaturedRecipes(): Promise<Recipe[]> {
   return cache.getOrSet(
     CacheKeys.recipesPopular(),
     async () => {
-      const recipes = await prisma.recipe.findMany({
-        orderBy: [{ createdAt: 'desc' }],
-        take: 6,
-      });
+      try {
+        const recipes = await prisma.recipe.findMany({
+          orderBy: [{ createdAt: 'desc' }],
+          take: 6,
+        });
 
-      return recipes.map((r: any) => ({
-        ...r,
-        estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-        instructions: r.instructions as Recipe['instructions'],
-        tips: r.tips as string[] | null,
-        tags: r.tags as string[] | null,
-        nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
-      }));
+        return recipes.map((r: any) => ({
+          ...r,
+          estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
+          instructions: r.instructions as Recipe['instructions'],
+          tips: r.tips as string[] | null,
+          tags: r.tags as string[] | null,
+          nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
+        }));
+      } catch (error) {
+        console.warn('Failed to fetch featured recipes:', error);
+        return [];
+      }
     },
     7200
   );
@@ -78,28 +88,37 @@ async function getStats() {
     'stats:home',
     async () => {
       const now = new Date();
-      const [productCount, recipeCount, storeCount] = await Promise.all([
-        prisma.product.count({
-          where: {
-            validFrom: { lte: now },
-            validUntil: { gte: now },
-          },
-        }),
-        prisma.recipe.count(),
-        prisma.product.groupBy({
-          by: ['store'],
-          where: {
-            validFrom: { lte: now },
-            validUntil: { gte: now },
-          },
-        }),
-      ]);
+      try {
+        const [productCount, recipeCount, storeCount] = await Promise.all([
+          prisma.product.count({
+            where: {
+              validFrom: { lte: now },
+              validUntil: { gte: now },
+            },
+          }),
+          prisma.recipe.count(),
+          prisma.product.groupBy({
+            by: ['store'],
+            where: {
+              validFrom: { lte: now },
+              validUntil: { gte: now },
+            },
+          }),
+        ]);
 
-      return {
-        products: productCount,
-        recipes: recipeCount,
-        stores: storeCount.length,
-      };
+        return {
+          products: productCount,
+          recipes: recipeCount,
+          stores: storeCount.length,
+        };
+      } catch (error) {
+        console.warn('Failed to fetch stats:', error);
+        return {
+          products: 0,
+          recipes: 0,
+          stores: 0
+        };
+      }
     },
     3600
   );

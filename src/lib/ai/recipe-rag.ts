@@ -76,17 +76,27 @@ interface GenerationResult {
  * Creates budget-friendly recipes using currently available products
  */
 export class RecipeRAG {
-    private model: ChatOpenAI
+    private model: ChatOpenAI | null = null
     private totalTokensUsed = 0
     private totalCost = 0
 
-    constructor(apiKey?: string) {
-        this.model = new ChatOpenAI({
-            modelName: 'gpt-4o',
-            temperature: 0.7, // Some creativity for recipes
-            maxTokens: 4096,
-            ...(apiKey && { openAIApiKey: apiKey })
-        })
+    private getModel(): ChatOpenAI {
+        if (!this.model) {
+            const apiKey = process.env.OPENROUTER_API_KEY
+            if (!apiKey) {
+                throw new Error('OPENROUTER_API_KEY is not configured')
+            }
+            this.model = new ChatOpenAI({
+                modelName: process.env.AI_MODEL || 'google/gemini-2.5-flash',
+                temperature: 0.7,
+                maxTokens: 4096,
+                openAIApiKey: apiKey,
+                configuration: {
+                    baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+                }
+            })
+        }
+        return this.model
     }
 
     /**
@@ -110,7 +120,7 @@ export class RecipeRAG {
             const prompt = this.buildRecipePrompt(options, productContext)
             const systemPrompt = this.buildSystemPrompt()
 
-            const response = await this.model.invoke([
+            const response = await this.getModel().invoke([
                 new SystemMessage(systemPrompt),
                 new HumanMessage(prompt)
             ])
