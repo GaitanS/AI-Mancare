@@ -11,7 +11,6 @@
 /.next/
 /out/
 .next
-next-env.d.ts
 
 # Production
 /build
@@ -36,7 +35,6 @@ yarn-error.log*
 
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts
 
 # Storage (local files)
 /storage/catalogs/*.pdf
