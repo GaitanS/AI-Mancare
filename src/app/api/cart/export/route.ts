@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             });
             if (cart) {
                 try {
-                    const items = JSON.parse(cart.items);
+                    const items = JSON.parse(cart.items || "[]");
                     ingredientNames = items.map((item: { ingredientName: string }) => item.ingredientName);
                 } catch {
                     // Empty cart
