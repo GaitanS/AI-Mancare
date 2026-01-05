@@ -4,7 +4,6 @@
  */
 
 import { NextResponse } from 'next/server'
-import prisma from '@/lib/db'
 
 /**
  * GET /api/admin/db-stats
@@ -12,28 +11,38 @@ import prisma from '@/lib/db'
  */
 export async function GET() {
     try {
-        // Simple counts without date filtering to avoid issues
-        const [productCount, recipeCount] = await Promise.all([
-            prisma.product.count(),
-            prisma.recipe.count(),
-        ])
+        // Dynamic import to avoid edge runtime issues
+        const { default: prisma } = await import('@/lib/db')
 
-        // Get unique stores and categories
+        let productCount = 0
+        let recipeCount = 0
         let storeCount = 0
         let categoryCount = 0
 
         try {
+            productCount = await prisma.product.count()
+        } catch (e) {
+            console.error('Product count error:', e)
+        }
+
+        try {
+            recipeCount = await prisma.recipe.count()
+        } catch (e) {
+            console.error('Recipe count error:', e)
+        }
+
+        try {
             const stores = await prisma.product.groupBy({ by: ['store'] })
             storeCount = stores.length
-        } catch {
-            // Ignore groupBy errors
+        } catch (e) {
+            console.error('Store groupBy error:', e)
         }
 
         try {
             const categories = await prisma.product.groupBy({ by: ['category'] })
             categoryCount = categories.length
-        } catch {
-            // Ignore groupBy errors
+        } catch (e) {
+            console.error('Category groupBy error:', e)
         }
 
         return NextResponse.json({
@@ -51,6 +60,6 @@ export async function GET() {
             stores: 0,
             categories: 0,
             error: error instanceof Error ? error.message : 'Unknown error'
-        }, { status: 200 }) // Return 200 even on error to not break frontend
+        })
     }
 }
