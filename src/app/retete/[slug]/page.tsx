@@ -184,9 +184,9 @@ export default async function RecipePage({ params }: PageProps) {
     cookTime: `PT${recipe.cookTime || 0}M`,
     totalTime: `PT${recipe.totalTime || 0}M`,
     recipeYield: `${recipe.servings} portii`,
-    recipeCategory: recipe.tags?.[0] || 'General',
+    recipeCategory: tagsArray[0] || 'General',
     recipeCuisine: 'Romanian',
-    keywords: recipe.tags?.join(', '),
+    keywords: tagsArray.join(', '),
     recipeIngredient: ingredients.map((i) => i.name),
     recipeInstructions: recipe.instructions.map((step) => ({
       '@type': 'HowToStep',
