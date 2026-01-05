@@ -8,6 +8,28 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // 1. Admin Security Check (Highest Priority)
+  // Protect /admin routes (except login)
+  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
+    const adminSession = request.cookies.get('admin_session');
+
+    if (!adminSession) {
+      // Redirect to login
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/login';
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Protect /api/admin routes
+  if (pathname.startsWith('/api/admin')) {
+    const adminSession = request.cookies.get('admin_session');
+
+    if (!adminSession) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
   // Security headers (suplimentar la next.config.js)
   const response = NextResponse.next();
 

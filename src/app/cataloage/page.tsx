@@ -102,84 +102,103 @@ async function getProducts(filters: ProductFilters, page: number, pageSize: numb
       orderBy.createdAt = filters.sortOrder || 'desc';
   }
 
-  const [products, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      orderBy,
-      skip,
-      take: pageSize,
-    }),
-    prisma.product.count({ where }),
-  ]);
+  try {
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        orderBy,
+        skip,
+        take: pageSize,
+      }),
+      prisma.product.count({ where }),
+    ]);
 
-  return {
-    products: products.map((p: any) => ({
-      ...p,
-      price: Number(p.price),
-      originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-      validFrom: p.validFrom.toISOString(),
-      validUntil: p.validUntil.toISOString(),
-      createdAt: p.createdAt.toISOString(),
-      updatedAt: p.updatedAt.toISOString(),
-      nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-      allergens: p.allergens as string[] | null,
-    })),
-    total,
-    totalPages: Math.ceil(total / pageSize),
-  };
+    return {
+      products: products.map((p: any) => ({
+        ...p,
+        price: Number(p.price),
+        originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+        validFrom: p.validFrom.toISOString(),
+        validUntil: p.validUntil.toISOString(),
+        createdAt: p.createdAt.toISOString(),
+        updatedAt: p.updatedAt.toISOString(),
+        nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
+        allergens: p.allergens as string[] | null,
+      })),
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  } catch (error) {
+    console.error('Failed to fetch products:', error);
+    return {
+      products: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 }
 
 // Get filter options
 async function getFilterOptions(): Promise<ProductFilterConfig> {
   const now = new Date();
 
-  const [storeGroups, categoryGroups, priceStats] = await Promise.all([
-    prisma.product.groupBy({
-      by: ['store'],
-      _count: true,
-      where: {
-        validFrom: { lte: now },
-        validUntil: { gte: now },
-      },
-    }),
-    prisma.product.groupBy({
-      by: ['category'],
-      _count: true,
-      where: {
-        validFrom: { lte: now },
-        validUntil: { gte: now },
-      },
-    }),
-    prisma.product.aggregate({
-      _min: { price: true },
-      _max: { price: true },
-      where: {
-        validFrom: { lte: now },
-        validUntil: { gte: now },
-      },
-    }),
-  ]);
+  try {
+    const [storeGroups, categoryGroups, priceStats] = await Promise.all([
+      prisma.product.groupBy({
+        by: ['store'],
+        _count: true,
+        where: {
+          validFrom: { lte: now },
+          validUntil: { gte: now },
+        },
+      }),
+      prisma.product.groupBy({
+        by: ['category'],
+        _count: true,
+        where: {
+          validFrom: { lte: now },
+          validUntil: { gte: now },
+        },
+      }),
+      prisma.product.aggregate({
+        _min: { price: true },
+        _max: { price: true },
+        where: {
+          validFrom: { lte: now },
+          validUntil: { gte: now },
+        },
+      }),
+    ]);
 
-  return {
-    stores: storeGroups.map((g: any) => ({
-      value: g.store,
-      label: g.store,
-      count: g._count,
-    })),
-    categories: categoryGroups.map((g: any) => ({
-      value: g.category,
-      label: g.category,
-      count: g._count,
-    })),
-    priceRange: {
-      min: Number(priceStats._min.price) || 0,
-      max: Number(priceStats._max.price) || 1000,
-    },
-    discountRange: {
-      min: 0,
-      max: 100,
-    },
-  };
+    return {
+      stores: storeGroups.map((g: any) => ({
+        value: g.store,
+        label: g.store,
+        count: g._count,
+      })),
+      categories: categoryGroups.map((g: any) => ({
+        value: g.category,
+        label: g.category,
+        count: g._count,
+      })),
+      priceRange: {
+        min: Number(priceStats._min.price) || 0,
+        max: Number(priceStats._max.price) || 1000,
+      },
+      discountRange: {
+        min: 0,
+        max: 100,
+      },
+    };
+  } catch (error) {
+    console.warn('Failed to fetch filter options:', error);
+    return {
+      stores: [],
+      categories: [],
+      priceRange: { min: 0, max: 100 },
+      discountRange: { min: 0, max: 100 },
+    };
+  }
 }
 
 export default async function OfertePage({ searchParams }: PageProps) {

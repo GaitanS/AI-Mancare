@@ -92,75 +92,93 @@ async function getRecipes(filters: RecipeFilters, page: number, pageSize: number
       orderBy.createdAt = filters.sortOrder || 'desc';
   }
 
-  const [recipes, total] = await Promise.all([
-    prisma.recipe.findMany({
-      where,
-      orderBy,
-      skip,
-      take: pageSize,
-    }),
-    prisma.recipe.count({ where }),
-  ]);
+  try {
+    const [recipes, total] = await Promise.all([
+      prisma.recipe.findMany({
+        where,
+        orderBy,
+        skip,
+        take: pageSize,
+      }),
+      prisma.recipe.count({ where }),
+    ]);
 
-  return {
-    recipes: recipes.map((r: any) => ({
-      ...r,
-      estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-      instructions: r.instructions as Recipe['instructions'],
-      tips: r.tips as string[] | null,
-      tags: r.tags as string[] | null,
-      nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
-    })),
-    total,
-    totalPages: Math.ceil(total / pageSize),
-  };
+    return {
+      recipes: recipes.map((r: any) => ({
+        ...r,
+        estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
+        instructions: r.instructions as Recipe['instructions'],
+        tips: r.tips as string[] | null,
+        tags: r.tags as string[] | null,
+        nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
+      })),
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  } catch (error) {
+    console.error('Failed to fetch recipes:', error);
+    return {
+      recipes: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 }
 
 // Get filter options
 async function getFilterOptions(): Promise<RecipeFilterConfig> {
-  const [difficultyGroups, costStats, timeStats, tagGroups] = await Promise.all([
-    prisma.recipe.groupBy({
-      by: ['difficulty'],
-      _count: true,
-    }),
-    prisma.recipe.aggregate({
-      _min: { estimatedCost: true },
-      _max: { estimatedCost: true },
-    }),
-    prisma.recipe.aggregate({
-      _min: { totalTime: true },
-      _max: { totalTime: true },
-    }),
-    // Tags query simplified for SQLite - returns empty array
-    Promise.resolve([] as { tag: string; count: number }[]),
-  ]);
+  try {
+    const [difficultyGroups, costStats, timeStats, tagGroups] = await Promise.all([
+      prisma.recipe.groupBy({
+        by: ['difficulty'],
+        _count: true,
+      }),
+      prisma.recipe.aggregate({
+        _min: { estimatedCost: true },
+        _max: { estimatedCost: true },
+      }),
+      prisma.recipe.aggregate({
+        _min: { totalTime: true },
+        _max: { totalTime: true },
+      }),
+      Promise.resolve([] as { tag: string; count: number }[]),
+    ]);
 
-  const difficultyLabels: Record<string, string> = {
-    USOR: 'Usor',
-    MEDIU: 'Mediu',
-    DIFICIL: 'Dificil',
-  };
+    const difficultyLabels: Record<string, string> = {
+      USOR: 'Usor',
+      MEDIU: 'Mediu',
+      DIFICIL: 'Dificil',
+    };
 
-  return {
-    difficulties: difficultyGroups.map((g: any) => ({
-      value: g.difficulty,
-      label: difficultyLabels[g.difficulty] || g.difficulty,
-      count: g._count,
-    })),
-    tags: (tagGroups || []).map((t: any) => ({
-      value: t.tag,
-      label: t.tag,
-      count: t.count,
-    })),
-    costRange: {
-      min: Number(costStats._min.estimatedCost) || 0,
-      max: Number(costStats._max.estimatedCost) || 200,
-    },
-    timeRange: {
-      min: Number(timeStats._min.totalTime) || 0,
-      max: Number(timeStats._max.totalTime) || 180,
-    },
-  };
+    return {
+      difficulties: difficultyGroups.map((g: any) => ({
+        value: g.difficulty,
+        label: difficultyLabels[g.difficulty] || g.difficulty,
+        count: g._count,
+      })),
+      tags: (tagGroups || []).map((t: any) => ({
+        value: t.tag,
+        label: t.tag,
+        count: t.count,
+      })),
+      costRange: {
+        min: Number(costStats._min.estimatedCost) || 0,
+        max: Number(costStats._max.estimatedCost) || 200,
+      },
+      timeRange: {
+        min: Number(timeStats._min.totalTime) || 0,
+        max: Number(timeStats._max.totalTime) || 180,
+      },
+    };
+  } catch (error) {
+    console.warn('Failed to fetch recipe filter options:', error);
+    return {
+      difficulties: [],
+      tags: [],
+      costRange: { min: 0, max: 200 },
+      timeRange: { min: 0, max: 180 },
+    };
+  }
 }
 
 export default async function RetetePage({ searchParams }: PageProps) {
