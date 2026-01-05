@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
     try {
@@ -29,21 +28,20 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
         }
 
-        // Set Cookie
-        const cookieStore = await cookies();
+        // Set Cookie using response headers for better compatibility
+        const oneDay = 24 * 60 * 60; // in seconds
 
-        // Calculate expiration (e.g., 24 hours)
-        const oneDay = 24 * 60 * 60 * 1000;
+        const response = NextResponse.json({ success: true });
 
-        cookieStore.set('admin_session', 'authenticated', {
+        response.cookies.set('admin_session', 'authenticated', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax', // Changed from strict to lax for better compatibility
             maxAge: oneDay,
             path: '/',
         });
 
-        return NextResponse.json({ success: true });
+        return response;
 
     } catch (error) {
         console.error('Login error:', error);
