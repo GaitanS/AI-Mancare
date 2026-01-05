@@ -2,32 +2,58 @@
  * Products API Integration Tests
  */
 
-// Mock @/lib/db - definit ÎNAINTEA oricărui import
-// Factory function returnează mock-uri inline pentru a evita hoisting issues
-jest.mock('@/lib/db', () => {
-  return {
-    __esModule: true,
-    default: {
-      product: {
-        findMany: jest.fn(),
-        count: jest.fn(),
-      },
-      $disconnect: jest.fn(),
-    },
-  };
-});
-
-// Acum importăm
 import { NextRequest } from 'next/server';
-import { GET } from '../route';
-import prisma from '@/lib/db';
 
-// Type assertion pentru mock-uri
-const mockPrisma = prisma as jest.Mocked<typeof prisma>;
+// Complete mock product with all required Date fields
+const mockProducts = [
+  {
+    id: '1',
+    name: 'Lapte',
+    description: 'Lapte proaspat',
+    price: 4.5,
+    originalPrice: 5.99,
+    currency: 'RON',
+    store: 'Lidl',
+    category: 'lactate',
+    brand: 'Zuzu',
+    image: 'image.jpg',
+    url: 'http://lidl.ro',
+    validFrom: new Date(),
+    validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // +7 days
+    lastScraped: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    isActive: true,
+    discountPercentage: 25,
+  },
+];
+
+// Mock functions defined before jest.mock
+const mockFindMany = jest.fn();
+const mockCount = jest.fn();
+const mockDisconnect = jest.fn();
+
+// Mock @/lib/db
+jest.mock('@/lib/db', () => ({
+  __esModule: true,
+  default: {
+    product: {
+      findMany: mockFindMany,
+      count: mockCount,
+    },
+    $disconnect: mockDisconnect,
+  },
+}));
+
+// Import AFTER mock
+import { GET } from '../route';
 
 describe('GET /api/products', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Set default successful responses
+    mockFindMany.mockResolvedValue(mockProducts);
+    mockCount.mockResolvedValue(1);
   });
 
   afterAll(() => {
@@ -36,21 +62,6 @@ describe('GET /api/products', () => {
   });
 
   test('should return products', async () => {
-    const mockProducts = [
-      {
-        id: '1',
-        name: 'Lapte',
-        price: 5.99,
-        store: 'Lidl',
-        category: 'lactate',
-        validFrom: new Date(),
-        validUntil: new Date(),
-      },
-    ];
-
-    (mockPrisma.product.findMany as jest.Mock).mockResolvedValue(mockProducts);
-    (mockPrisma.product.count as jest.Mock).mockResolvedValue(1);
-
     const request = new NextRequest('http://localhost:3000/api/products');
     const response = await GET(request);
     const data = await response.json();
@@ -61,8 +72,8 @@ describe('GET /api/products', () => {
   });
 
   test('should handle pagination', async () => {
-    (mockPrisma.product.findMany as jest.Mock).mockResolvedValue([]);
-    (mockPrisma.product.count as jest.Mock).mockResolvedValue(100);
+    mockFindMany.mockResolvedValue(mockProducts);
+    mockCount.mockResolvedValue(100);
 
     const request = new NextRequest('http://localhost:3000/api/products?page=2&pageSize=20');
     const response = await GET(request);
@@ -74,13 +85,10 @@ describe('GET /api/products', () => {
   });
 
   test('should filter by store', async () => {
-    (mockPrisma.product.findMany as jest.Mock).mockResolvedValue([]);
-    (mockPrisma.product.count as jest.Mock).mockResolvedValue(0);
-
     const request = new NextRequest('http://localhost:3000/api/products?store=Lidl');
     await GET(request);
 
-    expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+    expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           store: expect.objectContaining({
@@ -92,13 +100,10 @@ describe('GET /api/products', () => {
   });
 
   test('should filter by category', async () => {
-    (mockPrisma.product.findMany as jest.Mock).mockResolvedValue([]);
-    (mockPrisma.product.count as jest.Mock).mockResolvedValue(0);
-
     const request = new NextRequest('http://localhost:3000/api/products?category=lactate');
     await GET(request);
 
-    expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+    expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           category: expect.objectContaining({
@@ -110,23 +115,25 @@ describe('GET /api/products', () => {
   });
 
   test('should handle errors gracefully', async () => {
-    (mockPrisma.product.findMany as jest.Mock).mockRejectedValue(new Error('Database error'));
+    mockFindMany.mockRejectedValue(new Error('Database error'));
+
+    // Suppress console.error for this test
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const request = new NextRequest('http://localhost:3000/api/products');
     const response = await GET(request);
 
     expect(response.status).toBe(500);
+
+    consoleSpy.mockRestore();
   });
 
   test('should validate pagination limits', async () => {
-    (mockPrisma.product.findMany as jest.Mock).mockResolvedValue([]);
-    (mockPrisma.product.count as jest.Mock).mockResolvedValue(0);
-
     const request = new NextRequest('http://localhost:3000/api/products?pageSize=200');
-    const response = await GET(request);
+    await GET(request);
 
     // Should cap at max limit (100)
-    expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+    expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         take: 100,
       })
@@ -134,13 +141,10 @@ describe('GET /api/products', () => {
   });
 
   test('should include only active offers', async () => {
-    (mockPrisma.product.findMany as jest.Mock).mockResolvedValue([]);
-    (mockPrisma.product.count as jest.Mock).mockResolvedValue(0);
-
     const request = new NextRequest('http://localhost:3000/api/products');
     await GET(request);
 
-    expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
+    expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           validFrom: expect.any(Object),
