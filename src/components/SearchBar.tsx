@@ -106,7 +106,7 @@ export default function SearchBar() {
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => {
               setIsFocused(true);
-              results && setIsOpen(true);
+              if (results) setIsOpen(true);
             }}
             onBlur={() => setIsFocused(false)}
             onKeyDown={handleKeyDown}
