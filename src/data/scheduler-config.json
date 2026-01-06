@@ -1,0 +1,43 @@
+{
+    "version": "1.0",
+    "description": "Schedule configuration for automated tasks",
+    "timezone": "Europe/Bucharest",
+    "schedules": {
+        "scraper": {
+            "name": "Catalog Scraper",
+            "description": "Descarcă cataloage noi de la Lidl, Kaufland, etc.",
+            "day": "Monday",
+            "timeUTC": "04:00",
+            "timeLocal": "06:00",
+            "enabled": true,
+            "lastRun": null,
+            "estimatedDuration": "15-30 min"
+        },
+        "recipes": {
+            "name": "Recipe Generator",
+            "description": "Generează rețete pe baza ofertelor disponibile",
+            "day": "Monday",
+            "timeUTC": "06:00",
+            "timeLocal": "08:00",
+            "enabled": true,
+            "lastRun": null,
+            "dependsOn": "scraper",
+            "estimatedDuration": "30-60 min"
+        },
+        "images": {
+            "name": "Image Generator",
+            "description": "Creează imagini pentru rețete (TODO)",
+            "day": "Monday",
+            "timeUTC": "08:00",
+            "timeLocal": "10:00",
+            "enabled": false,
+            "lastRun": null,
+            "dependsOn": "recipes",
+            "estimatedDuration": "20-40 min"
+        }
+    },
+    "github": {
+        "actionsUrl": "https://github.com/YOUR_USERNAME/AI-Mancare/actions",
+        "workflowFile": ".github/workflows/scheduler.yml"
+    }
+}

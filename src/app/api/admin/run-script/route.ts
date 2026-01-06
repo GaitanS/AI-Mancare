@@ -1,56 +1,82 @@
 import { NextResponse } from 'next/server';
-import { spawn } from 'child_process';
-import path from 'path';
+
+/**
+ * Run Script API - Compatible with Hostinger Cloud
+ * 
+ * NOTE: Hostinger Cloud does NOT support:
+ * - child_process.spawn() - returns undefined PID
+ * - Puppeteer/Chromium - no browser available
+ * 
+ * For scraping, you have two options:
+ * 1. Run scripts locally and sync data to production DB
+ * 2. Use a cloud function service (AWS Lambda, Vercel Functions, etc.)
+ */
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
         const { script } = body;
 
-        // Basic Security Check
-        // This route is protected by src/middleware.ts which checks for 'admin_session' cookie.
-        // Double check here if needed, but middleware is primarily responsible.
-        // For depth:
-        // const cookieStore = cookies();
-        // if (!cookieStore.get('admin_session')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        // Check if running on production (Hostinger)
+        const isProduction = process.env.NODE_ENV === 'production' ||
+            process.env.HOSTNAME === '0.0.0.0';
 
-        // Proceed with script execution
+        if (isProduction) {
+            // Production mode - can't run scripts that require child_process or Puppeteer
+            return NextResponse.json({
+                success: false,
+                error: 'Server limitation',
+                message: `⚠️ Script "${script}" nu poate rula pe server. Hostinger Cloud nu suportă Puppeteer.`,
+                details: 'Rulează scripturile local cu: npm run scrape sau npm run generate-recipes',
+                workaround: [
+                    '1. Conectează-te la baza de date de producție local',
+                    '2. Rulează: cd "AI Mancare" && node scripts/cron-scraper.js',
+                    '3. Datele vor fi actualizate automat în producție'
+                ]
+            }, { status: 501 });
+        }
 
-        let scriptPath = '';
+        // Development mode - can try to run (still may fail without Puppeteer setup)
+        // Instead of spawn, we import and run the function directly
+        let result;
 
         switch (script) {
             case 'scrape':
-                scriptPath = path.join(process.cwd(), 'scripts', 'cron-scraper.js');
-                break;
+                return NextResponse.json({
+                    success: false,
+                    message: 'Scraping necesită Puppeteer. Rulează local: node scripts/cron-scraper.js',
+                }, { status: 501 });
+
             case 'recipes':
-                scriptPath = path.join(process.cwd(), 'scripts', 'cron-recipe-generator.js');
-                break;
-            case 'process-pdf':
-                scriptPath = path.join(process.cwd(), 'scripts', 'catalog-processor.js');
-                break;
+                // Recipe generation might work without Puppeteer
+                try {
+                    // Dynamic import the function
+                    const { generateRecipes } = await import('@/lib/ai/recipe-generator');
+
+                    // Run in background-like fashion (without blocking response)
+                    // Note: This will still timeout if it takes too long
+                    generateRecipes().catch(console.error);
+
+                    return NextResponse.json({
+                        success: true,
+                        message: '✨ Recipe generation started! Check database in a few minutes.',
+                    });
+                } catch (e: any) {
+                    return NextResponse.json({
+                        success: false,
+                        message: `Recipe generation failed: ${e.message}`,
+                    }, { status: 500 });
+                }
+
             default:
                 return NextResponse.json({ error: 'Invalid script' }, { status: 400 });
         }
 
-        console.log(`[Admin] Spawning script: ${scriptPath}`);
-
-        // Spawn detached process
-        const child = spawn('node', [scriptPath], {
-            detached: true,
-            stdio: 'ignore', // Ignore stdio to allow unref
-            cwd: process.cwd(),
-            env: { ...process.env }, // Pass env vars
-        });
-
-        child.unref(); // Allow parent to exit independently
-
-        return NextResponse.json({
-            success: true,
-            message: `Started ${script} in background (PID: ${child.pid})`
-        });
-
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to run script:', error);
-        return NextResponse.json({ error: 'Internal Error' }, { status: 500 });
+        return NextResponse.json({
+            error: 'Internal Error',
+            details: error.message
+        }, { status: 500 });
     }
 }
