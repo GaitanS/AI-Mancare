@@ -313,3 +313,46 @@ model UserPantry {
 
   @@map("user_pantry")
 }
+
+// ==========================================
+// ARTICLE TABLE (Blog Posts for SEO)
+// ==========================================
+model Article {
+  id       String @id @default(uuid())
+  title    String
+  slug     String @unique
+  excerpt  String @db.Text
+  content  String @db.LongText
+
+  // Categorization
+  category String // tips, economie, retete, ghiduri
+  tags     String? @db.Text // comma-separated
+
+  // Media
+  coverImage String? @map("cover_image") @db.Text
+
+  // Author
+  author String @default("CatalogSmart")
+
+  // Publishing
+  published   Boolean   @default(true)
+  publishedAt DateTime  @default(now()) @map("published_at")
+  views       Int       @default(0)
+
+  // SEO
+  metaTitle       String? @map("meta_title")
+  metaDescription String? @map("meta_description") @db.Text
+
+  // Reading time (in minutes)
+  readingTime Int? @map("reading_time")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([category])
+  @@index([published, publishedAt])
+
+  @@map("articles")
+}
