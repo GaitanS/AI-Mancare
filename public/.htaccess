@@ -1,25 +1,40 @@
-# Disable LiteSpeed Cache for _next static files
-<IfModule LiteSpeed>
-    CacheLookup off
+# Enable MIME types
+AddType text/css .css
+AddType text/javascript .js
+AddType application/javascript .js
+AddType application/json .json
+AddType image/svg+xml .svg
+AddType image/png .png
+AddType image/jpeg .jpg .jpeg
+AddType image/gif .gif
+AddType image/webp .webp
+AddType font/woff .woff
+AddType font/woff2 .woff2
+AddType application/font-woff .woff
+AddType application/font-woff2 .woff2
+
+# Ensure static files are served correctly
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css)$">
+        Header set Content-Type "text/css; charset=utf-8"
+    </FilesMatch>
+    <FilesMatch "\.(js)$">
+        Header set Content-Type "application/javascript; charset=utf-8"
+    </FilesMatch>
 </IfModule>
 
-# Serve correct MIME types
-<IfModule mod_mime.c>
-    AddType text/css .css
-    AddType application/javascript .js
-    AddType application/json .json
+# Enable compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json
 </IfModule>
 
-# Enable CORS for static files
-<FilesMatch "\.(css|js|json|png|jpg|jpeg|gif|svg|woff|woff2)$">
-    Header set Access-Control-Allow-Origin "*"
-</FilesMatch>
-
-# Ensure _next files are served correctly
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    
-    # Pass through requests for _next static files
-    RewriteCond %{REQUEST_URI} ^/_next/static/
-    RewriteRule .* - [L]
+# Cache static assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
 </IfModule>

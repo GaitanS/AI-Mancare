@@ -12,8 +12,8 @@ try {
 }
 
 const nextConfig = {
-  // CRUCIAL pentru Hostinger - generează bundle standalone
-  output: 'standalone',
+  // DEZACTIVAT - cauzează probleme cu MIME types pentru CSS/JS pe Hostinger
+  // output: 'standalone',
 
   // Allow ESLint warnings during build (only block errors)
   eslint: {
