@@ -138,11 +138,21 @@ const stores = [
 ];
 
 export default async function HomePage() {
-  const [featuredOffers, featuredRecipes, stats] = await Promise.all([
-    getFeaturedOffers(),
-    getFeaturedRecipes(),
-    getStats(),
-  ]);
+  // Fallback data in case of any database errors
+  let featuredOffers: Product[] = [];
+  let featuredRecipes: Recipe[] = [];
+  let stats = { products: 0, recipes: 0, stores: 0 };
+
+  try {
+    [featuredOffers, featuredRecipes, stats] = await Promise.all([
+      getFeaturedOffers(),
+      getFeaturedRecipes(),
+      getStats(),
+    ]);
+  } catch (error) {
+    console.error('HomePage data fetch failed:', error);
+    // Continue with empty/fallback data - page will still render
+  }
 
   return (
     <>
