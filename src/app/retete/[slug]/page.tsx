@@ -183,10 +183,10 @@ export default async function RecipePage({ params }: PageProps) {
     '@type': 'Recipe',
     name: recipe.title,
     description: recipe.description,
-    image: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://reteteieftine.ro'}/og-recipe.jpg`,
+    image: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/og-recipe.jpg`,
     author: {
       '@type': 'Organization',
-      name: 'Retete Ieftine',
+      name: 'CatalogSmart',
     },
     datePublished: typeof recipe.createdAt === 'string' ? recipe.createdAt : recipe.createdAt.toISOString(),
     prepTime: `PT${recipe.prepTime || 0}M`,

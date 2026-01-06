@@ -13,6 +13,52 @@ export const metadata: Metadata = {
 
 // Static articles (will be replaced with database after migration)
 const staticArticles = [
+    // NEW PRIORITY SEO ARTICLES
+    {
+        id: '7',
+        title: 'Catalog Kaufland această săptămână - Cele mai bune oferte 2026',
+        slug: 'catalog-kaufland-aceasta-saptamana-oferte-2026',
+        excerpt: 'Vezi toate ofertele din catalogul Kaufland valabil săptămâna aceasta. Prețuri actualizate și comparații cu alte magazine.',
+        category: 'ghiduri',
+        coverImage: null,
+        publishedAt: new Date('2026-01-07'),
+        readingTime: 6,
+        author: 'CatalogSmart',
+    },
+    {
+        id: '8',
+        title: 'Catalog Lidl săptămânal - Oferte și promoții România 2026',
+        slug: 'catalog-lidl-oferte-saptamanale-romania-2026',
+        excerpt: 'Descoperă cele mai noi oferte din catalogul Lidl. Produse alimentare, non-alimentare și bazarul de la mijlocul săptămânii.',
+        category: 'ghiduri',
+        coverImage: null,
+        publishedAt: new Date('2026-01-07'),
+        readingTime: 7,
+        author: 'CatalogSmart',
+    },
+    {
+        id: '9',
+        title: 'Oferte Penny - Promoții săptămânale și prețuri mici 2026',
+        slug: 'oferte-penny-promotii-saptamanale-2026',
+        excerpt: 'Cele mai bune oferte din cataloagele Penny. Reduceri la produse alimentare și non-alimentare disponibile în magazine.',
+        category: 'ghiduri',
+        coverImage: null,
+        publishedAt: new Date('2026-01-06'),
+        readingTime: 5,
+        author: 'CatalogSmart',
+    },
+    {
+        id: '10',
+        title: 'Cataloage supermarketuri România - Toate ofertele într-un singur loc',
+        slug: 'cataloage-supermarketuri-romania-toate-ofertele',
+        excerpt: 'Vezi toate cataloagele de la Lidl, Kaufland, Penny, Carrefour, Mega Image și Auchan. Compară prețuri și găsește cele mai bune oferte.',
+        category: 'ghiduri',
+        coverImage: null,
+        publishedAt: new Date('2026-01-05'),
+        readingTime: 8,
+        author: 'CatalogSmart',
+    },
+    // ORIGINAL ARTICLES
     {
         id: '1',
         title: 'Cum să economisești la cumpărături - Ghid complet 2026',
@@ -22,6 +68,17 @@ const staticArticles = [
         coverImage: null,
         publishedAt: new Date('2026-01-06'),
         readingTime: 8,
+        author: 'CatalogSmart',
+    },
+    {
+        id: '11',
+        title: 'Prețuri alimente România 2026 - Evoluție și cum să economisești',
+        slug: 'preturi-alimente-romania-2026-evolutie-inflatie',
+        excerpt: 'Cum au evoluat prețurile alimentelor în 2026? Analiză completă și strategii pentru a face față scumpirilor.',
+        category: 'economie',
+        coverImage: null,
+        publishedAt: new Date('2026-01-04'),
+        readingTime: 10,
         author: 'CatalogSmart',
     },
     {
@@ -36,6 +93,17 @@ const staticArticles = [
         author: 'CatalogSmart',
     },
     {
+        id: '12',
+        title: 'Comparație prețuri Lidl vs Kaufland vs Penny vs Carrefour 2026',
+        slug: 'comparatie-preturi-lidl-kaufland-penny-carrefour-2026',
+        excerpt: 'Analiză detaliată a prețurilor la principalele supermarketuri din România. Descoperă unde găsești cele mai bune oferte.',
+        category: 'economie',
+        coverImage: null,
+        publishedAt: new Date('2026-01-01'),
+        readingTime: 9,
+        author: 'CatalogSmart',
+    },
+    {
         id: '3',
         title: 'Rețete pentru studenți - Mese complete sub 20 lei',
         slug: 'retete-studenti-mese-sub-20-lei',
@@ -44,6 +112,17 @@ const staticArticles = [
         coverImage: null,
         publishedAt: new Date('2026-01-04'),
         readingTime: 6,
+        author: 'CatalogSmart',
+    },
+    {
+        id: '13',
+        title: 'Rețete economice pentru întreaga familie - Mese sub 50 lei 2026',
+        slug: 'retete-economice-pentru-intreaga-familie-2026',
+        excerpt: 'Rețete gustoase și hrănitoare pentru 4 persoane cu buget redus. Mese complete sub 50 de lei cu ingrediente ieftine.',
+        category: 'retete',
+        coverImage: null,
+        publishedAt: new Date('2026-01-03'),
+        readingTime: 8,
         author: 'CatalogSmart',
     },
     {
@@ -58,6 +137,17 @@ const staticArticles = [
         author: 'CatalogSmart',
     },
     {
+        id: '14',
+        title: 'Reduceri de weekend la supermarketuri - Cum să prinzi cele mai bune oferte',
+        slug: 'reduceri-de-weekend-supermarketuri-cum-sa-prinzi-ofertele',
+        excerpt: 'Strategii pentru a profita maxim de reducerile de weekend. Produse aproape de expirare, lichidări și oferte flash.',
+        category: 'tips',
+        coverImage: null,
+        publishedAt: new Date('2025-12-28'),
+        readingTime: 6,
+        author: 'CatalogSmart',
+    },
+    {
         id: '5',
         title: 'Cum să citești corect cataloagele de reduceri',
         slug: 'cum-sa-citesti-corect-cataloagele-de-reduceri',
@@ -69,6 +159,17 @@ const staticArticles = [
         author: 'CatalogSmart',
     },
     {
+        id: '15',
+        title: 'Meal Prep săptămânal - Ghid complet pentru începători 2026',
+        slug: 'meal-prep-saptamanal-ghid-incepatori-2026',
+        excerpt: 'Învață să pregătești mesele pentru întreaga săptămână. Economisești timp, bani și mănânci mai sănătos.',
+        category: 'ghiduri',
+        coverImage: null,
+        publishedAt: new Date('2026-01-02'),
+        readingTime: 12,
+        author: 'CatalogSmart',
+    },
+    {
         id: '6',
         title: 'Lista de cumpărături perfectă pentru o familie de 4 persoane',
         slug: 'lista-cumparaturi-perfecta-familie-4-persoane',
@@ -77,6 +178,17 @@ const staticArticles = [
         coverImage: null,
         publishedAt: new Date('2026-01-01'),
         readingTime: 9,
+        author: 'CatalogSmart',
+    },
+    {
+        id: '16',
+        title: 'Cumpărături online supermarket România - Ghid livrare la domiciliu 2026',
+        slug: 'cumparaturi-online-supermarket-romania-livrare-acasa',
+        excerpt: 'Compară serviciile de livrare de la Carrefour, Mega Image, Auchan și supermarketurile online. Costuri, timp și experiență.',
+        category: 'ghiduri',
+        coverImage: null,
+        publishedAt: new Date('2025-12-30'),
+        readingTime: 7,
         author: 'CatalogSmart',
     },
 ];
@@ -111,8 +223,8 @@ export default function BlogPage() {
                                 <button
                                     key={cat.id}
                                     className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${cat.id === 'all'
-                                            ? 'bg-primary-500 text-white'
-                                            : 'bg-white/10 text-white hover:bg-white/20'
+                                        ? 'bg-primary-500 text-white'
+                                        : 'bg-white/10 text-white hover:bg-white/20'
                                         }`}
                                 >
                                     {cat.label}

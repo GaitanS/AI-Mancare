@@ -461,6 +461,599 @@ O familie de 4 persoane (2 adulți, 2 copii) are nevoie de aproximativ 40-60 de 
 Folosește funcția de Plan din CatalogSmart pentru a genera automat lista de cumpărături bazată pe rețetele săptămânii!
     `,
     },
+    // ========== NEW SEO ARTICLES (10) ==========
+    'catalog-kaufland-aceasta-saptamana-oferte-2026': {
+        title: 'Catalog Kaufland această săptămână - Cele mai bune oferte 2026',
+        excerpt: 'Vezi toate ofertele din catalogul Kaufland valabil săptămâna aceasta. Prețuri actualizate și comparații cu alte magazine.',
+        category: 'ghiduri',
+        publishedAt: '2026-01-07',
+        readingTime: 6,
+        metaDescription: 'Catalog Kaufland săptămâna aceasta 2026. Descoperă cele mai bune oferte, reduceri și promoții la alimente, carne, fructe și legume.',
+        content: `
+## Catalogul Kaufland - Ianuarie 2026
+
+Kaufland este unul dintre cele mai populare hipermarketuri din România, cu o gamă largă de produse și prețuri competitive. Iată ce oferte găsești în catalogul din această săptămână.
+
+## Oferte la carne și mezeluri
+
+Kaufland oferă cele mai bune prețuri pentru:
+- **Piept de pui** - de la 19.99 lei/kg
+- **Carne tocată** - de la 15.99 lei/kg
+- **Cable fresh** - reduceri până la 40%
+
+## Fructe și legume proaspete
+
+Secțiunea K-Bio și produse locale:
+- Cartofi românești - de la 2.49 lei/kg
+- Mere Golden - de la 4.99 lei/kg
+- Banane - preț stabil 4.49 lei/kg
+
+## Produse Kaufland Select
+
+Marca proprie Kaufland oferă calitate la prețuri mici:
+- K-Classic - produse de bază
+- K-Bio - produse organice
+- K-Favourites - gustări și snacks
+
+## Când să mergi pentru cele mai bune oferte
+
+- **Miercuri**: Catalog nou, stocuri complete
+- **Vineri seara**: Reduceri la produse proaspete
+- **Weekend**: Oferte speciale bonus
+
+## Cum să compari cu alte magazine
+
+Folosește CatalogSmart pentru a vedea dacă Kaufland oferă cel mai bun preț sau dacă Lidl sau Penny au oferte mai bune pentru același produs.
+
+**Sfat CatalogSmart**: Verifică mereu prețul pe kilogram, nu doar prețul pe pachet!
+    `,
+    },
+    'catalog-lidl-oferte-saptamanale-romania-2026': {
+        title: 'Catalog Lidl săptămânal - Oferte și promoții România 2026',
+        excerpt: 'Descoperă cele mai noi oferte din catalogul Lidl. Produse alimentare, non-alimentare și bazarul de la mijlocul săptămânii.',
+        category: 'ghiduri',
+        publishedAt: '2026-01-07',
+        readingTime: 7,
+        metaDescription: 'Catalog Lidl oferte săptămânale 2026 România. Vezi reducerile la alimente, produse fresh și bazarul din mijlocul săptămânii.',
+        content: `
+## Catalogul Lidl - Oferte Săptămânale
+
+Lidl este cunoscut pentru prețurile mici și ofertele excelente care se schimbă în fiecare săptămână. Iată ce trebuie să știi despre catalogul Lidl.
+
+## Cum funcționează ofertele Lidl
+
+- **Luni**: Produse non-alimentare noi
+- **Joi**: Catalog principal nou
+- **Duminică/Sâmbătă**: Oferte flash de weekend
+
+## Bazarul Lidl - Produse non-alimentare
+
+În fiecare săptămână, Lidl aduce produse surpriză:
+- Unelte și bricolaj
+- Articole pentru casă
+- Haine și accesorii
+- Electronice
+
+**Sfat**: Ajunge devreme joi pentru a prinde stocul!
+
+## Oferte speciale pentru familii
+
+Lidl oferă prețuri competitive pentru:
+- Scutece și produse pentru copii
+- Pachete familie XXL
+- Produse de curățenie
+
+## Aplicația Lidl Plus
+
+Obține reduceri suplimentare de 5-50% cu aplicația Lidl Plus:
+- Cupoane personalizate
+- Loterii cu premii
+- Reduceri exclusive
+
+## Comparație Lidl vs Kaufland
+
+| Produs | Lidl | Kaufland |
+|--------|------|----------|
+| Lapte 1L | 5.99 | 6.29 |
+| Pâine | 2.49 | 2.79 |
+| Ouă 10 buc | 9.99 | 10.49 |
+
+**Rezultat**: Lidl e mai ieftin la produse de bază, Kaufland câștigă la varietate.
+
+## Verifică prețurile cu CatalogSmart
+
+Nu mai pierde timp răsfoind cataloage! CatalogSmart îți arată instant cel mai ieftin magazin pentru orice produs.
+    `,
+    },
+    'oferte-penny-promotii-saptamanale-2026': {
+        title: 'Oferte Penny - Promoții săptămânale și prețuri mici 2026',
+        excerpt: 'Cele mai bune oferte din cataloagele Penny. Reduceri la produse alimentare și non-alimentare disponibile în magazine.',
+        category: 'ghiduri',
+        publishedAt: '2026-01-06',
+        readingTime: 5,
+        metaDescription: 'Oferte Penny 2026 - promoții săptămânale, reduceri și cele mai mici prețuri. Catalog actualizat pentru supermarketul tău de cartier.',
+        content: `
+## Ofertele Penny - Supermarketul economic
+
+Penny este renumit pentru prețurile mici și apropierea de casă. Cu magazine în aproape fiecare cartier, e alegerea ideală pentru cumpărături rapide.
+
+## Categorii cu cele mai bune prețuri
+
+### Produse Penny proprii
+- Penny to Go - mâncare la pachet
+- Penny Time - băuturi
+- Tassimo/Penny - cafea
+
+### Alimente de bază
+- Conserve și murături
+- Paste și orez
+- Ulei și condimente
+
+## Carduri și reduceri suplimentare
+
+Penny oferă reduceri cu cardul de fidelitate:
+- 5% reducere la anumite produse
+- Oferte exclusive pentru membri
+- Puncte acumulate pentru viitoarele cumpărături
+
+## Când să mergi la Penny
+
+- **Luni dimineața** - Stocuri noi, cele mai bune oferte
+- **Joi** - Oferte mid-week
+- **Seara** - Reduceri la produse aproape de expirare
+
+## Avantaje Penny
+
+✅ Magazine aproape de casă
+✅ Prețuri mici constant
+✅ Cozi scurte
+✅ Parcare facilă
+
+## Dezavantaje
+
+❌ Sortiment limitat
+❌ Spațiu mic
+❌ Nu toate produsele sunt disponibile
+
+## Compară prețurile cu CatalogSmart
+
+Verifică dacă Penny are cel mai bun preț sau dacă merită să mergi la Lidl pentru aceeași cumpărătură!
+    `,
+    },
+    'cataloage-supermarketuri-romania-toate-ofertele': {
+        title: 'Cataloage supermarketuri România - Toate ofertele într-un singur loc',
+        excerpt: 'Vezi toate cataloagele de la Lidl, Kaufland, Penny, Carrefour, Mega Image și Auchan. Compară prețuri și găsește cele mai bune oferte.',
+        category: 'ghiduri',
+        publishedAt: '2026-01-05',
+        readingTime: 8,
+        metaDescription: 'Cataloage supermarketuri România 2026. Lidl, Kaufland, Penny, Carrefour, Mega Image - toate ofertele și reducerile într-un singur loc.',
+        content: `
+## Toate cataloagele de supermarket din România
+
+Nu mai pierde timp răsfoind fiecare catalog în parte! Iată ce oferă fiecare supermarket și cum să alegi cel mai bine.
+
+## Supermarketuri în România - Comparație
+
+| Supermarket | Puncte forte | Cel mai bun pentru |
+|-------------|--------------|-------------------|
+| **Lidl** | Prețuri mici | Produse de bază |
+| **Kaufland** | Varietate | Carne, fructe |
+| **Penny** | Aproape de casă | Cumpărături rapide |
+| **Carrefour** | Tot în unul | Cumpărături complete |
+| **Mega Image** | Premium | Produse de calitate |
+| **Auchan** | Cantități mari | Familii, horeca |
+
+## Când apar cataloagele noi
+
+- **Lidl**: Luni și Joi
+- **Kaufland**: Miercuri
+- **Penny**: Luni
+- **Carrefour**: Miercuri
+- **Mega Image**: Luni
+
+## Cum să economisești maxim
+
+1. **Verifică toate cataloagele** înainte de cumpărături
+2. **Compară prețul per unitate** (kg, L)
+3. **Planifică ruta** între magazine
+4. **Folosește CatalogSmart** pentru comparații automate
+
+## De ce să folosești CatalogSmart
+
+În loc să verifici 5-6 cataloage manual, CatalogSmart:
+- Îți arată cele mai bune prețuri
+- Compară automat produsele
+- Îți sugerează alternative mai ieftine
+- Generează lista de cumpărături optimă
+
+## Concluzie
+
+Cel mai ieftin supermarket depinde de ce cumperi. Cu CatalogSmart, vezi instant unde găsești cel mai bun preț pentru fiecare produs din lista ta!
+    `,
+    },
+    'preturi-alimente-romania-2026-evolutie-inflatie': {
+        title: 'Prețuri alimente România 2026 - Evoluție și cum să economisești',
+        excerpt: 'Cum au evoluat prețurile alimentelor în 2026? Analiză completă și strategii pentru a face față scumpirilor.',
+        category: 'economie',
+        publishedAt: '2026-01-04',
+        readingTime: 10,
+        metaDescription: 'Prețuri alimente România 2026. Evoluția prețurilor, inflația și cele mai bune strategii pentru a economisi la cumpărături.',
+        content: `
+## Prețurile alimentelor în România - 2026
+
+Inflația și-a pus amprenta pe bugetele familiilor. Iată ce s-a schimbat și cum poți face față creșterilor de prețuri.
+
+## Evoluția prețurilor principalelor alimente
+
+| Produs | 2025 | 2026 | Creștere |
+|--------|------|------|----------|
+| Pâine 500g | 3.50 lei | 4.20 lei | +20% |
+| Lapte 1L | 5.50 lei | 6.50 lei | +18% |
+| Carne pui kg | 18 lei | 22 lei | +22% |
+| Ouă 10 buc | 8.50 lei | 11 lei | +29% |
+| Ulei 1L | 9 lei | 12 lei | +33% |
+
+## Ce produse s-au scumpit cel mai mult
+
+1. **Ulei comestibil** - +33%
+2. **Ouă** - +29%
+3. **Zahăr** - +25%
+4. **Carne de porc** - +24%
+5. **Carne de pui** - +22%
+
+## Strategii de economisire
+
+### 1. Cumpără mărci private
+Produsele K-Classic (Kaufland), Favorina (Lidl) sunt cu 30-50% mai ieftine.
+
+### 2. Compară prețurile sistematic
+Un produs poate avea diferențe de 20-40% între magazine.
+
+### 3. Cumpără sezonier
+Fructele și legumele de sezon sunt cu 50% mai ieftine.
+
+### 4. Gătește acasă
+Mâncarea gătită costă de 3-5 ori mai puțin decât cea cumpărată.
+
+## Cum ajută CatalogSmart
+
+CatalogSmart îți arată:
+- Prețurile actuale din toate supermarketurile
+- Istoricul prețurilor (vezi dacă chiar e ofertă)
+- Cel mai ieftin magazin pentru fiecare produs
+- Sugestii de alternative mai ieftine
+
+## Concluzie
+
+Cu inflația actuală, fiecare leu contează. Folosind instrumentele potrivite și strategiile corecte, poți reduce cheltuielile cu 20-30% lunar.
+    `,
+    },
+    'retete-economice-pentru-intreaga-familie-2026': {
+        title: 'Rețete economice pentru întreaga familie - Mese sub 50 lei 2026',
+        excerpt: 'Rețete gustoase și hrănitoare pentru 4 persoane cu buget redus. Mese complete sub 50 de lei cu ingrediente ieftine.',
+        category: 'retete',
+        publishedAt: '2026-01-03',
+        readingTime: 8,
+        metaDescription: 'Rețete economice pentru familie 2026. Mese gustoase sub 50 lei pentru 4 persoane. Ingrediente ieftine, preparare simplă.',
+        content: `
+## Rețete pentru familie cu buget redus
+
+Gătitul acasă nu trebuie să fie scump sau complicat. Iată 5 rețete delicioase pentru o familie de 4 persoane, fiecare sub 50 de lei.
+
+## 1. Tocăniță de cartofi cu cârnați (35 lei)
+
+**Ingrediente:**
+- 1.5 kg cartofi (5 lei)
+- 400g cârnați (15 lei)
+- 2 cepe (2 lei)
+- Bulion, boia (3 lei)
+- Ulei, sare (2 lei)
+
+**Preparare:** 45 minute. Sote ceapa, adaugă cârnații, apoi cartofii și fierbe la foc mic.
+
+## 2. Tocăniță de pui cu orez (45 lei)
+
+**Ingrediente:**
+- 800g pulpe de pui (28 lei)
+- 400g orez (5 lei)
+- Legume (morcov, ceapă) (5 lei)
+- Condimente (3 lei)
+- Ulei (4 lei)
+
+**Preparare:** 50 minute.
+
+## 3. Paste carbonara (40 lei)
+
+**Ingrediente:**
+- 500g paste (6 lei)
+- 250g bacon/slănină (18 lei)
+- 4 ouă (5 lei)
+- 100g parmezan (8 lei)
+- Piper (3 lei)
+
+**Preparare:** 25 minute.
+
+## 4. Supă cremă de legume (25 lei)
+
+**Ingrediente:**
+- Cartofi, morcovi, țelină (10 lei)
+- Ceapă, usturoi (3 lei)
+- Smântână (5 lei)
+- Pâine pentru crutoane (4 lei)
+- Condimente (3 lei)
+
+**Preparare:** 40 minute.
+
+## 5. Mâncare de fasole cu afumătură (38 lei)
+
+**Ingrediente:**
+- 500g fasole uscată (8 lei)
+- 300g costițe afumate (20 lei)
+- Ceapă, morcov (4 lei)
+- Condimente (6 lei)
+
+**Preparare:** 2 ore (dar se gătește singură).
+
+## Sfaturi pentru gătit economic
+
+1. **Cumpără ingrediente la ofertă**
+2. **Gătește în cantități mari** și congelează
+3. **Folosește resturi** pentru mese noi
+4. **Verifică prețurile** pe CatalogSmart
+
+## Unde găsești ingredientele cel mai ieftin
+
+Folosește CatalogSmart pentru a găsi cele mai mici prețuri pentru fiecare ingredient din rețetele tale!
+    `,
+    },
+    'meal-prep-saptamanal-ghid-incepatori-2026': {
+        title: 'Meal Prep săptămânal - Ghid complet pentru începători 2026',
+        excerpt: 'Învață să pregătești mesele pentru întreaga săptămână. Economisești timp, bani și mănânci mai sănătos.',
+        category: 'ghiduri',
+        publishedAt: '2026-01-02',
+        readingTime: 12,
+        metaDescription: 'Meal prep săptămânal ghid 2026. Pregătește mesele în avans, economisește timp și bani. Tutorial complet pentru începători.',
+        content: `
+## Ce este Meal Prep?
+
+Meal Prep înseamnă să pregătești mesele pentru mai multe zile într-o singură sesiune de gătit. Rezultatul? Mai puțin timp în bucătărie, mâncare mai sănătoasă și economii la buget.
+
+## Beneficiile Meal Prep
+
+✅ **Economie de timp**: Gătești 3-4 ore duminica, ești liber toată săptămâna
+✅ **Economie de bani**: Cumperi doar ce ai nevoie, zero risipă
+✅ **Mâncare sănătoasă**: Controlezi ingredientele
+✅ **Zero stress**: Nu mai stai să te gândești ce mănânci
+
+## Cum să începi - Pas cu pas
+
+### Pasul 1: Planifică meniul
+Alege 3-4 rețete principale pentru săptămână.
+
+### Pasul 2: Fă lista de cumpărături
+Folosește CatalogSmart pentru a găsi cele mai bune prețuri.
+
+### Pasul 3: Cumpără totul odată
+Duminică dimineața - cel mai bun moment.
+
+### Pasul 4: Gătește strategic
+Pornește mai multe preparate simultan.
+
+### Pasul 5: Depozitează corect
+Recipiente de sticlă, etichetate cu data.
+
+## Exemplu de meniu săptămânal
+
+| Zi | Prânz | Cină |
+|----|-------|------|
+| L | Orez cu pui | Supă de legume |
+| Ma | Paste | Pui cu cartofi |
+| Mi | Orez cu pui | Paste |
+| J | Supă | Pui cu cartofi |
+| V | Comandă/Restaurant | - |
+
+## Echipamente esențiale
+
+- Recipiente de sticlă (10-12 buc)
+- Tăvi de cuptor mari
+- Slow cooker (opțional)
+- Etichetator
+
+## Greșeli de evitat
+
+❌ Să gătești prea multe varietăți
+❌ Să nu etichetezi recipientele
+❌ Să nu congelezi porții extra
+❌ Să cumperi fără listă
+
+## Concluzie
+
+Meal prep îți schimbă viața! Începe simplu cu 2-3 preparate și extinde pe măsură ce prinzi experiență. Folosește CatalogSmart pentru a găsi cele mai ieftine ingrediente.
+    `,
+    },
+    'comparatie-preturi-lidl-kaufland-penny-carrefour-2026': {
+        title: 'Comparație prețuri Lidl vs Kaufland vs Penny vs Carrefour 2026',
+        excerpt: 'Analiză detaliată a prețurilor la principalele supermarketuri din România. Descoperă unde găsești cele mai bune oferte.',
+        category: 'economie',
+        publishedAt: '2026-01-01',
+        readingTime: 9,
+        metaDescription: 'Comparație prețuri supermarketuri România 2026. Lidl vs Kaufland vs Penny vs Carrefour - descoperă cel mai ieftin pentru fiecare categorie.',
+        content: `
+## Comparație completă: Cele 4 mari supermarketuri
+
+Am analizat prețurile la 50 de produse esențiale pentru a determina care supermarket oferă cele mai bune prețuri.
+
+## Metodologie
+
+Am comparat:
+- 15 produse lactate
+- 10 produse carne
+- 10 fructe/legume
+- 10 produse de bază
+- 5 băuturi
+
+## Rezultatele comparației
+
+### Produse lactate
+| Produs | Lidl | Kaufland | Penny | Carrefour |
+|--------|------|----------|-------|-----------|
+| Lapte 1L | 5.99 | 6.29 | 6.19 | 6.49 |
+| Iaurt 140g | 1.99 | 2.19 | 2.09 | 2.39 |
+| Brânză 250g | 8.99 | 9.49 | 8.79 | 9.99 |
+| **Câștigător** | ✅ | | | |
+
+### Carne și mezeluri
+| Produs | Lidl | Kaufland | Penny | Carrefour |
+|--------|------|----------|-------|-----------|
+| Pui/kg | 19.99 | 18.99 | 20.49 | 21.99 |
+| Cârnați 300g | 12.99 | 11.99 | 13.49 | 14.49 |
+| **Câștigător** | | ✅ | | |
+
+### Fructe și legume
+| Produs | Lidl | Kaufland | Penny | Carrefour |
+|--------|------|----------|-------|-----------|
+| Cartofi/kg | 2.49 | 2.29 | 2.79 | 2.99 |
+| Mere/kg | 4.99 | 4.49 | 5.29 | 5.49 |
+| **Câștigător** | | ✅ | | |
+
+## Concluzie finală
+
+**Câștigător general: Lidl** pentru produse de bază
+**Kaufland** pentru carne și legume
+**Penny** pentru comoditate
+**Carrefour** pentru varietate
+
+## Recomandare
+
+Cel mai eficient e să combini mai multe magazine. CatalogSmart îți arată automat cel mai bun preț pentru fiecare produs din lista ta!
+    `,
+    },
+    'cumparaturi-online-supermarket-romania-livrare-acasa': {
+        title: 'Cumpărături online supermarket România - Ghid livrare la domiciliu 2026',
+        excerpt: 'Compară serviciile de livrare de la Carrefour, Mega Image, Auchan și supermarketurile online. Costuri, timp și experiență.',
+        category: 'ghiduri',
+        publishedAt: '2025-12-30',
+        readingTime: 7,
+        metaDescription: 'Cumpărături online supermarket România 2026. Livrare la domiciliu de la Carrefour, Mega Image, Freshful, Sezamo. Comparație și costuri.',
+        content: `
+## Cumpărături online de la supermarket în România
+
+Din ce în ce mai mulți români comandă alimente online. Iată ce opțiuni ai și care merită.
+
+## Servicii disponibile
+
+### 1. Carrefour Online
+- **Livrare**: 2-4 ore sau programată
+- **Cost livrare**: 14.99-24.99 lei
+- **Minim comandă**: 99 lei
+- **Sortiment**: Complet (peste 20.000 produse)
+
+### 2. Mega Image App
+- **Livrare**: 1-2 ore (depinde de zonă)
+- **Cost livrare**: 9.99-14.99 lei
+- **Minim comandă**: 50 lei
+- **Sortiment**: Mediu
+
+### 3. Freshful by eMAG
+- **Livrare**: Programată pe ore
+- **Cost livrare**: 9.99 lei (gratuit peste 150 lei)
+- **Minim comandă**: 75 lei
+- **Sortiment**: Focus pe produse fresh
+
+### 4. Sezamo
+- **Livrare**: Express 30-60 minute
+- **Cost livrare**: 4.99-9.99 lei
+- **Minim comandă**: 35 lei
+- **Sortiment**: Basic, dar rapid
+
+## Comparație costuri livrare
+
+| Serviciu | Minim | Livrare | Gratuit de la |
+|----------|-------|---------|---------------|
+| Carrefour | 99 lei | 14.99 lei | 250 lei |
+| Mega Image | 50 lei | 9.99 lei | 200 lei |
+| Freshful | 75 lei | 9.99 lei | 150 lei |
+| Sezamo | 35 lei | 4.99 lei | 100 lei |
+
+## Când merită să comanzi online
+
+✅ Nu ai timp de cumpărături
+✅ Nu ai mașină
+✅ Cantități mari (livrare gratuit)
+✅ Vreme rea
+
+## Când e mai bine să mergi în magazin
+
+❌ Cumpărături mici (cost livrare mare)
+❌ Produse proaspete (vrei să alegi personal)
+❌ Oferte flash (nu sunt online)
+
+## Concluzie
+
+Cumpărăturile online sunt convenabile dar mai scumpe. Folosește CatalogSmart pentru a compara prețurile și decide dacă merită!
+    `,
+    },
+    'reduceri-de-weekend-supermarketuri-cum-sa-prinzi-ofertele': {
+        title: 'Reduceri de weekend la supermarketuri - Cum să prinzi cele mai bune oferte',
+        excerpt: 'Strategii pentru a profita maxim de reducerile de weekend. Produse aproape de expirare, lichidări și oferte flash.',
+        category: 'tips',
+        publishedAt: '2025-12-28',
+        readingTime: 6,
+        metaDescription: 'Reduceri weekend supermarketuri România 2026. Cum să prinzi ofertele flash, produse la -30% aproape de expirare și lichidări de stoc.',
+        content: `
+## Secretele reducerilor de weekend
+
+Weekendul poate fi cel mai bun sau cel mai rău moment pentru cumpărături. Iată cum să profiți maxim.
+
+## Tipuri de reduceri de weekend
+
+### 1. Produse aproape de expirare (-30% până la -50%)
+- **Când**: Vineri seara, Sâmbătă dimineața
+- **Ce găsești**: Carne, lactate, pâine
+- **Sfat**: Congelează imediat!
+
+### 2. Lichidări de stoc
+- **Când**: Duminică seara
+- **Ce găsești**: Fructe, legume, produse sezoniere
+- **Sfat**: Prețuri foarte mici dar calitate variabilă
+
+### 3. Oferte flash weekend
+- **Lidl**: Sâmbătă-Duminică oferte speciale
+- **Kaufland**: Vineri promoții bonus
+- **Penny**: Weekend deals
+
+## Orele de aur pentru cumpărături
+
+### Vineri
+- **18:00-20:00**: Reduceri la produse fresh
+- Evită orele de vârf (17:00)
+
+### Sâmbătă
+- **7:00-9:00**: Stocuri pline, liniște
+- **Evită**: 10:00-14:00 (aglomerație maximă)
+
+### Duminică
+- **18:00-20:00**: Cele mai mari reduceri
+- Produse de panificație -50%
+
+## Ce să nu cumperi în weekend
+
+❌ Produse care nu sunt la reducere (prețuri normale)
+❌ Legume la tarabe de piață (prețuri umflate)
+❌ Produse de impuls la casă
+
+## Strategia perfectă
+
+1. Verifică cataloagele joi-vineri
+2. Fă lista cu ofertele de weekend
+3. Mergi vineri seara sau sâmbătă devreme
+4. Verifică secțiunea reduceri
+
+## Folosește CatalogSmart
+
+CatalogSmart îți arată toate ofertele de weekend într-un singur loc - nu mai pierzi nimic!
+    `,
+    },
 };
 
 interface PageProps {
