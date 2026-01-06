@@ -37,9 +37,6 @@ export async function POST(req: Request) {
         }
 
         // Development mode - can try to run (still may fail without Puppeteer setup)
-        // Instead of spawn, we import and run the function directly
-        let result;
-
         switch (script) {
             case 'scrape':
                 return NextResponse.json({
@@ -50,21 +47,22 @@ export async function POST(req: Request) {
             case 'recipes':
                 // Recipe generation might work without Puppeteer
                 try {
-                    // Dynamic import the function
-                    const { generateRecipes } = await import('@/lib/ai/recipe-generator');
+                    // Dynamic import the module (uses default export)
+                    const recipeGenerator = await import('@/lib/ai/recipe-generator');
 
                     // Run in background-like fashion (without blocking response)
                     // Note: This will still timeout if it takes too long
-                    generateRecipes().catch(console.error);
+                    recipeGenerator.default.generateWeeklyRecipes(5).catch(console.error);
 
                     return NextResponse.json({
                         success: true,
                         message: '✨ Recipe generation started! Check database in a few minutes.',
                     });
-                } catch (e: any) {
+                } catch (e: unknown) {
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
                     return NextResponse.json({
                         success: false,
-                        message: `Recipe generation failed: ${e.message}`,
+                        message: `Recipe generation failed: ${errorMessage}`,
                     }, { status: 500 });
                 }
 
@@ -72,11 +70,12 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: 'Invalid script' }, { status: 400 });
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Failed to run script:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return NextResponse.json({
             error: 'Internal Error',
-            details: error.message
+            details: errorMessage
         }, { status: 500 });
     }
 }
