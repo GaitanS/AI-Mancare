@@ -42,8 +42,8 @@ export default function Footer() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-primary-500/10 rounded-full filter blur-[100px]" />
 
       <div className="relative container-custom py-16 md:py-20">
-        {/* Newsletter Section */}
-        <div className="mb-16 pb-16 border-b border-neutral-700/50">
+        {/* Newsletter Section - Fixed height to prevent CLS */}
+        <div className="mb-16 pb-16 border-b border-neutral-700/50 min-h-[200px]">
           <div className="max-w-2xl mx-auto text-center">
             <h3 className="font-display text-2xl md:text-3xl font-bold text-white mb-3">
               Primeste cele mai bune oferte
