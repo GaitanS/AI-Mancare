@@ -132,6 +132,26 @@ const nextConfig = {
           },
         ],
       },
+      // Long-term cache for Next.js static assets (JS, CSS, fonts)
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Cache for public images
+      {
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
       {
         source: '/api/:path*',
         headers: [
