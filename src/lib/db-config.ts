@@ -52,14 +52,14 @@ try {
 export const prisma = prismaInstance as PrismaClient;
 
 // Enable query logging în development
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development' && prisma) {
   prisma.$on('query' as never, (e: any) => {
     console.log('Query: ' + e.query);
     console.log('Duration: ' + e.duration + 'ms');
   });
 }
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && prisma) {
   globalForPrisma.prisma = prisma;
 }
 
@@ -74,6 +74,7 @@ export async function checkDatabaseHealth(): Promise<{
   const start = Date.now();
 
   try {
+    if (!prisma) throw new Error('Prisma client not initialized');
     await prisma.$queryRaw`SELECT 1`;
     const latency = Date.now() - start;
 
@@ -104,7 +105,9 @@ export async function getConnectionStats() {
  * Graceful shutdown
  */
 export async function disconnectDatabase() {
-  await prisma.$disconnect();
+  if (prisma) {
+    await prisma.$disconnect();
+  }
 }
 
 // Cleanup on process exit
