@@ -107,7 +107,7 @@ export default function Footer() {
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-neutral-400 hover:text-primary-400 transition-colors duration-200 hover:translate-x-1 inline-block"
+                    className="text-sm text-neutral-400 hover:text-primary-400 transition-colors duration-200 inline-block"
                   >
                     {link.name}
                   </Link>
@@ -126,7 +126,7 @@ export default function Footer() {
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-neutral-400 hover:text-primary-400 transition-colors duration-200 hover:translate-x-1 inline-block"
+                    className="text-sm text-neutral-400 hover:text-primary-400 transition-colors duration-200 inline-block"
                   >
                     {link.name}
                   </Link>
@@ -145,7 +145,7 @@ export default function Footer() {
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-neutral-400 hover:text-accent-400 transition-colors duration-200 hover:translate-x-1 inline-block"
+                    className="text-sm text-neutral-400 hover:text-accent-400 transition-colors duration-200 inline-block"
                   >
                     {link.name}
                   </Link>
@@ -164,7 +164,7 @@ export default function Footer() {
                 <li key={link.name}>
                   <Link
                     href={link.href}
-                    className="text-sm text-neutral-400 hover:text-white transition-colors duration-200 hover:translate-x-1 inline-block"
+                    className="text-sm text-neutral-400 hover:text-white transition-colors duration-200 inline-block"
                   >
                     {link.name}
                   </Link>
