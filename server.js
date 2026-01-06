@@ -4,6 +4,24 @@ const next = require('next');
 const fs = require('fs');
 const path = require('path');
 
+// MIME types for static files
+const MIME_TYPES = {
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.webp': 'image/webp',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.eot': 'application/vnd.ms-fontobject',
+};
+
 // DEBUG LOGGING START
 const logFile = path.join(__dirname, 'debug_start.txt');
 
@@ -44,6 +62,14 @@ app.prepare().then(() => {
         try {
             const parsedUrl = parse(req.url, true);
             const { pathname, query } = parsedUrl;
+
+            // Set correct MIME type for static files in _next/static
+            if (pathname.startsWith('/_next/static/')) {
+                const ext = path.extname(pathname).toLowerCase();
+                if (MIME_TYPES[ext]) {
+                    res.setHeader('Content-Type', MIME_TYPES[ext]);
+                }
+            }
 
             if (pathname === '/a') {
                 await app.render(req, res, '/a', query);
