@@ -217,8 +217,8 @@ export default async function HomePage() {
 
             {/* Subheadline - SEO + Features */}
             <p className="text-lg text-neutral-300 mb-8 max-w-2xl mx-auto leading-relaxed px-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              Vezi toate ofertele din cataloagele de la <span className="text-white font-semibold">Lidl, Kaufland, Penny etc</span>.
-              AI-ul extrage ofertele și generează <span className="text-white font-semibold">rețete automate</span> cu produsele la reducere.
+              Oferte din <span className="text-white font-semibold">Lidl, Kaufland, Penny</span> și altele.
+              Alege o rețetă și AI-ul găsește <span className="text-white font-semibold">cele mai bune prețuri</span> din toate magazinele — gata de comparat!
             </p>
 
             {/* CTAs */}
