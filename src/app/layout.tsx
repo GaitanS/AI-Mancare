@@ -59,9 +59,9 @@ export const metadata: Metadata = {
     'economii mâncare',
     'bucătărie românească',
   ],
-  authors: [{ name: 'Rețete Ieftine' }],
-  creator: 'Rețete Ieftine',
-  publisher: 'Rețete Ieftine',
+  authors: [{ name: 'CatalogSmart' }],
+  creator: 'CatalogSmart',
+  publisher: 'CatalogSmart',
   formatDetection: {
     email: false,
     address: false,
@@ -71,26 +71,26 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ro_RO',
     url: '/',
-    siteName: 'Rețete Ieftine',
-    title: 'Rețete Ieftine - Gătește gustos cu buget mic',
+    siteName: 'CatalogSmart',
+    title: 'CatalogSmart - Oferte și Rețete Economice',
     description:
-      'Descoperă rețete economice bazate pe reducerile săptămânale. Economisești 30% la cumpărături!',
+      'Descoperă cele mai bune oferte din Lidl, Kaufland, Penny și rețete economice. Economisești 30% la cumpărături!',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Rețete Ieftine - Gătește gustos cu buget mic',
+        alt: 'CatalogSmart - Oferte și Rețete Economice',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Rețete Ieftine - Gătește gustos cu buget mic',
+    title: 'CatalogSmart - Oferte și Rețete Economice',
     description:
-      'Descoperă rețete economice bazate pe reducerile săptămânale. Economisești 30% la cumpărături!',
+      'Descoperă cele mai bune oferte din Lidl, Kaufland, Penny și rețete economice. Economisești 30%!',
     images: ['/og-image.jpg'],
-    creator: '@reteteieftine',
+    creator: '@catalogsmart',
   },
   robots: {
     index: true,
