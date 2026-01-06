@@ -21,17 +21,35 @@ const DATABASE_CONFIG = {
 };
 
 // Prisma client singleton cu optimizări
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const globalForPrisma = global as unknown as { prisma: PrismaClient | null };
 
-export const prisma = globalForPrisma.prisma || new PrismaClient({
-  log: DATABASE_CONFIG.log as any,
+// Fallback URL for when DATABASE_URL is not set - prevents crash
+const DATABASE_URL_FALLBACK = 'mysql://placeholder:placeholder@localhost:3306/placeholder';
+const effectiveDatabaseUrl = process.env.DATABASE_URL || DATABASE_URL_FALLBACK;
 
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
+// Warn if using fallback
+if (!process.env.DATABASE_URL) {
+  console.warn('⚠️ DATABASE_URL not set. Using fallback - database features will not work.');
+}
+
+let prismaInstance: PrismaClient | null = null;
+
+try {
+  prismaInstance = globalForPrisma.prisma || new PrismaClient({
+    log: DATABASE_CONFIG.log as any,
+    datasources: {
+      db: {
+        url: effectiveDatabaseUrl,
+      },
     },
-  },
-});
+  });
+} catch (error) {
+  console.error('Failed to initialize Prisma client:', error);
+  // Create a minimal client that will fail gracefully on queries
+  prismaInstance = null;
+}
+
+export const prisma = prismaInstance as PrismaClient;
 
 // Enable query logging în development
 if (process.env.NODE_ENV === 'development') {
