@@ -63,17 +63,30 @@ async function callAI(prompt, systemPrompt = '') {
  */
 async function getProductsOnSale() {
   try {
+    // Try to get products with discounts
     const products = await prisma.product.findMany({
       where: {
-        OR: [
-          { currentPrice: { lt: prisma.raw('originalPrice') } },
-          { discount: { gt: 0 } },
-        ]
+        discount: { gt: 0 }
       },
       take: 50,
       orderBy: { discount: 'desc' }
     });
-    return products;
+
+    if (products.length > 0) {
+      return products;
+    }
+
+    // If no discounted products, get any products
+    const anyProducts = await prisma.product.findMany({
+      take: 30
+    });
+
+    if (anyProducts.length > 0) {
+      return anyProducts;
+    }
+
+    // Fallback to defaults
+    throw new Error('No products found');
   } catch (error) {
     log.error(`Failed to fetch products: ${error.message}`);
     // Return some default ingredients if DB fails
@@ -86,6 +99,8 @@ async function getProductsOnSale() {
       { name: 'Paste', category: 'Cereale' },
       { name: 'Ouă', category: 'Lactate' },
       { name: 'Brânză', category: 'Lactate' },
+      { name: 'Lapte', category: 'Lactate' },
+      { name: 'Unt', category: 'Lactate' },
     ];
   }
 }
