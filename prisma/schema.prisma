@@ -356,3 +356,22 @@ model Article {
 
   @@map("articles")
 }
+
+// ==========================================
+// SCHEDULE CONFIG TABLE
+// ==========================================
+model ScheduleConfig {
+  id        String   @id @default(cuid())
+  taskName  String   @unique @map("task_name") // 'scraper', 'recipes', 'images'
+  enabled   Boolean  @default(true)
+  dayOfWeek Int      @default(1) @map("day_of_week") // 0=Sunday, 1=Monday...6=Saturday
+  hour      Int      @default(6)
+  minute    Int      @default(0)
+  lastRun   DateTime? @map("last_run")
+  lastError String?   @map("last_error") @db.Text
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("schedule_configs")
+}
+

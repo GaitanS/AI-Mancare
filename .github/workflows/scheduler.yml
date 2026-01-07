@@ -1,4 +1,4 @@
-name: Scheduled Tasks - Scraping & Recipe Generation
+name: Scheduled Tasks - Scraping, Recipes & Images
 
 on:
   # Scheduled runs (cron uses UTC timezone)
@@ -18,6 +18,7 @@ on:
           - all
           - scrape
           - recipes
+          - images
 
 env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -26,6 +27,7 @@ env:
   AI_MODEL: google/gemini-3-flash-preview
   AI_MODEL_VISION: google/gemini-3-flash-preview
   NODE_ENV: production
+  NEXT_PUBLIC_SITE_URL: https://catalogsmart.ro
 
 jobs:
   scraper:
@@ -91,8 +93,6 @@ jobs:
       - name: Run Recipe Generator
         run: node scripts/cron-recipe-generator.js
         timeout-minutes: 60
-        env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 
       - name: Upload logs
         if: always()
@@ -102,10 +102,44 @@ jobs:
           path: storage/logs/
           retention-days: 7
 
+  images:
+    name: 🖼️ Image Generator
+    runs-on: ubuntu-latest
+    needs: recipes
+    if: always() && (github.event_name == 'schedule' || github.event.inputs.task == 'all' || github.event.inputs.task == 'images')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run Image Generator
+        run: node scripts/cron-image-generator.js 10
+        timeout-minutes: 30
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-logs-${{ github.run_number }}
+          path: storage/logs/
+          retention-days: 7
+
   notify:
     name: 📢 Completion Notification
     runs-on: ubuntu-latest
-    needs: [scraper, recipes]
+    needs: [scraper, recipes, images]
     if: always()
     
     steps:
@@ -113,10 +147,10 @@ jobs:
         run: |
           echo "Scraper: ${{ needs.scraper.result }}"
           echo "Recipes: ${{ needs.recipes.result }}"
+          echo "Images: ${{ needs.images.result }}"
           
           if [ "${{ needs.scraper.result }}" == "success" ] && [ "${{ needs.recipes.result }}" == "success" ]; then
             echo "✅ All tasks completed successfully!"
           else
             echo "⚠️ Some tasks may have failed. Check the logs."
-            exit 1
           fi

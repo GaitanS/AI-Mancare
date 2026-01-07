@@ -1,14 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+// Schedule type
+interface Schedule {
+    id: string;
+    taskName: string;
+    enabled: boolean;
+    dayOfWeek: number;
+    hour: number;
+    minute: number;
+    lastRun?: string;
+    lastError?: string;
+}
+
+const DAYS = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
+const TASK_INFO: Record<string, { icon: string; name: string; description: string }> = {
+    scraper: { icon: '🕷️', name: 'Catalog Scraper', description: 'Descarcă cataloage de la supermarketuri' },
+    recipes: { icon: '🍳', name: 'Recipe Generator', description: 'Generează rețete AI din oferte' },
+    images: { icon: '🖼️', name: 'Image Generator', description: 'Creează imagini pentru rețete' },
+};
 
 export default function AdminPage() {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [actionStatus, setActionStatus] = useState<string | null>(null);
+    const [schedules, setSchedules] = useState<Schedule[]>([]);
+    const [savingSchedule, setSavingSchedule] = useState<string | null>(null);
 
     useEffect(() => {
         fetchStats();
+        fetchSchedules();
     }, []);
 
     const fetchStats = async () => {
@@ -24,6 +46,41 @@ export default function AdminPage() {
             setLoading(false);
         }
     };
+
+    const fetchSchedules = async () => {
+        try {
+            const res = await fetch('/api/admin/schedules');
+            if (res.ok) {
+                const data = await res.json();
+                setSchedules(data.schedules || []);
+            }
+        } catch (e) {
+            console.error('Failed to fetch schedules', e);
+        }
+    };
+
+    const updateSchedule = useCallback(async (taskName: string, updates: Partial<Schedule>) => {
+        setSavingSchedule(taskName);
+        try {
+            const res = await fetch('/api/admin/schedules', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskName, ...updates }),
+            });
+            if (res.ok) {
+                setSchedules(prev => prev.map(s =>
+                    s.taskName === taskName ? { ...s, ...updates } : s
+                ));
+                setActionStatus(`✅ ${TASK_INFO[taskName]?.name || taskName} actualizat!`);
+                setTimeout(() => setActionStatus(null), 3000);
+            }
+        } catch (e) {
+            console.error('Failed to update schedule', e);
+            setActionStatus('❌ Eroare la salvare');
+        } finally {
+            setSavingSchedule(null);
+        }
+    }, []);
 
     const handleRunScript = async (script: string) => {
         setActionStatus(`Starting ${script}...`);
@@ -42,7 +99,7 @@ export default function AdminPage() {
                     setActionStatus(`✅ ${data.message}`);
                     setTimeout(() => setActionStatus(null), 5000);
                 } else {
-                    setActionStatus(`❌ Error: ${data.error || data.details}`);
+                    setActionStatus(`❌ Error: ${data.error || data.details || data.message}`);
                 }
             } else {
                 const text = await res.text();
@@ -66,7 +123,7 @@ export default function AdminPage() {
             const data = await res.json();
             if (res.ok) {
                 setActionStatus(`✅ ${data.message}`);
-                fetchStats(); // Refresh stats to show zeros
+                fetchStats();
             } else {
                 setActionStatus(`❌ Error: ${data.error}`);
             }
@@ -102,12 +159,9 @@ export default function AdminPage() {
 
                 {/* Action Panel */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
                     {/* Scraper Agent */}
                     <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-primary-500/30 transition-all">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-primary-500 select-none -translate-y-2 translate-x-2">
-                            AI
-                        </div>
+                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-primary-500 select-none -translate-y-2 translate-x-2">AI</div>
                         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             Scraping Agent
@@ -125,15 +179,13 @@ export default function AdminPage() {
 
                     {/* Recipe Generator */}
                     <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-accent-500/30 transition-all">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-accent-500 select-none -translate-y-2 translate-x-2">
-                            GEN
-                        </div>
+                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-accent-500 select-none -translate-y-2 translate-x-2">GEN</div>
                         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
                             Recipe Generator
                         </h2>
                         <p className="text-neutral-400 text-sm mb-6 h-12">
-                            Uses LLMs (OpenAI/Anthropic) to generate cheap recipes based on current offers.
+                            Uses LLMs (OpenRouter/Gemini) to generate cheap recipes based on current offers.
                         </p>
                         <button
                             onClick={() => handleRunScript('recipes')}
@@ -142,11 +194,9 @@ export default function AdminPage() {
                             ✨ Generate Recipes
                         </button>
                     </div>
-
-
                 </div>
 
-                {/* Automated Schedules Section */}
+                {/* Automated Schedules Section - INTERACTIVE */}
                 <div className="mt-12 border-t border-white/10 pt-8">
                     <div className="flex items-center justify-between mb-6">
                         <div>
@@ -155,7 +205,7 @@ export default function AdminPage() {
                                 Automated Schedules
                             </h3>
                             <p className="text-neutral-400 text-sm mt-1">
-                                Rulează automat prin GitHub Actions
+                                Configurează când rulează automat fiecare task
                             </p>
                         </div>
                         <a
@@ -169,36 +219,27 @@ export default function AdminPage() {
                         </a>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Scraper Schedule */}
-                        <ScheduleCard
-                            icon="🕷️"
-                            name="Catalog Scraper"
-                            schedule="Luni, 06:00"
-                            status="enabled"
-                            description="Descarcă cataloage noi"
-                        />
-                        {/* Recipes Schedule */}
-                        <ScheduleCard
-                            icon="🍳"
-                            name="Recipe Generator"
-                            schedule="Luni, 08:00"
-                            status="enabled"
-                            description="Generează rețete AI"
-                        />
-                        {/* Images Schedule */}
-                        <ScheduleCard
-                            icon="🖼️"
-                            name="Image Generator"
-                            schedule="Luni, 10:00"
-                            status="disabled"
-                            description="Creează imagini (TODO)"
-                        />
+                    <div className="space-y-4">
+                        {schedules.length === 0 ? (
+                            <div className="text-center py-8 text-neutral-500">
+                                Se încarcă schedule-urile...
+                            </div>
+                        ) : (
+                            schedules.map((schedule) => (
+                                <InteractiveScheduleCard
+                                    key={schedule.taskName}
+                                    schedule={schedule}
+                                    info={TASK_INFO[schedule.taskName] || { icon: '📋', name: schedule.taskName, description: '' }}
+                                    onUpdate={(updates) => updateSchedule(schedule.taskName, updates)}
+                                    saving={savingSchedule === schedule.taskName}
+                                />
+                            ))
+                        )}
                     </div>
 
                     <div className="mt-4 p-4 bg-blue-950/20 border border-blue-900/30 rounded-xl">
                         <p className="text-blue-400 text-sm">
-                            💡 <strong>Sfat:</strong> Pentru a activa automatizarea, adaugă <code className="bg-blue-900/50 px-1.5 py-0.5 rounded">DATABASE_URL</code> și <code className="bg-blue-900/50 px-1.5 py-0.5 rounded">OPENROUTER_API_KEY</code> ca secrets în GitHub repo.
+                            💡 <strong>Sfat:</strong> Modificările se salvează automat. GitHub Actions va folosi aceste setări la următorul run.
                         </p>
                     </div>
                 </div>
@@ -247,39 +288,78 @@ function StatCard({ title, value, icon, color }: any) {
     );
 }
 
-function ScheduleCard({ icon, name, schedule, status, description }: {
-    icon: string;
-    name: string;
-    schedule: string;
-    status: 'enabled' | 'disabled';
-    description: string;
+function InteractiveScheduleCard({ schedule, info, onUpdate, saving }: {
+    schedule: Schedule;
+    info: { icon: string; name: string; description: string };
+    onUpdate: (updates: Partial<Schedule>) => void;
+    saving: boolean;
 }) {
-    const isEnabled = status === 'enabled';
     return (
-        <div className={`bg-neutral-900 rounded-xl border p-4 transition-all ${isEnabled
-            ? 'border-emerald-500/20 hover:border-emerald-500/40'
-            : 'border-neutral-800 opacity-60'
+        <div className={`bg-neutral-900 rounded-xl border p-4 transition-all ${schedule.enabled
+                ? 'border-emerald-500/20 hover:border-emerald-500/40'
+                : 'border-neutral-800'
             }`}>
-            <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                    <span className="text-xl">{icon}</span>
-                    <span className="font-bold text-white text-sm">{name}</span>
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+                {/* Icon & Name */}
+                <div className="flex items-center gap-3 md:w-48">
+                    <span className="text-2xl">{info.icon}</span>
+                    <div>
+                        <span className="font-bold text-white text-sm">{info.name}</span>
+                        <p className="text-neutral-500 text-xs">{info.description}</p>
+                    </div>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${isEnabled
-                    ? 'bg-emerald-500/10 text-emerald-400'
-                    : 'bg-neutral-800 text-neutral-500'
-                    }`}>
-                    {isEnabled ? 'Activ' : 'Inactiv'}
-                </span>
-            </div>
-            <p className="text-neutral-400 text-xs mb-3">{description}</p>
-            <div className="flex items-center gap-2 text-sm">
-                <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="font-mono text-white">{schedule}</span>
+
+                {/* Toggle */}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => onUpdate({ enabled: !schedule.enabled })}
+                        className={`relative w-12 h-6 rounded-full transition-colors ${schedule.enabled ? 'bg-emerald-500' : 'bg-neutral-700'
+                            }`}
+                        disabled={saving}
+                    >
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${schedule.enabled ? 'translate-x-6' : ''
+                            }`} />
+                    </button>
+                    <span className={`text-xs font-medium ${schedule.enabled ? 'text-emerald-400' : 'text-neutral-500'}`}>
+                        {schedule.enabled ? 'Activ' : 'Inactiv'}
+                    </span>
+                </div>
+
+                {/* Day Selector */}
+                <div className="flex items-center gap-2">
+                    <label className="text-neutral-500 text-xs">Zi:</label>
+                    <select
+                        value={schedule.dayOfWeek}
+                        onChange={(e) => onUpdate({ dayOfWeek: parseInt(e.target.value) })}
+                        className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-emerald-500"
+                        disabled={saving || !schedule.enabled}
+                    >
+                        {DAYS.map((day, i) => (
+                            <option key={i} value={i}>{day}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Hour Selector */}
+                <div className="flex items-center gap-2">
+                    <label className="text-neutral-500 text-xs">Ora:</label>
+                    <select
+                        value={schedule.hour}
+                        onChange={(e) => onUpdate({ hour: parseInt(e.target.value) })}
+                        className="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-emerald-500 w-16"
+                        disabled={saving || !schedule.enabled}
+                    >
+                        {Array.from({ length: 24 }, (_, i) => (
+                            <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Saving indicator */}
+                {saving && (
+                    <span className="text-xs text-amber-400 animate-pulse">Salvare...</span>
+                )}
             </div>
         </div>
     );
 }
-
