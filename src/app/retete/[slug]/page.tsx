@@ -21,14 +21,49 @@ async function getRecipe(slug: string): Promise<Recipe | null> {
 
   if (!recipe) return null;
 
-  const ingredientIds = recipe.ingredientIds ? JSON.parse(recipe.ingredientIds) : [];
+  let ingredientIds: string[] = [];
+  try {
+    ingredientIds = recipe.ingredientIds ? (typeof recipe.ingredientIds === 'string' ? JSON.parse(recipe.ingredientIds) : recipe.ingredientIds) : [];
+  } catch (e) {
+    console.warn(`Failed to parse ingredientIds for recipe ${slug}`, e);
+    ingredientIds = [];
+  }
+
+  // Safe parse helpers
+  const safeParseArray = (val: any) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed : [val];
+      } catch {
+        return [val];
+      }
+    }
+    return [];
+  };
+
+  const safeParseInstructions = (val: any) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed : [{ step: 1, text: val }];
+      } catch {
+        return [{ step: 1, text: val }];
+      }
+    }
+    return [];
+  };
 
   return {
     ...recipe,
     estimatedCost: recipe.estimatedCost ? Number(recipe.estimatedCost) : null,
-    instructions: typeof recipe.instructions === 'string' ? JSON.parse(recipe.instructions) : recipe.instructions,
-    tips: recipe.tips ? (typeof recipe.tips === 'string' ? JSON.parse(recipe.tips) : recipe.tips) : [],
-    tags: recipe.tags ? (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : recipe.tags) : [],
+    instructions: safeParseInstructions(recipe.instructions),
+    tips: safeParseArray(recipe.tips),
+    tags: safeParseArray(recipe.tags),
     nutritionPerServing: recipe.nutritionPerServing ? (typeof recipe.nutritionPerServing === 'string' ? JSON.parse(recipe.nutritionPerServing) : recipe.nutritionPerServing) : null,
     ingredientIds,
   };
@@ -88,12 +123,41 @@ async function getRelatedRecipes(
     orderBy: { createdAt: 'desc' },
   });
 
+  // Helper for safe parsing inside map
+  const safeParseArray = (val: any) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed : [val];
+      } catch {
+        return [val];
+      }
+    }
+    return [];
+  };
+
+  const safeParseInstructions = (val: any) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed : [{ step: 1, text: val }];
+      } catch {
+        return [{ step: 1, text: val }];
+      }
+    }
+    return [];
+  };
+
   return recipes.map((r: any) => ({
     ...r,
     estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-    instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
-    tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : [],
-    tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
+    instructions: safeParseInstructions(r.instructions),
+    tips: safeParseArray(r.tips),
+    tags: safeParseArray(r.tags),
     nutritionPerServing: r.nutritionPerServing ? (typeof r.nutritionPerServing === 'string' ? JSON.parse(r.nutritionPerServing) : r.nutritionPerServing) : null,
     ingredientIds: r.ingredientIds ? (typeof r.ingredientIds === 'string' ? JSON.parse(r.ingredientIds) : r.ingredientIds) : [],
   }));
@@ -152,18 +216,9 @@ export default async function RecipePage({ params }: PageProps) {
     notFound();
   }
 
-  // Ensure ingredientIds is always an array
-  const ingredientIdsArray = Array.isArray(recipe.ingredientIds)
-    ? recipe.ingredientIds
-    : (typeof recipe.ingredientIds === 'string' ? JSON.parse(recipe.ingredientIds) : []);
-
-  const tagsArray = Array.isArray(recipe.tags)
-    ? recipe.tags
-    : (typeof recipe.tags === 'string' ? JSON.parse(recipe.tags) : []);
-
-  const tipsArray = Array.isArray(recipe.tips)
-    ? recipe.tips
-    : (typeof recipe.tips === 'string' ? JSON.parse(recipe.tips) : []);
+  const ingredientIdsArray = recipe.ingredientIds as string[] || [];
+  const tagsArray = recipe.tags as string[] || [];
+  const tipsArray = recipe.tips as string[] || [];
 
   const [ingredients, relatedRecipes] = await Promise.all([
     getRecipeIngredients(ingredientIdsArray),
@@ -172,10 +227,7 @@ export default async function RecipePage({ params }: PageProps) {
 
   const difficultyInfo = difficultyConfig[recipe.difficulty as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
 
-  // Ensure instructions is an array for TypeScript
-  const instructionsArray = Array.isArray(recipe.instructions)
-    ? recipe.instructions
-    : (typeof recipe.instructions === 'string' ? JSON.parse(recipe.instructions) : []) as RecipeStep[];
+  const instructionsArray = (recipe.instructions as RecipeStep[]) || [];
 
   // JSON-LD structured data for recipe
   const recipeJsonLd = {
