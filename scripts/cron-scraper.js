@@ -6,7 +6,8 @@
  * Works WITHOUT Puppeteer - uses simple HTTP requests (Hostinger compatible!)
  */
 
-require('dotenv').config({ path: '.env.production' });
+// Load .env.production only if env vars not already set (e.g., by GitHub Actions)
+require('dotenv').config({ path: '.env.production', override: false });
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs').promises;
 const path = require('path');

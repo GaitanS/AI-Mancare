@@ -6,7 +6,8 @@
  * Runs every Monday at 6 AM via GitHub Actions
  */
 
-require('dotenv').config({ path: '.env.production' });
+// Load .env.production only if env vars not already set (e.g., by GitHub Actions)
+require('dotenv').config({ path: '.env.production', override: false });
 const { PrismaClient } = require('@prisma/client');
 const axios = require('axios');
 
