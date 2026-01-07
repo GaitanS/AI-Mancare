@@ -72,6 +72,13 @@ async function generateImage(prompt) {
                     content: prompt,
                 }
             ],
+            // CRITICAL: Force image generation mode
+            modalities: ["image", "text"],
+            // Use 1K resolution to save costs (~$0.039/image vs $0.24 for 4K)
+            image_config: {
+                aspect_ratio: "16:9",
+                image_size: "1K"
+            },
             max_tokens: 4096,
         }),
     });
