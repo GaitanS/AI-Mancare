@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import prisma from '@/lib/db';
+import prisma, { withRetry } from '@/lib/db';
 import { cache, CacheKeys } from '@/lib/cache';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
 import FilterSidebar, { RecipeFilterConfig } from '@/components/FilterSidebar';
@@ -44,7 +44,7 @@ interface PageProps {
   }>;
 }
 
-// Fetch recipes with filters
+// Fetch recipes with filters - OPTIMIZAT cu retry și error handling
 async function getRecipes(filters: RecipeFilters, page: number, pageSize: number) {
   const skip = (page - 1) * pageSize;
 
@@ -93,30 +93,55 @@ async function getRecipes(filters: RecipeFilters, page: number, pageSize: number
   }
 
   try {
-    const [recipes, total] = await Promise.all([
-      prisma.recipe.findMany({
-        where,
-        orderBy,
-        skip,
-        take: pageSize,
-      }),
-      prisma.recipe.count({ where }),
-    ]);
+    // OPTIMIZARE: Folosim withRetry pentru reziliență la connection errors
+    const [recipes, total] = await withRetry(async () => {
+      // CRITICAL: Folosim Promise.all doar pentru 2 queries (nu 4+)
+      return await Promise.all([
+        prisma.recipe.findMany({
+          where,
+          orderBy,
+          skip,
+          take: pageSize,
+          // OPTIMIZARE: Select doar field-urile necesare pentru listă
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            description: true,
+            imageUrl: true,
+            prepTime: true,
+            cookTime: true,
+            totalTime: true,
+            servings: true,
+            difficulty: true,
+            cuisine: true,
+            estimatedCost: true,
+            calories: true,
+            isGlutenFree: true,
+            isDairyFree: true,
+            isVegan: true,
+            isVegetarian: true,
+            createdAt: true,
+          },
+        }),
+        prisma.recipe.count({ where }),
+      ]);
+    });
 
     return {
       recipes: recipes.map((r: any) => ({
         ...r,
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-        instructions: r.instructions as Recipe['instructions'],
-        tips: r.tips as string[] | null,
-        tags: r.tags as string[] | null,
-        nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
+        instructions: [] as Recipe['instructions'], // Nu e nevoie în listă
+        tips: null,
+        tags: null,
+        nutritionPerServing: null,
       })),
       total,
       totalPages: Math.ceil(total / pageSize),
     };
   } catch (error) {
-    console.error('Failed to fetch recipes:', error);
+    console.error('❌ Failed to fetch recipes:', error);
     return {
       recipes: [],
       total: 0,
@@ -125,24 +150,43 @@ async function getRecipes(filters: RecipeFilters, page: number, pageSize: number
   }
 }
 
-// Get filter options
+// Get filter options - OPTIMIZAT cu caching și queries reduse
 async function getFilterOptions(): Promise<RecipeFilterConfig> {
+  // CRITICAL: Cache pentru 1h - filter options se schimbă rar!
+  const cacheKey = 'recipe_filter_options';
+  const cached = await cache.get<RecipeFilterConfig>(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
   try {
-    const [difficultyGroups, costStats, timeStats, tagGroups] = await Promise.all([
-      prisma.recipe.groupBy({
+    // OPTIMIZARE: În loc de 3 queries separate, facem 2 queries cu retry
+    const filterData = await withRetry(async () => {
+      // Query 1: difficulty groups
+      const difficultyGroups = await prisma.recipe.groupBy({
         by: ['difficulty'],
         _count: true,
-      }),
-      prisma.recipe.aggregate({
-        _min: { estimatedCost: true },
-        _max: { estimatedCost: true },
-      }),
-      prisma.recipe.aggregate({
-        _min: { totalTime: true },
-        _max: { totalTime: true },
-      }),
-      Promise.resolve([] as { tag: string; count: number }[]),
-    ]);
+      });
+
+      // Query 2: cost + time stats într-un singur query (SELECT pentru MIN/MAX)
+      const stats = await prisma.$queryRaw<Array<{
+        minCost: number | null;
+        maxCost: number | null;
+        minTime: number | null;
+        maxTime: number | null;
+      }>>`
+        SELECT
+          MIN(estimated_cost) as minCost,
+          MAX(estimated_cost) as maxCost,
+          MIN(total_time) as minTime,
+          MAX(total_time) as maxTime
+        FROM recipes
+        WHERE is_published = 1
+      `;
+
+      return { difficultyGroups, stats: stats[0] };
+    });
 
     const difficultyLabels: Record<string, string> = {
       USOR: 'Usor',
@@ -150,30 +194,36 @@ async function getFilterOptions(): Promise<RecipeFilterConfig> {
       DIFICIL: 'Dificil',
     };
 
-    return {
-      difficulties: difficultyGroups.map((g: any) => ({
+    const result: RecipeFilterConfig = {
+      difficulties: filterData.difficultyGroups.map((g: any) => ({
         value: g.difficulty,
         label: difficultyLabels[g.difficulty] || g.difficulty,
         count: g._count,
       })),
-      tags: (tagGroups || []).map((t: any) => ({
-        value: t.tag,
-        label: t.tag,
-        count: t.count,
-      })),
+      tags: [], // Tags se pot adăuga mai târziu dacă e nevoie
       costRange: {
-        min: Number(costStats._min.estimatedCost) || 0,
-        max: Number(costStats._max.estimatedCost) || 200,
+        min: Number(filterData.stats.minCost) || 0,
+        max: Number(filterData.stats.maxCost) || 200,
       },
       timeRange: {
-        min: Number(timeStats._min.totalTime) || 0,
-        max: Number(timeStats._max.totalTime) || 180,
+        min: Number(filterData.stats.minTime) || 0,
+        max: Number(filterData.stats.maxTime) || 180,
       },
     };
+
+    // Cache pentru 1h (3600s)
+    cache.set(cacheKey, result, 3600);
+
+    return result;
   } catch (error) {
-    console.warn('Failed to fetch recipe filter options:', error);
+    console.error('❌ Failed to fetch recipe filter options:', error);
+    // Returnăm valori default în caz de eroare
     return {
-      difficulties: [],
+      difficulties: [
+        { value: 'USOR', label: 'Usor', count: 0 },
+        { value: 'MEDIU', label: 'Mediu', count: 0 },
+        { value: 'DIFICIL', label: 'Dificil', count: 0 },
+      ],
       tags: [],
       costRange: { min: 0, max: 200 },
       timeRange: { min: 0, max: 180 },
@@ -196,10 +246,10 @@ export default async function RetetePage({ searchParams }: PageProps) {
     sortOrder: params.sortOrder as RecipeFilters['sortOrder'],
   };
 
-  const [{ recipes, total, totalPages }, filterOptions] = await Promise.all([
-    getRecipes(filters, page, pageSize),
-    getFilterOptions(),
-  ]);
+  // OPTIMIZARE: Încărcăm filter options primele (din cache de obicei)
+  // apoi recipes - reduce presiunea pe conexiuni
+  const filterOptions = await getFilterOptions();
+  const { recipes, total, totalPages } = await getRecipes(filters, page, pageSize);
 
   // JSON-LD structured data
   const jsonLd = {

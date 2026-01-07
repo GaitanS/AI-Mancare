@@ -7,7 +7,8 @@ export {
   prisma,
   checkDatabaseHealth,
   getConnectionStats,
-  disconnectDatabase
+  disconnectDatabase,
+  withRetry
 } from './db-config';
 
 export { default } from './db-config';
