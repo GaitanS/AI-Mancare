@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Cron Image Generator - Gemini via OpenRouter
+ * Cron Image Generator - Gemini Pro Image via OpenRouter
  * Generates images for recipes that don't have one
  */
 
@@ -15,7 +15,8 @@ const prisma = new PrismaClient();
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
-const AI_MODEL = process.env.AI_MODEL_VISION || process.env.AI_MODEL || 'google/gemini-3-flash-preview';
+// Use the dedicated image generation model (cheaper than pro)
+const IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 const STORAGE_PATH = process.env.STORAGE_PATH || path.join(__dirname, '../storage');
 
 // Logging utilities
@@ -46,15 +47,14 @@ Do NOT include any text, watermarks, or labels in the image.`;
 }
 
 /**
- * Call OpenRouter/Gemini to generate an image
- * Note: Gemini 3 Flash can generate images natively
+ * Call OpenRouter/Gemini Pro Image to generate an image
  */
 async function generateImage(prompt) {
     if (!OPENROUTER_API_KEY) {
         throw new Error('OPENROUTER_API_KEY not configured');
     }
 
-    log.info(`Generating image with model: ${AI_MODEL}`);
+    log.info(`Generating image with model: ${IMAGE_MODEL}`);
 
     const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
         method: 'POST',
@@ -65,15 +65,13 @@ async function generateImage(prompt) {
             'X-Title': 'CatalogSmart - Recipe Images',
         },
         body: JSON.stringify({
-            model: AI_MODEL,
+            model: IMAGE_MODEL,
             messages: [
                 {
                     role: 'user',
                     content: prompt,
                 }
             ],
-            // Gemini image generation modality
-            modalities: ['text', 'image'],
             max_tokens: 4096,
         }),
     });
@@ -85,21 +83,35 @@ async function generateImage(prompt) {
 
     const data = await response.json();
 
+    // Log the response structure to debug
+    log.info(`Response structure: ${JSON.stringify(data.choices?.[0]?.message?.content?.substring?.(0, 200) || 'structured')}`);
+
     // Extract image from response
-    // Gemini returns images as base64 in the response
     const content = data.choices?.[0]?.message?.content;
 
+    // Check if content is an array (multi-modal response)
     if (Array.isArray(content)) {
-        // Multi-modal response
         for (const part of content) {
             if (part.type === 'image' || part.type === 'image_url') {
-                return part.image_url?.url || part.data;
+                return part.image_url?.url || part.data || part.url;
+            }
+            if (part.image) {
+                return part.image;
             }
         }
     }
 
-    // If no image, return null
-    log.error('No image in response');
+    // Check if there's inline_data in the response (Gemini format)
+    if (data.choices?.[0]?.message?.content_parts) {
+        for (const part of data.choices[0].message.content_parts) {
+            if (part.inline_data?.data) {
+                return `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`;
+            }
+        }
+    }
+
+    // If no image found
+    log.error('No image in response. Content type: ' + typeof content);
     return null;
 }
 

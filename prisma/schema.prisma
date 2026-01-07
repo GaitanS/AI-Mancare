@@ -233,6 +233,7 @@ model Catalog {
   store  String
   title  String
   pdfUrl String @map("pdf_url") @db.Text
+  sourceUrl String? @map("source_url") @db.Text
 
   // Validity Period
   validFrom  DateTime @map("valid_from")
