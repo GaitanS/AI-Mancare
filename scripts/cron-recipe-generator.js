@@ -64,13 +64,13 @@ async function callAI(prompt, systemPrompt = '') {
  */
 async function getProductsOnSale() {
   try {
-    // Try to get products with discounts
+    // Try to get products with discounts (field is discountPercentage in schema)
     const products = await prisma.product.findMany({
       where: {
-        discount: { gt: 0 }
+        discountPercentage: { gt: 0 }
       },
       take: 50,
-      orderBy: { discount: 'desc' }
+      orderBy: { discountPercentage: 'desc' }
     });
 
     if (products.length > 0) {
@@ -175,20 +175,26 @@ async function saveRecipe(recipeData) {
       return null;
     }
 
+    // Schema uses: instructions (LongText), ingredientIds (Text), cookTime, prepTime, tags (Text)
     const recipe = await prisma.recipe.create({
       data: {
         title: recipeData.title,
         slug: slug,
         description: recipeData.description,
-        cookingTime: recipeData.cookingTime || 30,
+        cookTime: recipeData.cookingTime || 30,
+        prepTime: 10,
+        totalTime: (recipeData.cookingTime || 30) + 10,
         servings: recipeData.servings || 4,
-        difficulty: recipeData.difficulty || 'Mediu',
+        difficulty: (recipeData.difficulty || 'mediu').toLowerCase(),
         estimatedCost: recipeData.estimatedCost || 25,
-        ingredients: recipeData.ingredients,
-        steps: recipeData.steps,
+        // ingredientIds stores JSON array of ingredient objects
+        ingredientIds: JSON.stringify(recipeData.ingredients || []),
+        // instructions stores JSON array of steps
+        instructions: JSON.stringify(recipeData.steps || []),
         tips: recipeData.tips || '',
-        tags: recipeData.tags || ['economic'],
-        status: 'PUBLISHED',
+        // tags is a Text field, store as comma-separated or JSON
+        tags: JSON.stringify(recipeData.tags || ['economic']),
+        isPublished: true,
       }
     });
 
