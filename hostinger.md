@@ -176,3 +176,28 @@ env:
 - ➔ Câmpul nu există în `schema.prisma`
 - ➔ Adaugă câmpul și rulează `prisma db push` cu DATABASE_URL remote
 
+**Issue: Website pages empty - "DATABASE_URL not set"**
+- ➔ **Cauză:** Next.js standalone build NU încarcă `.env` automat
+- ➔ **Fix SSH pe Hostinger:**
+```bash
+# 1. Creează .env
+cat > .env << 'EOF'
+DATABASE_URL="mysql://USER:PASS@srv1817.hstgr.io:3306/DATABASE"
+NODE_ENV=production
+EOF
+
+# 2. Adaugă dotenv la începutul server.js
+sed -i "1i require('dotenv').config();" server.js
+
+# 3. Restart app
+touch tmp/restart.txt
+```
+
+---
+
+## 🔧 Post-Deploy Checklist
+
+1. ✅ `.env` există pe Hostinger cu `DATABASE_URL` corect
+2. ✅ `server.js` are `require('dotenv').config();` la început
+3. ✅ `tmp/restart.txt` touched pentru restart
+4. ✅ Verifică `stderr.log` pentru erori
