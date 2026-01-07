@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * Cron Scraper - MonitorulPreturilor.info
- * Runs every Monday at 2 AM to scrape new catalogs
+ * Cron Scraper - Kimbino.ro (Romanian Catalog Aggregator)
+ * Runs weekly to scrape new catalogs from major supermarkets
+ * Works WITHOUT Puppeteer - uses simple HTTP requests (Hostinger compatible!)
  */
 
 require('dotenv').config({ path: '.env.production' });
-const puppeteer = require('puppeteer');
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
+const cheerio = require('cheerio');
 
 const prisma = new PrismaClient();
 const STORAGE_PATH = process.env.STORAGE_PATH || path.join(__dirname, '../storage');
@@ -22,80 +23,54 @@ const log = {
   success: (msg) => console.log(`[SCRAPER] [SUCCESS] ${new Date().toISOString()} - ${msg}`),
 };
 
+// Stores we want to scrape
+const TARGET_STORES = [
+  { slug: 'lidl', name: 'Lidl' },
+  { slug: 'kaufland', name: 'Kaufland' },
+  { slug: 'penny', name: 'Penny' },
+  { slug: 'profi', name: 'Profi' },
+  { slug: 'mega-image', name: 'Mega Image' },
+  { slug: 'carrefour', name: 'Carrefour' },
+];
+
 /**
- * Download PDF file from URL
+ * Fetch page content with proper headers
  */
-async function downloadPDF(url, filename) {
+async function fetchPage(url) {
   try {
-    log.info(`Downloading PDF: ${filename}`);
-
-    const response = await axios({
-      method: 'GET',
-      url: url,
-      responseType: 'stream',
-      timeout: 60000, // 60 seconds timeout
+    const response = await axios.get(url, {
       headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ro-RO,ro;q=0.9,en;q=0.8',
       },
+      timeout: 30000,
     });
-
-    const filePath = path.join(STORAGE_PATH, 'catalogs', filename);
-
-    // Ensure directory exists
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-
-    const writer = require('fs').createWriteStream(filePath);
-    response.data.pipe(writer);
-
-    return new Promise((resolve, reject) => {
-      writer.on('finish', () => {
-        log.success(`Downloaded: ${filename}`);
-        resolve(filePath);
-      });
-      writer.on('error', reject);
-    });
+    return response.data;
   } catch (error) {
-    log.error(`Failed to download PDF: ${error.message}`);
-    throw error;
+    log.error(`Failed to fetch ${url}: ${error.message}`);
+    return null;
   }
 }
 
 /**
- * Parse date range from Romanian format
- * Examples: "10.12 - 17.12.2024", "5-18.12.2024"
+ * Parse date range from Kimbino format
+ * Example: "07.01.2026 - 13.01.2026"
  */
 function parseDateRange(dateString) {
   try {
-    // Remove extra whitespace
-    const cleaned = dateString.trim().replace(/\s+/g, ' ');
+    const pattern = /(\d{2})\.(\d{2})\.(\d{4})\s*-\s*(\d{2})\.(\d{2})\.(\d{4})/;
+    const match = dateString.match(pattern);
 
-    // Pattern: DD.MM - DD.MM.YYYY or D.MM - DD.MM.YYYY
-    const pattern1 = /(\d{1,2})\.(\d{2})\s*-\s*(\d{1,2})\.(\d{2})\.(\d{4})/;
-    const match1 = cleaned.match(pattern1);
-
-    if (match1) {
-      const [_, startDay, startMonth, endDay, endMonth, year] = match1;
+    if (match) {
+      const [_, startDay, startMonth, startYear, endDay, endMonth, endYear] = match;
       return {
-        start: new Date(`${year}-${startMonth}-${startDay.padStart(2, '0')}`),
-        end: new Date(`${year}-${endMonth}-${endDay.padStart(2, '0')}`),
+        start: new Date(`${startYear}-${startMonth}-${startDay}`),
+        end: new Date(`${endYear}-${endMonth}-${endDay}`),
       };
     }
 
-    // Pattern: DD-DD.MM.YYYY
-    const pattern2 = /(\d{1,2})\s*-\s*(\d{1,2})\.(\d{2})\.(\d{4})/;
-    const match2 = cleaned.match(pattern2);
-
-    if (match2) {
-      const [_, startDay, endDay, month, year] = match2;
-      return {
-        start: new Date(`${year}-${month}-${startDay.padStart(2, '0')}`),
-        end: new Date(`${year}-${month}-${endDay.padStart(2, '0')}`),
-      };
-    }
-
-    // Fallback: 7 days from now
-    log.error(`Could not parse date: ${dateString}, using default 7 days`);
+    // Fallback
     return {
       start: new Date(),
       end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -110,170 +85,224 @@ function parseDateRange(dateString) {
 }
 
 /**
- * Extract store name from title or other fields
+ * Scrape Kimbino.ro homepage for all catalogs
  */
-function extractStoreName(title, url) {
-  const stores = [
-    'Lidl',
-    'Kaufland',
-    'Penny',
-    'Carrefour',
-    'Auchan',
-    'Mega Image',
-    'Profi',
-    'La Doi Pași',
-    'Cora',
-  ];
+async function scrapeKimbinoHomepage() {
+  log.info('Scraping Kimbino.ro homepage...');
 
-  // Check title first
-  for (const store of stores) {
-    if (title.toLowerCase().includes(store.toLowerCase())) {
-      return store;
+  const html = await fetchPage('https://kimbino.ro');
+  if (!html) return [];
+
+  const $ = cheerio.load(html);
+  const catalogs = [];
+
+  // Find catalog links on the homepage
+  $('a[href*="/catalog-"]').each((i, elem) => {
+    const link = $(elem).attr('href');
+    const text = $(elem).text().trim();
+
+    // Extract date from text (format: "07.01.2026 - 13.01.2026")
+    const dateMatch = text.match(/(\d{2}\.\d{2}\.\d{4})\s*-\s*(\d{2}\.\d{2}\.\d{4})/);
+
+    if (link && link.includes('kimbino.ro')) {
+      // Extract store name from URL
+      const storeMatch = link.match(/kimbino\.ro\/([^\/]+)\//);
+      const storeSlug = storeMatch ? storeMatch[1] : 'unknown';
+
+      catalogs.push({
+        url: link.startsWith('http') ? link : `https://kimbino.ro${link}`,
+        storeName: storeSlug,
+        dateRange: dateMatch ? `${dateMatch[1]} - ${dateMatch[2]}` : null,
+      });
     }
-  }
+  });
 
-  // Check URL
-  for (const store of stores) {
-    if (url.toLowerCase().includes(store.toLowerCase())) {
-      return store;
-    }
-  }
-
-  // Default
-  return 'Unknown';
+  log.info(`Found ${catalogs.length} catalog links on homepage`);
+  return catalogs;
 }
 
 /**
- * Scrape MonitorulPreturilor.info for new catalogs
+ * Scrape individual store page for catalog details
  */
-async function scrapeMonitorulPreturilor() {
-  log.info('Starting scraping MonitorulPreturilor.info');
+async function scrapeStoreCatalogs(storeSlug, storeName) {
+  log.info(`Scraping catalogs for ${storeName}...`);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu',
-    ],
+  const url = `https://kimbino.ro/${storeSlug}/`;
+  const html = await fetchPage(url);
+  if (!html) return [];
+
+  const $ = cheerio.load(html);
+  const catalogs = [];
+
+  // Find catalog cards
+  $('a.leaflet-card, a[href*="/catalog-"], .catalog-item a').each((i, elem) => {
+    const link = $(elem).attr('href');
+    const title = $(elem).find('.title, h2, h3').text().trim() || $(elem).text().trim();
+
+    // Find date info
+    const dateText = $(elem).find('.date, .validity, time').text().trim();
+    const dates = parseDateRange(dateText);
+
+    // Find PDF link if available
+    const pdfLink = $(elem).find('a[href*=".pdf"]').attr('href') || null;
+
+    if (link) {
+      catalogs.push({
+        title: title || `Catalog ${storeName}`,
+        url: link.startsWith('http') ? link : `https://kimbino.ro${link}`,
+        pdfUrl: pdfLink,
+        storeName: storeName,
+        validFrom: dates.start,
+        validUntil: dates.end,
+      });
+    }
   });
 
+  // Deduplicate by URL
+  const unique = [...new Map(catalogs.map(c => [c.url, c])).values()];
+
+  log.info(`Found ${unique.length} catalogs for ${storeName}`);
+  return unique;
+}
+
+/**
+ * Scrape catalog page for products (if Kimbino shows them)
+ */
+async function scrapeCatalogProducts(catalogUrl) {
+  log.info(`Scraping products from ${catalogUrl}...`);
+
+  const html = await fetchPage(catalogUrl);
+  if (!html) return [];
+
+  const $ = cheerio.load(html);
+  const products = [];
+
+  // Try to find product listings
+  $('.product, .offer-item, .product-card').each((i, elem) => {
+    const name = $(elem).find('.product-name, .title, h3').text().trim();
+    const priceText = $(elem).find('.price, .current-price').text().trim();
+    const oldPriceText = $(elem).find('.old-price, .original-price').text().trim();
+
+    const price = parseFloat(priceText.replace(/[^\d.,]/g, '').replace(',', '.'));
+    const oldPrice = oldPriceText ?
+      parseFloat(oldPriceText.replace(/[^\d.,]/g, '').replace(',', '.')) : null;
+
+    if (name && !isNaN(price)) {
+      products.push({
+        name,
+        price,
+        originalPrice: oldPrice,
+        discount: oldPrice ? Math.round((1 - price / oldPrice) * 100) : 0,
+      });
+    }
+  });
+
+  log.info(`Extracted ${products.length} products from catalog`);
+  return products;
+}
+
+/**
+ * Save catalog to database
+ */
+async function saveCatalog(catalog) {
   try {
-    const page = await browser.newPage();
-
-    // Set user agent
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    );
-
-    log.info('Navigating to MonitorulPreturilor.info');
-    await page.goto('https://monitorulpreturilor.info/', {
-      waitUntil: 'networkidle2',
-      timeout: 60000,
+    // Check if already exists
+    const existing = await prisma.catalog.findFirst({
+      where: {
+        store: catalog.storeName,
+        validFrom: catalog.validFrom,
+        validUntil: catalog.validUntil,
+      }
     });
 
-    log.info('Extracting catalog links');
+    if (existing) {
+      log.info(`Catalog ${catalog.storeName} already exists, skipping`);
+      return existing;
+    }
 
-    // Extract catalog links
-    const catalogs = await page.evaluate(() => {
-      const items = document.querySelectorAll('article.brosura, .catalog-item, .brosura-item');
-      return Array.from(items)
-        .map((item) => {
-          // Try to find PDF link
-          const pdfLink = item.querySelector('a[href*=".pdf" i]');
-          if (!pdfLink) return null;
-
-          // Extract title
-          const titleEl =
-            item.querySelector('h2, h3, .title, .catalog-title') || pdfLink;
-          const title = titleEl?.textContent?.trim() || pdfLink.href.split('/').pop();
-
-          // Extract valid dates
-          const datesEl = item.querySelector('.valid-dates, .perioada, time');
-          const validPeriod = datesEl?.textContent?.trim() || '';
-
-          return {
-            title,
-            pdfUrl: pdfLink.href,
-            validPeriod,
-          };
-        })
-        .filter((c) => c !== null);
+    // Create new catalog
+    const saved = await prisma.catalog.create({
+      data: {
+        store: catalog.storeName,
+        title: catalog.title,
+        sourceUrl: catalog.url,
+        pdfUrl: catalog.pdfUrl || '',
+        validFrom: catalog.validFrom,
+        validUntil: catalog.validUntil,
+        status: 'PENDING',
+      }
     });
 
-    log.info(`Found ${catalogs.length} potential catalogs`);
+    log.success(`Saved catalog: ${catalog.storeName} - ${catalog.title}`);
+    return saved;
 
-    let downloadedCount = 0;
+  } catch (error) {
+    log.error(`Failed to save catalog: ${error.message}`);
+    return null;
+  }
+}
 
-    for (const catalog of catalogs) {
+/**
+ * Main scraping function
+ */
+async function runScraper() {
+  log.info('========================================');
+  log.info('Starting Kimbino.ro Catalog Scraper');
+  log.info('========================================');
+
+  const startTime = Date.now();
+  let catalogsFound = 0;
+  let catalogsSaved = 0;
+
+  try {
+    // Scrape each target store
+    for (const store of TARGET_STORES) {
       try {
-        // Extract store name
-        const store = extractStoreName(catalog.title, catalog.pdfUrl);
+        await delay(2000); // Rate limiting
 
-        log.info(`Processing: ${catalog.title} (${store})`);
+        const catalogs = await scrapeStoreCatalogs(store.slug, store.name);
+        catalogsFound += catalogs.length;
 
-        // Check if already exists
-        const existing = await prisma.catalog.findFirst({
-          where: { pdfUrl: catalog.pdfUrl },
-        });
-
-        if (existing) {
-          log.info(`Already exists, skipping: ${catalog.title}`);
-          continue;
+        // Save each catalog
+        for (const catalog of catalogs) {
+          const saved = await saveCatalog(catalog);
+          if (saved) catalogsSaved++;
         }
 
-        // Parse dates
-        const dates = parseDateRange(catalog.validPeriod);
-        log.info(`Valid from ${dates.start.toISOString()} to ${dates.end.toISOString()}`);
-
-        // Download PDF
-        const filename = `${store}_${Date.now()}.pdf`;
-        const localPath = await downloadPDF(catalog.pdfUrl, filename);
-
-        // Insert to database
-        await prisma.catalog.create({
-          data: {
-            store,
-            title: catalog.title,
-            pdfUrl: catalog.pdfUrl,
-            pdfLocalPath: localPath,
-            validFrom: dates.start,
-            validUntil: dates.end,
-            status: 'PENDING',
-          },
-        });
-
-        log.success(`Saved catalog: ${catalog.title}`);
-        downloadedCount++;
-
-        // Rate limiting - don't overwhelm the server
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      } catch (error) {
-        log.error(`Error processing catalog ${catalog.title}: ${error.message}`);
-        // Continue with next catalog
+      } catch (storeError) {
+        log.error(`Error scraping ${store.name}: ${storeError.message}`);
       }
     }
 
-    log.success(`Scraping completed. Downloaded ${downloadedCount} new catalogs`);
-    return downloadedCount;
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    log.success('========================================');
+    log.success(`Scraping completed in ${duration}s`);
+    log.success(`Found: ${catalogsFound} catalogs`);
+    log.success(`Saved: ${catalogsSaved} new catalogs`);
+    log.success('========================================');
+
+    return { catalogsFound, catalogsSaved };
+
   } catch (error) {
-    log.error(`Fatal scraping error: ${error.message}`);
+    log.error(`Fatal error: ${error.message}`);
     throw error;
   } finally {
-    await browser.close();
     await prisma.$disconnect();
   }
 }
 
-// Main execution
+/**
+ * Helper: delay execution
+ */
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Run if called directly
 if (require.main === module) {
-  scrapeMonitorulPreturilor()
-    .then((count) => {
-      log.success(`Job finished successfully. Downloaded ${count} catalogs`);
+  runScraper()
+    .then((result) => {
+      log.success(`Job finished. Found ${result.catalogsFound}, saved ${result.catalogsSaved}`);
       process.exit(0);
     })
     .catch((error) => {
@@ -283,4 +312,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { scrapeMonitorulPreturilor, parseDateRange };
+module.exports = { runScraper };
