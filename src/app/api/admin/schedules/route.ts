@@ -21,19 +21,27 @@ export async function GET() {
 
         // If no schedules exist, create defaults
         if (schedules.length === 0) {
-            await prisma.scheduleConfig.createMany({
-                data: DEFAULT_SCHEDULES,
-            });
-            schedules = await prisma.scheduleConfig.findMany({
-                orderBy: { taskName: 'asc' },
-            });
+            try {
+                await prisma.scheduleConfig.createMany({
+                    data: DEFAULT_SCHEDULES,
+                });
+                schedules = await prisma.scheduleConfig.findMany({
+                    orderBy: { taskName: 'asc' },
+                });
+            } catch {
+                // Table might not exist yet, return defaults
+                return NextResponse.json({ schedules: DEFAULT_SCHEDULES });
+            }
         }
 
         return NextResponse.json({ schedules });
     } catch (error: unknown) {
         console.error('Failed to fetch schedules:', error);
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        return NextResponse.json({ error: message }, { status: 500 });
+        // Fallback: return default schedules if DB fails (table doesn't exist)
+        return NextResponse.json({
+            schedules: DEFAULT_SCHEDULES,
+            _fallback: true
+        });
     }
 }
 
