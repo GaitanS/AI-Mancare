@@ -24,7 +24,47 @@ interface Recipe {
     availableStores?: string[]; // Added
 }
 
-// ... (Other interfaces)
+interface FullRecipe extends Recipe {
+    instructions: { step: number; text: string }[];
+    tips: string[];
+    nutritionPerServing: {
+        calories?: number;
+        protein?: number;
+        carbs?: number;
+        fat?: number;
+    } | null;
+    ingredients: {
+        id: string;
+        name: string;
+        price: number;
+        originalPrice: number | null;
+        store: string;
+        unit: string;
+        quantity: number;
+    }[];
+}
+
+interface PlannedRecipe {
+    recipeId: string;
+    recipeTitle: string;
+    portions: number;
+    day: string | null;
+    ingredients: {
+        id: string;
+        name: string;
+        price: number;
+        quantity: number;
+        unit: string;
+        scaledQuantity: number;
+    }[];
+}
+
+interface MealPlan {
+    recipes: PlannedRecipe[];
+    updatedAt: string;
+}
+
+const STORAGE_KEY = 'mealPlan';
 
 export default function PlanPage() {
     const [recipes, setRecipes] = useState<Recipe[]>([]);
