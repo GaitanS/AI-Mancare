@@ -145,11 +145,52 @@ IMPORTANT:
   }
 }
 
+// Status Interface
+interface RecipeStatus {
+  running: boolean;
+  current: number;
+  total: number;
+  message: string;
+  complete?: boolean;
+  error?: string;
+  generatedCount?: number;
+  updatedAt?: string;
+}
+
+// Helper to update status file
+async function updateStatus(status: RecipeStatus) {
+  // We need to use fs/promises here, but since this runs in Next.js API context, 
+  // we should be careful. Using 'fs' usually works in API routes/scripts.
+  // However, if we were in Edge, this would fail. We assume Node runtime.
+  try {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const storagePath = path.join(process.cwd(), 'storage');
+    const statusPath = path.join(storagePath, 'recipes-status.json');
+
+    await fs.mkdir(storagePath, { recursive: true });
+    await fs.writeFile(statusPath, JSON.stringify({
+      ...status,
+      updatedAt: new Date().toISOString()
+    }, null, 2));
+  } catch (e) {
+    console.error('Failed to update recipe status file:', e);
+  }
+}
+
 /**
  * Generate weekly recipes based on current offers
  */
 export async function generateWeeklyRecipes(count: number = 10): Promise<string[]> {
   console.log('[RECIPE GEN] Starting weekly recipe generation');
+
+  await updateStatus({
+    running: true,
+    current: 0,
+    total: count,
+    message: 'Starting recipe generation...',
+    generatedCount: 0
+  });
 
   try {
     // Get products with active offers (biggest discounts first)
@@ -169,13 +210,31 @@ export async function generateWeeklyRecipes(count: number = 10): Promise<string[
 
     if (products.length === 0) {
       console.warn('[RECIPE GEN] No products found with active offers');
+      await updateStatus({
+        running: false,
+        current: 0,
+        total: count,
+        message: 'No products found with offers. Stopping.',
+        complete: true,
+        generatedCount: 0
+      });
       return [];
     }
+
 
     const recipeIds: string[] = [];
 
     // Generate diverse recipes with different constraints
     for (let i = 0; i < count; i++) {
+      // Update status for current item
+      await updateStatus({
+        running: true,
+        current: i + 1,
+        total: count,
+        message: `Generating recipe ${i + 1}/${count}...`,
+        generatedCount: recipeIds.length
+      });
+
       try {
         console.log(`[RECIPE GEN] Generating recipe ${i + 1}/${count}`);
 
@@ -247,9 +306,31 @@ export async function generateWeeklyRecipes(count: number = 10): Promise<string[
     }
 
     console.log(`[RECIPE GEN] Generated ${recipeIds.length} recipes successfully`);
+
+    // Final success status
+    await updateStatus({
+      running: false,
+      current: count,
+      total: count,
+      message: `Complete! Generated ${recipeIds.length} new recipes.`,
+      complete: true,
+      generatedCount: recipeIds.length
+    });
+
     return recipeIds;
-  } catch (error) {
+  } catch (error: any) {
     console.error('[RECIPE GEN] Fatal error:', error);
+
+    // Error status
+    await updateStatus({
+      running: false,
+      current: 0,
+      total: count,
+      message: `Error: ${error.message}`,
+      error: error.message,
+      complete: false
+    });
+
     throw error;
   }
 }

@@ -35,23 +35,33 @@ export default function AdminPage() {
         message?: string;
         complete?: boolean;
     } | null>(null);
+    const [recipeStatus, setRecipeStatus] = useState<{
+        running: boolean;
+        current?: number;
+        total?: number;
+        message?: string;
+        complete?: boolean;
+        generatedCount?: number;
+    } | null>(null);
 
     useEffect(() => {
         fetchStats();
         fetchSchedules();
         fetchScraperStatus();
+        fetchRecipeStatus();
     }, []);
 
-    // Poll scraper status when running
+    // Poll statuses when running
     useEffect(() => {
-        if (!scraperStatus?.running) return;
+        if (!scraperStatus?.running && !recipeStatus?.running) return;
 
         const interval = setInterval(() => {
-            fetchScraperStatus();
+            if (scraperStatus?.running) fetchScraperStatus();
+            if (recipeStatus?.running) fetchRecipeStatus();
         }, 2000);
 
         return () => clearInterval(interval);
-    }, [scraperStatus?.running]);
+    }, [scraperStatus?.running, recipeStatus?.running]);
 
     const fetchScraperStatus = async () => {
         try {
@@ -65,6 +75,21 @@ export default function AdminPage() {
             }
         } catch (e) {
             console.error('Failed to fetch scraper status', e);
+        }
+    };
+
+    const fetchRecipeStatus = async () => {
+        try {
+            const res = await fetch('/api/admin/recipe-status');
+            if (res.ok) {
+                const data = await res.json();
+                setRecipeStatus(data);
+                if (data.complete && !data.running) {
+                    fetchStats(); // Refresh stats after completion
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch recipe status', e);
         }
     };
 
@@ -232,8 +257,8 @@ export default function AdminPage() {
                             onClick={() => { handleRunScript('scrape'); fetchScraperStatus(); }}
                             disabled={scraperStatus?.running}
                             className={`w-full py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-primary-900/20 flex items-center justify-center gap-2 ${scraperStatus?.running
-                                    ? 'opacity-50 cursor-not-allowed'
-                                    : 'hover:from-primary-500 hover:to-primary-600 active:scale-95'
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'hover:from-primary-500 hover:to-primary-600 active:scale-95'
                                 }`}
                         >
                             {scraperStatus?.running ? '⏳ Se rulează...' : '🚀 Pornește Scanarea'}
@@ -244,17 +269,45 @@ export default function AdminPage() {
                     <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-accent-500/30 transition-all">
                         <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-accent-500 select-none -translate-y-2 translate-x-2">AI</div>
                         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                            <span className={`w-2 h-2 rounded-full ${recipeStatus?.running ? 'bg-amber-500' : 'bg-purple-500'} animate-pulse`}></span>
                             Generator Rețete
                         </h2>
-                        <p className="text-neutral-400 text-sm mb-6">
+                        <p className="text-neutral-400 text-sm mb-4">
                             Folosește AI (Gemini/OpenRouter) pentru a crea rețete economice bazate pe ofertele curente din cataloage.
                         </p>
+
+                        {/* Progress Bar */}
+                        {recipeStatus?.running && (
+                            <div className="mb-4">
+                                <div className="flex justify-between text-xs text-neutral-400 mb-1">
+                                    <span>{recipeStatus.message || 'Generăm...'}</span>
+                                    <span>{recipeStatus.current || 0}/{recipeStatus.total || 0}</span>
+                                </div>
+                                <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-accent-500 to-accent-400 rounded-full transition-all duration-500 ease-out"
+                                        style={{ width: `${((recipeStatus.current || 0) / (recipeStatus.total || 10)) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Completion Message */}
+                        {recipeStatus?.complete && !recipeStatus?.running && (
+                            <div className="mb-4 p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-lg text-emerald-400 text-sm">
+                                ✅ {recipeStatus.message}
+                            </div>
+                        )}
+
                         <button
-                            onClick={() => handleRunScript('recipes')}
-                            className="w-full py-3 bg-gradient-to-r from-accent-600 to-accent-700 hover:from-accent-500 hover:to-accent-600 text-white font-bold rounded-lg transition-all shadow-lg shadow-accent-900/20 active:scale-95 flex items-center justify-center gap-2"
+                            onClick={() => { handleRunScript('recipes'); fetchRecipeStatus(); }}
+                            disabled={recipeStatus?.running}
+                            className={`w-full py-3 bg-gradient-to-r from-accent-600 to-accent-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-accent-900/20 flex items-center justify-center gap-2 ${recipeStatus?.running
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : 'hover:from-accent-500 hover:to-accent-600 active:scale-95'
+                                }`}
                         >
-                            ✨ Generează Rețete
+                            {recipeStatus?.running ? '✨ Se generează...' : '✨ Generează Rețete'}
                         </button>
                     </div>
                 </div>
