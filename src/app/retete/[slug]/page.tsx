@@ -14,7 +14,7 @@ interface Props {
     }>;
 }
 
-// Helper types for JSON fields
+// Interfaces
 interface RecipeStep {
     step: number;
     text: string;
@@ -27,17 +27,25 @@ interface Nutrition {
     fat: number;
 }
 
+interface Ingredient {
+    id: string;
+    name: string;
+    price: number;
+    originalPrice: number | null;
+    store: string;
+    unit: string;
+    quantity: number;
+}
+
 async function getRecipe(slug: string) {
     const recipe = await prisma.recipe.findUnique({
         where: { slug },
-        include: {
-            ingredients: true,
-        },
+        // No include needed as ingredients are in ingredientIds JSON
     });
 
     if (!recipe) return null;
 
-    // Parse JSON fields if necessary
+    // Parse Tags
     let parsedTags: string[] = [];
     if (recipe.tags) {
         if (typeof recipe.tags === 'string') {
@@ -51,20 +59,31 @@ async function getRecipe(slug: string) {
         }
     }
 
+    // Parse Instructions and Normalize
     let parsedInstructions: RecipeStep[] = [];
     if (recipe.instructions) {
+        let rawInstructions: any = [];
         if (typeof recipe.instructions === 'string') {
             try {
-                parsedInstructions = JSON.parse(recipe.instructions);
+                rawInstructions = JSON.parse(recipe.instructions);
             } catch {
-                parsedInstructions = [];
+                rawInstructions = [];
             }
-        } else if (Array.isArray(recipe.instructions)) {
-            // Prisma JSON array to typed array
-            parsedInstructions = recipe.instructions as unknown as RecipeStep[];
+        } else {
+            rawInstructions = recipe.instructions;
+        }
+
+        if (Array.isArray(rawInstructions)) {
+            parsedInstructions = rawInstructions.map((item: any, index: number) => {
+                if (typeof item === 'string') {
+                    return { step: index + 1, text: item };
+                }
+                return item as RecipeStep;
+            });
         }
     }
 
+    // Parse Tips
     let parsedTips: string[] = [];
     if (recipe.tips) {
         if (typeof recipe.tips === 'string') {
@@ -78,6 +97,7 @@ async function getRecipe(slug: string) {
         }
     }
 
+    // Parse Nutrition
     let parsedNutrition: Nutrition | null = null;
     if (recipe.nutritionPerServing) {
         if (typeof recipe.nutritionPerServing === 'string') {
@@ -91,12 +111,34 @@ async function getRecipe(slug: string) {
         }
     }
 
+    // Parse Ingredients from ingredientIds
+    let parsedIngredients: Ingredient[] = [];
+    if (recipe.ingredientIds) {
+        if (typeof recipe.ingredientIds === 'string') {
+            try {
+                // Assuming ingredientIds actually stores the full ingredient objects snapshot
+                parsedIngredients = JSON.parse(recipe.ingredientIds);
+            } catch {
+                parsedIngredients = [];
+            }
+        } else {
+            // If it's already an object (Prisma Json type)
+            parsedIngredients = recipe.ingredientIds as unknown as Ingredient[];
+        }
+    }
+
+    // Ensure it's an array
+    if (!Array.isArray(parsedIngredients)) {
+        parsedIngredients = [];
+    }
+
     return {
         ...recipe,
         tags: parsedTags,
         instructions: parsedInstructions,
         tips: parsedTips,
         nutritionPerServing: parsedNutrition,
+        ingredients: parsedIngredients, // Explicitly provide ingredients
     };
 }
 
@@ -232,11 +274,11 @@ export default async function RecipePage(props: Props) {
                                 {recipe.instructions.map((step, idx: number) => (
                                     <div key={idx} className="flex gap-4 group">
                                         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white border-2 border-primary-100 text-primary-700 font-bold flex items-center justify-center shadow-sm group-hover:border-primary-500 group-hover:bg-primary-50 transition-colors">
-                                            {step.step || idx + 1}
+                                            {step.step}
                                         </div>
                                         <div className="pt-2">
                                             <p className="text-neutral-700 leading-relaxed text-lg">
-                                                {step.text || step}
+                                                {step.text}
                                             </p>
                                         </div>
                                     </div>
