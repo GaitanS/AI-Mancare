@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { formatPrice } from '@/lib/utils';
-import { notFound as notFoundPage } from 'next/navigation';
+import { Recipe } from '@/types';
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -12,6 +12,19 @@ interface Props {
     params: Promise<{
         slug: string;
     }>;
+}
+
+// Helper types for JSON fields
+interface RecipeStep {
+    step: number;
+    text: string;
+}
+
+interface Nutrition {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
 }
 
 async function getRecipe(slug: string) {
@@ -25,48 +38,65 @@ async function getRecipe(slug: string) {
     if (!recipe) return null;
 
     // Parse JSON fields if necessary
-    let parsedTags = recipe.tags;
-    if (typeof parsedTags === 'string') {
-        try {
-            parsedTags = JSON.parse(parsedTags);
-        } catch {
-            parsedTags = [];
+    let parsedTags: string[] = [];
+    if (recipe.tags) {
+        if (typeof recipe.tags === 'string') {
+            try {
+                parsedTags = JSON.parse(recipe.tags);
+            } catch {
+                parsedTags = [];
+            }
+        } else if (Array.isArray(recipe.tags)) {
+            parsedTags = recipe.tags as string[];
         }
     }
 
-    let parsedInstructions = recipe.instructions;
-    if (typeof parsedInstructions === 'string') {
-        try {
-            parsedInstructions = JSON.parse(parsedInstructions);
-        } catch {
-            parsedInstructions = [];
+    let parsedInstructions: RecipeStep[] = [];
+    if (recipe.instructions) {
+        if (typeof recipe.instructions === 'string') {
+            try {
+                parsedInstructions = JSON.parse(recipe.instructions);
+            } catch {
+                parsedInstructions = [];
+            }
+        } else if (Array.isArray(recipe.instructions)) {
+            // Prisma JSON array to typed array
+            parsedInstructions = recipe.instructions as unknown as RecipeStep[];
         }
     }
 
-    let parsedTips = recipe.tips;
-    if (typeof parsedTips === 'string') {
-        try {
-            parsedTips = JSON.parse(parsedTips);
-        } catch {
-            parsedTips = [];
+    let parsedTips: string[] = [];
+    if (recipe.tips) {
+        if (typeof recipe.tips === 'string') {
+            try {
+                parsedTips = JSON.parse(recipe.tips);
+            } catch {
+                parsedTips = [];
+            }
+        } else if (Array.isArray(recipe.tips)) {
+            parsedTips = recipe.tips as string[];
         }
     }
 
-    let parsedNutrition = recipe.nutritionPerServing;
-    if (typeof parsedNutrition === 'string') {
-        try {
-            parsedNutrition = JSON.parse(parsedNutrition);
-        } catch {
-            parsedNutrition = null;
+    let parsedNutrition: Nutrition | null = null;
+    if (recipe.nutritionPerServing) {
+        if (typeof recipe.nutritionPerServing === 'string') {
+            try {
+                parsedNutrition = JSON.parse(recipe.nutritionPerServing);
+            } catch {
+                parsedNutrition = null;
+            }
+        } else {
+            parsedNutrition = recipe.nutritionPerServing as unknown as Nutrition;
         }
     }
 
     return {
         ...recipe,
-        tags: Array.isArray(parsedTags) ? parsedTags : [],
-        instructions: Array.isArray(parsedInstructions) ? parsedInstructions : [],
-        tips: Array.isArray(parsedTips) ? parsedTips : [],
-        nutritionPerServing: parsedNutrition as any,
+        tags: parsedTags,
+        instructions: parsedInstructions,
+        tips: parsedTips,
+        nutritionPerServing: parsedNutrition,
     };
 }
 
@@ -199,7 +229,7 @@ export default async function RecipePage(props: Props) {
                                 Mod de preparare
                             </h2>
                             <div className="space-y-8">
-                                {recipe.instructions.map((step: any, idx: number) => (
+                                {recipe.instructions.map((step, idx: number) => (
                                     <div key={idx} className="flex gap-4 group">
                                         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white border-2 border-primary-100 text-primary-700 font-bold flex items-center justify-center shadow-sm group-hover:border-primary-500 group-hover:bg-primary-50 transition-colors">
                                             {step.step || idx + 1}
@@ -246,7 +276,7 @@ export default async function RecipePage(props: Props) {
                                 Ingrediente
                             </h3>
                             <ul className="space-y-4">
-                                {recipe.ingredients.map((ing: any) => (
+                                {recipe.ingredients.map((ing) => (
                                     <li key={ing.id} className="flex items-start justify-between gap-4 pb-4 border-b border-neutral-50 last:border-0 last:pb-0">
                                         <div>
                                             <div className="font-medium text-neutral-800">{ing.name}</div>
