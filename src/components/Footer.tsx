@@ -5,9 +5,11 @@ const footerLinks = {
     { name: 'Kaufland', href: '/cataloage/kaufland' },
     { name: 'Lidl', href: '/cataloage/lidl' },
     { name: 'Penny', href: '/cataloage/penny' },
+    { name: 'Profi', href: '/cataloage/profi' },
     { name: 'Carrefour', href: '/cataloage/carrefour' },
     { name: 'Mega Image', href: '/cataloage/mega-image' },
     { name: 'Auchan', href: '/cataloage/auchan' },
+    { name: 'Selgros', href: '/cataloage/selgros' },
   ],
   categorii: [
     { name: 'Carne si Mezeluri', href: '/cataloage?category=carne' },

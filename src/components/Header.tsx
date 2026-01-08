@@ -19,9 +19,11 @@ const stores = [
   { name: 'Kaufland', href: '/cataloage/kaufland', color: 'from-[#e10915] to-[#c00812]' },
   { name: 'Lidl', href: '/cataloage/lidl', color: 'from-[#0050aa] to-[#003d82]' },
   { name: 'Penny', href: '/cataloage/penny', color: 'from-[#cd1719] to-[#a81315]' },
+  { name: 'Profi', href: '/cataloage/profi', color: 'from-[#e4002b] to-[#b80022]' },
   { name: 'Carrefour', href: '/cataloage/carrefour', color: 'from-[#004e9e] to-[#003a76]' },
   { name: 'Mega Image', href: '/cataloage/mega-image', color: 'from-[#e31837] to-[#b8142d]' },
   { name: 'Auchan', href: '/cataloage/auchan', color: 'from-[#e2001a] to-[#b80016]' },
+  { name: 'Selgros', href: '/cataloage/selgros', color: 'from-[#003366] to-[#002244]' },
 ];
 
 export default function Header() {
