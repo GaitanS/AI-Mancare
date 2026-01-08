@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import CatalogViewer from '@/components/catalog/CatalogViewer';
+import CatalogList from '@/components/catalog/CatalogList';
 
 export const metadata: Metadata = {
     title: 'Cataloage Digitale - Răsfoiește Toate Ofertele | CatalogSmart',
@@ -12,10 +12,22 @@ export const metadata: Metadata = {
 export default function CataloageDigitalePage() {
     return (
         <div className="min-h-screen bg-neutral-50">
-            {/* Catalog Viewer */}
-            <section className="py-2 sm:py-3">
-                <div className="container-custom px-2 sm:px-4">
-                    <CatalogViewer />
+            {/* Page Header */}
+            <section className="py-8 border-b border-neutral-200 bg-white">
+                <div className="container-custom">
+                    <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-3">
+                        Cataloage Digitale
+                    </h1>
+                    <p className="text-lg text-neutral-600 max-w-3xl">
+                        Răsfoiește cataloagele de oferte actuale de la toate magazinele tale preferate.
+                    </p>
+                </div>
+            </section>
+
+            {/* Catalog List */}
+            <section className="py-8">
+                <div className="container-custom">
+                    <CatalogList />
                 </div>
             </section>
         </div>
