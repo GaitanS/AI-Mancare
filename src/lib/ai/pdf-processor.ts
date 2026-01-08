@@ -40,11 +40,11 @@ async function renderPdfPage(browser: any, pdfBytes: Uint8Array, pageIndex: numb
     const pdfDataArray = Array.from(pdfBytes);
 
     const base64Image = await page.evaluate(async (data: number[], idx: number) => {
-      // @ts-ignore
-      const pdfjs = window['pdfjsLib'];
-      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      // @ts-expect-error - pdfjs-dist types are tricky
+      const pdfjsLib = window['pdfjsLib'];
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-      const loadingTask = pdfjs.getDocument({ data: new Uint8Array(data) });
+      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(data) });
       const pdf = await loadingTask.promise;
       const pdfPage = await pdf.getPage(idx + 1); // 1-based index in PDF.js
 
