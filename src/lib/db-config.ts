@@ -1,23 +1,22 @@
 /**
  * Database Configuration & Connection Pooling
- * OPTIMIZAT pentru Hostinger Shared Hosting (limită strictă conexiuni)
- * Target: Max 5-7 conexiuni active pentru a nu depăși 50/200 limit
+ * Optimized for VPS deployment (8GB RAM, 2 CPU cores)
  */
 
 import { PrismaClient } from '@prisma/client';
 
-// Connection pool configuration - CRITICE pentru Hostinger!
+// Connection pool configuration for VPS
 const DATABASE_CONFIG = {
-  // ULTRA IMPORTANT: Limităm drastic conexiunile pentru Hostinger
-  connectionLimit: 3, // Max 3 conexiuni - Hostinger shared e strict limitat!
-  poolMin: 1, // Minimum 1 conexiune activă
-  poolTimeout: 20000, // 20 seconds timeout pentru pool
-  connectTimeout: 10000, // 10 seconds pentru conectare
+  // VPS allows more connections than shared hosting
+  connectionLimit: 10, // 10 connections for VPS with 8GB RAM
+  poolMin: 2, // Minimum 2 connections for better performance
+  poolTimeout: 20000, // 20 seconds timeout for pool
+  connectTimeout: 10000, // 10 seconds for connection
 
-  // Query settings - timeout-uri agresive pentru a evita blocaje
-  queryTimeout: 10000, // 10 seconds max per query (redus de la 15s)
+  // Query settings
+  queryTimeout: 15000, // 15 seconds max per query
 
-  // Logging (doar erori în production pentru a reduce overhead)
+  // Logging (only errors in production)
   log: process.env.NODE_ENV === 'development'
     ? ['error', 'warn']
     : ['error'],
@@ -36,9 +35,9 @@ function buildOptimizedDatabaseUrl(baseUrl: string): string {
     params.set('pool_timeout', (DATABASE_CONFIG.poolTimeout / 1000).toString());
     params.set('connect_timeout', (DATABASE_CONFIG.connectTimeout / 1000).toString());
 
-    // Optimizări MySQL pentru shared hosting
-    params.set('statement_cache_size', '0'); // Disable pentru a economisi RAM
-    params.set('max_allowed_packet', '16777216'); // 16MB - safe pentru shared
+    // MySQL optimizations
+    params.set('statement_cache_size', '20'); // Enable statement cache on VPS
+    params.set('max_allowed_packet', '67108864'); // 64MB - VPS has more resources
 
     url.search = params.toString();
     return url.toString();

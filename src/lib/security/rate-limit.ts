@@ -56,7 +56,7 @@ export const RATE_LIMITS = {
  * Get client identifier (IP address)
  */
 function getClientIdentifier(req: NextRequest): string {
-  // Încearcă să ia IP-ul din headers (Hostinger/CloudFlare)
+  // Get IP from proxy headers (Nginx/CloudFlare)
   const forwarded = req.headers.get('x-forwarded-for');
   const realIp = req.headers.get('x-real-ip');
   const cfIp = req.headers.get('cf-connecting-ip');

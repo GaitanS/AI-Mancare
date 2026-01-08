@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Run Script API - Compatible with Hostinger Cloud
+ * Run Script API - VPS Compatible
  * 
- * NOTE: Hostinger Cloud does NOT support:
- * - child_process.spawn() - returns undefined PID
- * - Puppeteer/Chromium - no browser available
- * 
- * For scraping, you have two options:
- * 1. Run scripts locally and sync data to production DB
- * 2. Use a cloud function service (AWS Lambda, Vercel Functions, etc.)
+ * VPS supports child_process and Puppeteer (if installed)
  */
 
 export async function POST(req: Request) {
@@ -17,21 +11,19 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { script } = body;
 
-        // Check if running on production (Hostinger)
-        const isProduction = process.env.NODE_ENV === 'production' ||
-            process.env.HOSTNAME === '0.0.0.0';
+        const isProduction = process.env.NODE_ENV === 'production';
 
-        if (isProduction) {
-            // Production mode - can't run scripts that require child_process or Puppeteer
+        // In production, some scripts may still need to be run carefully
+        if (isProduction && script === 'scrape') {
             return NextResponse.json({
                 success: false,
-                error: 'Server limitation',
-                message: `⚠️ Script "${script}" nu poate rula pe server. Hostinger Cloud nu suportă Puppeteer.`,
-                details: 'Rulează scripturile local cu: npm run scrape sau npm run generate-recipes',
+                error: 'Use scheduled tasks',
+                message: `⚠️ Script "${script}" should run as a cron job on VPS.`,
+                details: 'Configure cron on VPS: crontab -e',
                 workaround: [
-                    '1. Conectează-te la baza de date de producție local',
-                    '2. Rulează: cd "AI Mancare" && node scripts/cron-scraper.js',
-                    '3. Datele vor fi actualizate automat în producție'
+                    '1. SSH to VPS: ssh root@185.224.139.191',
+                    '2. Add cron: 0 6 * * 1 cd /var/www/catalogsmart.ro && node scripts/cron-scraper.js',
+                    '3. Or run manually: node scripts/cron-scraper.js'
                 ]
             }, { status: 501 });
         }
