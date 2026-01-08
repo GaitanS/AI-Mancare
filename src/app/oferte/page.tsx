@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   description:
     'Descopera cele mai bune oferte si reduceri din Kaufland, Lidl, Penny, Carrefour, Mega Image si Auchan. Actualizam zilnic cataloagele pentru tine!',
   alternates: {
-    canonical: '/cataloage',
+    canonical: '/oferte',
   },
   openGraph: {
     title: 'Oferte & Cataloage - CatalogSmart',
@@ -228,7 +228,7 @@ export default async function OfertePage({ searchParams }: PageProps) {
     '@type': 'CollectionPage',
     name: 'Cataloage si Reduceri Supermarketuri',
     description: 'Cele mai bune oferte din supermarketurile din Romania',
-    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/cataloage`,
+    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/oferte`,
     numberOfItems: total,
   };
 
@@ -359,7 +359,7 @@ export default async function OfertePage({ searchParams }: PageProps) {
                 <Pagination
                   currentPage={page}
                   totalPages={totalPages}
-                  basePath="/cataloage"
+                  basePath="/oferte"
                   searchParams={params}
                 />
               )}

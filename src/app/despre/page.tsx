@@ -136,7 +136,7 @@ export default function DesprePage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Link
-                        href="/cataloage"
+                        href="/oferte"
                         className="bg-white text-amber-600 px-6 py-3 rounded-full font-semibold hover:bg-amber-50 transition"
                     >
                         Vezi Ofertele →

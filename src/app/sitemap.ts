@@ -35,7 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     { url: '', priority: 1.0, changeFreq: 'daily' as const },
     { url: '/retete', priority: 0.9, changeFreq: 'daily' as const },
-    { url: '/cataloage', priority: 0.9, changeFreq: 'daily' as const },
+    { url: '/oferte', priority: 0.9, changeFreq: 'daily' as const },
     { url: '/blog', priority: 0.8, changeFreq: 'daily' as const },
     { url: '/plan', priority: 0.8, changeFreq: 'weekly' as const },
     { url: '/despre-noi', priority: 0.6, changeFreq: 'monthly' as const },
@@ -90,7 +90,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     stores.forEach((store) => {
       routes.push({
-        url: `${SITE_URL}/cataloage/${store.toLowerCase().replace(' ', '-')}`,
+        url: `${SITE_URL}/oferte/${store.toLowerCase().replace(' ', '-')}`,
         lastModified: new Date(),
         changeFrequency: 'daily',
         priority: 0.7,
@@ -109,7 +109,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     categories.forEach((category) => {
       routes.push({
-        url: `${SITE_URL}/cataloage/categorie/${category}`,
+        url: `${SITE_URL}/oferte/categorie/${category}`,
         lastModified: new Date(),
         changeFrequency: 'daily',
         priority: 0.7,

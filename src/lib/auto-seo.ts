@@ -187,9 +187,9 @@ export function generateCatalogSEO(catalog: CatalogSEOInput) {
             title,
             description,
             type: 'website',
-            url: `${siteConfig.url}/cataloage/${slugify(catalog.store)}`
+            url: `${siteConfig.url}/oferte/${slugify(catalog.store)}`
         },
-        canonical: `${siteConfig.url}/cataloage/${slugify(catalog.store)}`
+        canonical: `${siteConfig.url}/oferte/${slugify(catalog.store)}`
     }
 }
 
@@ -414,7 +414,7 @@ export function generateDynamicSitemapEntries(content: {
     // Catalogs (high priority, change weekly)
     content.catalogs.forEach(c => {
         entries.push({
-            url: `${siteConfig.url}/cataloage/${slugify(c.store)}`,
+            url: `${siteConfig.url}/oferte/${slugify(c.store)}`,
             lastModified: c.weekStart,
             changeFrequency: 'weekly' as const,
             priority: 0.9

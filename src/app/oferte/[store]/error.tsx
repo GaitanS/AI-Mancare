@@ -40,7 +40,7 @@ export default function StoreError({
                     </button>
 
                     <Link
-                        href="/cataloage"
+                        href="/oferte"
                         className="px-6 py-3 bg-neutral-100 text-neutral-700 rounded-lg font-medium hover:bg-neutral-200 transition-colors"
                     >
                         Toate cataloagele

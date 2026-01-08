@@ -9,21 +9,21 @@ import { cn } from '@/lib/utils';
 const navigation = [
   { name: 'Acasa', href: '/' },
   { name: 'Rețete', href: '/plan' },
-  { name: 'Oferte', href: '/cataloage' },
+  { name: 'Oferte', href: '/oferte' },
   { name: 'Magazine', href: '/cataloage-digitale' },
   { name: 'Lista', href: '/cart' },
   { name: 'Profil', href: '/profile' },
 ];
 
 const stores = [
-  { name: 'Kaufland', href: '/cataloage/kaufland', color: 'from-[#e10915] to-[#c00812]' },
-  { name: 'Lidl', href: '/cataloage/lidl', color: 'from-[#0050aa] to-[#003d82]' },
-  { name: 'Penny', href: '/cataloage/penny', color: 'from-[#cd1719] to-[#a81315]' },
-  { name: 'Profi', href: '/cataloage/profi', color: 'from-[#e4002b] to-[#b80022]' },
-  { name: 'Carrefour', href: '/cataloage/carrefour', color: 'from-[#004e9e] to-[#003a76]' },
-  { name: 'Mega Image', href: '/cataloage/mega-image', color: 'from-[#e31837] to-[#b8142d]' },
-  { name: 'Auchan', href: '/cataloage/auchan', color: 'from-[#e2001a] to-[#b80016]' },
-  { name: 'Selgros', href: '/cataloage/selgros', color: 'from-[#003366] to-[#002244]' },
+  { name: 'Kaufland', href: '/oferte/kaufland', color: 'from-[#e10915] to-[#c00812]' },
+  { name: 'Lidl', href: '/oferte/lidl', color: 'from-[#0050aa] to-[#003d82]' },
+  { name: 'Penny', href: '/oferte/penny', color: 'from-[#cd1719] to-[#a81315]' },
+  { name: 'Profi', href: '/oferte/profi', color: 'from-[#e4002b] to-[#b80022]' },
+  { name: 'Carrefour', href: '/oferte/carrefour', color: 'from-[#004e9e] to-[#003a76]' },
+  { name: 'Mega Image', href: '/oferte/mega-image', color: 'from-[#e31837] to-[#b8142d]' },
+  { name: 'Auchan', href: '/oferte/auchan', color: 'from-[#e2001a] to-[#b80016]' },
+  { name: 'Selgros', href: '/oferte/selgros', color: 'from-[#003366] to-[#002244]' },
 ];
 
 export default function Header() {
@@ -98,7 +98,7 @@ export default function Header() {
                 onBlur={() => setTimeout(() => setIsStoresDropdownOpen(false), 200)}
                 className={cn(
                   'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 focus-ring',
-                  pathname.startsWith('/cataloage/') && stores.some(s => pathname.includes(s.href))
+                  pathname.startsWith('/oferte/') && stores.some(s => pathname.includes(s.href))
                     ? 'bg-primary-50 text-primary-700 shadow-sm'
                     : 'text-neutral-800 hover:text-black hover:bg-neutral-100'
                 )}

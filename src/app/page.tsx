@@ -224,7 +224,7 @@ export default async function HomePage() {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10 animate-fade-in-up relative z-20" style={{ animationDelay: '300ms' }}>
               <Link
-                href="/cataloage"
+                href="/oferte"
                 className="group relative px-8 py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold text-lg shadow-[0_0_40px_-10px_rgba(225,29,72,0.4)] hover:shadow-[0_0_60px_-15px_rgba(225,29,72,0.6)] hover:-translate-y-1 transition-all duration-300"
               >
                 <div className="absolute inset-0 rounded-xl overflow-hidden">
@@ -300,7 +300,7 @@ export default async function HomePage() {
             {stores.map((store, index) => (
               <Link
                 key={store.slug}
-                href={`/cataloage/${store.slug}`}
+                href={`/oferte/${store.slug}`}
                 className="group relative px-4 sm:px-5 py-2 sm:py-2.5 bg-white text-neutral-700 text-xs sm:text-sm font-semibold rounded-xl hover:text-white transition-all duration-300 hover:scale-105 shadow-soft hover:shadow-lg border border-neutral-200/80 overflow-hidden stagger-item"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
@@ -326,7 +326,7 @@ export default async function HomePage() {
               </h2>
             </div>
             <Link
-              href="/cataloage"
+              href="/oferte"
               className="hidden sm:inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white text-sm font-semibold rounded-xl hover:bg-primary-600 shadow-warm hover:shadow-lg transition-all duration-300 group"
             >
               Vezi toate ofertele
@@ -354,7 +354,7 @@ export default async function HomePage() {
           </Suspense>
 
           <div className="mt-8 text-center sm:hidden">
-            <Link href="/cataloage" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100 transition-colors border border-primary-100">
+            <Link href="/oferte" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-primary-600 bg-primary-50 rounded-xl hover:bg-primary-100 transition-colors border border-primary-100">
               Vezi toate ofertele
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -519,7 +519,7 @@ export default async function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/cataloage"
+              href="/oferte"
               className="group px-8 py-4 bg-white text-primary-600 font-semibold rounded-xl hover:bg-accent-50 hover:text-primary-700 shadow-elevated hover:shadow-xl transition-all duration-300"
             >
               <span className="flex items-center justify-center gap-2">

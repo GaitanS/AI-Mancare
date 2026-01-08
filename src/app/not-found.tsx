@@ -36,7 +36,7 @@ export default function NotFound() {
           </Link>
 
           <Link
-            href="/cataloage"
+            href="/oferte"
             className="px-6 py-3 bg-white text-neutral-700 rounded-xl font-semibold hover:bg-neutral-50 transition-colors border border-neutral-200"
           >
             Vezi cataloagele

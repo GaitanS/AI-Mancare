@@ -168,6 +168,22 @@ const nextConfig = {
       },
     ];
   },
+
+  // Redirects from old /cataloage to /oferte
+  async redirects() {
+    return [
+      {
+        source: '/cataloage',
+        destination: '/oferte',
+        permanent: true,
+      },
+      {
+        source: '/cataloage/:slug',
+        destination: '/oferte/:slug',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 // Wrap config with bundle analyzer
