@@ -16,7 +16,8 @@ interface Schedule {
 
 const DAYS = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
 const TASK_INFO: Record<string, { icon: string; name: string; description: string }> = {
-    scraper: { icon: '🕷️', name: 'Catalog Scraper', description: 'Descarcă cataloage de la supermarketuri' },
+    catalogs: { icon: '📚', name: 'Catalog Scraper', description: 'Descarcă imagini de catalog de la cataloagedeoferte.ro' },
+    products: { icon: '📦', name: 'Product Extractor', description: 'Extrage produse din cataloage folosind AI (Gemini Vision)' },
     recipes: { icon: '🍳', name: 'Recipe Generator', description: 'Generează rețete AI din oferte' },
     images: { icon: '🖼️', name: 'Image Generator', description: 'Creează imagini pentru rețete' },
 };
@@ -219,54 +220,11 @@ export default function AdminPage() {
 
                 {/* Action Panel */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Scraper Agent */}
-                    <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-primary-500/30 transition-all">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-primary-500 select-none -translate-y-2 translate-x-2">SCAN</div>
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${scraperStatus?.running ? 'bg-amber-500' : 'bg-emerald-500'} animate-pulse`}></span>
-                            Agent Catalog
-                        </h2>
-                        <p className="text-neutral-400 text-sm mb-4">
-                            Scanează Kimbino.ro pentru cataloage noi de la Lidl, Kaufland, Penny, Profi, Carrefour, Mega Image, Auchan și Selgros.
-                        </p>
-
-                        {/* Progress Bar */}
-                        {scraperStatus?.running && (
-                            <div className="mb-4">
-                                <div className="flex justify-between text-xs text-neutral-400 mb-1">
-                                    <span>{scraperStatus.message || 'Procesăm...'}</span>
-                                    <span>{scraperStatus.current || 0}/{scraperStatus.total || 8}</span>
-                                </div>
-                                <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-primary-500 to-primary-400 rounded-full transition-all duration-500 ease-out"
-                                        style={{ width: `${((scraperStatus.current || 0) / (scraperStatus.total || 8)) * 100}%` }}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Completion Message */}
-                        {scraperStatus?.complete && !scraperStatus?.running && (
-                            <div className="mb-4 p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-lg text-emerald-400 text-sm">
-                                ✅ {scraperStatus.message}
-                            </div>
-                        )}
-
-                        <button
-                            onClick={() => { handleRunScript('scrape'); fetchScraperStatus(); }}
-                            disabled={scraperStatus?.running}
-                            className={`w-full py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-primary-900/20 flex items-center justify-center gap-2 ${scraperStatus?.running
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:from-primary-500 hover:to-primary-600 active:scale-95'
-                                }`}
-                        >
-                            {scraperStatus?.running ? '⏳ Se rulează...' : '🚀 Pornește Scanarea Produse'}
-                        </button>
-                    </div>
-
-                    {/* Catalog Scraper - NEW SECTION */}
+                    {/* Catalog Scraper - Downloads catalog images */}
                     <CatalogScraperSection onRunScript={handleRunScript} />
+
+                    {/* Product Extractor - Extracts products using AI/OCR */}
+                    <ProductExtractorSection onRunScript={handleRunScript} />
 
                     {/* Recipe Generator */}
                     <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-accent-500/30 transition-all">
@@ -609,4 +567,134 @@ function CatalogScraperSection({ onRunScript }: CatalogScraperSectionProps) {
         </div>
     );
 }
+
+// Product Extractor Section with Status Display
+interface ProductExtractorStatus {
+    running: boolean;
+    startedAt: string | null;
+    completedAt: string | null;
+    totalCatalogs: number;
+    totalPages: number;
+    totalProducts: number;
+    currentStore: string | null;
+    currentCatalog: string | null;
+    error: string | null;
+    stores: Record<string, { success: boolean; catalogs: number; products: number; error: string | null }>;
+}
+
+function ProductExtractorSection({ onRunScript }: CatalogScraperSectionProps) {
+    const [status, setStatus] = useState<ProductExtractorStatus | null>(null);
+    const [isPolling, setIsPolling] = useState(false);
+
+    const fetchStatus = async () => {
+        try {
+            const res = await fetch('/api/admin/product-status');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.status) {
+                    setStatus(data.status);
+                    setIsPolling(data.status.running);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch product extractor status', e);
+        }
+    };
+
+    useEffect(() => {
+        fetchStatus();
+    }, []);
+
+    useEffect(() => {
+        if (!isPolling) return;
+        const interval = setInterval(fetchStatus, 3000);
+        return () => clearInterval(interval);
+    }, [isPolling]);
+
+    const handleStart = () => {
+        onRunScript('products');
+        setIsPolling(true);
+        setTimeout(fetchStatus, 2000);
+    };
+
+    const formatDate = (dateStr: string | null) => {
+        if (!dateStr) return '-';
+        return new Date(dateStr).toLocaleString('ro-RO');
+    };
+
+    return (
+        <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-emerald-500/30 transition-all">
+            <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-emerald-500 select-none -translate-y-2 translate-x-2">📦</div>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${status?.running ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+                Product Extractor (AI/OCR)
+            </h2>
+            <p className="text-neutral-400 text-sm mb-4">
+                Extrage produsele din imaginile de catalog folosind Gemini Vision AI. Procesează numai cataloage NOI.
+            </p>
+
+            {/* Running Status */}
+            {status?.running && (
+                <div className="mb-4 p-3 bg-amber-950/30 border border-amber-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-amber-400 text-sm">
+                        <span className="animate-spin">⏳</span>
+                        <span>Se extrag produse: <strong>{status.currentCatalog || status.currentStore || '...'}</strong></span>
+                    </div>
+                    <div className="mt-2 text-xs text-neutral-400">
+                        Cataloage: {status.totalCatalogs} | Produse: {status.totalProducts}
+                    </div>
+                </div>
+            )}
+
+            {/* Completed Status with Store Results */}
+            {status && !status.running && status.completedAt && (
+                <div className="mb-4 p-4 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+                    <div className="flex justify-between items-center mb-3">
+                        <span className="text-emerald-400 font-semibold">✅ Ultima extragere completă</span>
+                        <span className="text-xs text-neutral-500">{formatDate(status.completedAt)}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="bg-neutral-900 rounded p-2 text-center">
+                            <div className="text-2xl font-bold text-emerald-400">{status.totalCatalogs}</div>
+                            <div className="text-xs text-neutral-500">Cataloage</div>
+                        </div>
+                        <div className="bg-neutral-900 rounded p-2 text-center">
+                            <div className="text-2xl font-bold text-emerald-400">{status.totalPages}</div>
+                            <div className="text-xs text-neutral-500">Pagini</div>
+                        </div>
+                        <div className="bg-neutral-900 rounded p-2 text-center">
+                            <div className="text-2xl font-bold text-emerald-400">{status.totalProducts}</div>
+                            <div className="text-xs text-neutral-500">Produse</div>
+                        </div>
+                    </div>
+                    <div className="text-xs text-neutral-400 mb-2">Magazine:</div>
+                    <div className="grid grid-cols-3 gap-1">
+                        {Object.entries(status.stores).map(([name, data]) => (
+                            <div key={name} className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${data.success ? 'bg-emerald-950/50 text-emerald-400' : 'bg-red-950/50 text-red-400'}`}>
+                                <span>{data.success ? '✅' : '❌'}</span>
+                                <span className="truncate">{name}</span>
+                                <span className="text-neutral-500">({data.products})</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <button
+                onClick={handleStart}
+                disabled={status?.running}
+                className={`w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2 ${status?.running
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:from-emerald-500 hover:to-emerald-600 active:scale-95'
+                    }`}
+            >
+                {status?.running ? '⏳ Se extrag produse...' : '📦 Extrage Produse din Cataloage'}
+            </button>
+            <p className="text-neutral-500 text-xs mt-2 text-center">
+                Rulează după Catalog Scraper. ~2 sec/pagină (API calls)
+            </p>
+        </div>
+    );
+}
+
 

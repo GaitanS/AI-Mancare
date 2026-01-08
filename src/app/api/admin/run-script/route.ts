@@ -8,10 +8,10 @@ export async function POST(req: Request) {
         const { script } = body;
 
         switch (script) {
-            case 'scrape':
-                // Product scraper (offers from Kimbino)
+            case 'products':
+                // Product extractor - extracts products from local catalog images using AI/OCR
                 try {
-                    const scriptPath = path.join(process.cwd(), 'scripts', 'cron-scraper.js');
+                    const scriptPath = path.join(process.cwd(), 'scripts', 'product-extractor.js');
 
                     // Run in background
                     const child = spawn('node', [scriptPath], {
@@ -23,13 +23,13 @@ export async function POST(req: Request) {
 
                     return NextResponse.json({
                         success: true,
-                        message: '🕷️ Product scraper started! Check database in a few minutes.',
+                        message: '📦 Product extractor started! Extracting products from catalog images using AI. Only processes NEW catalogs.',
                     });
                 } catch (e: unknown) {
                     const errorMessage = e instanceof Error ? e.message : 'Unknown error';
                     return NextResponse.json({
                         success: false,
-                        message: `Scraper failed: ${errorMessage}`,
+                        message: `Product extractor failed: ${errorMessage}`,
                     }, { status: 500 });
                 }
 

@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 
 // Default schedules - used as fallback when DB is not available
 const DEFAULT_SCHEDULES = [
-    { id: '1', taskName: 'scraper', enabled: true, dayOfWeek: 1, hour: 6, minute: 0 },
-    { id: '2', taskName: 'recipes', enabled: true, dayOfWeek: 1, hour: 8, minute: 0 },
-    { id: '3', taskName: 'images', enabled: true, dayOfWeek: 1, hour: 10, minute: 0 },
+    { id: '1', taskName: 'catalogs', enabled: true, dayOfWeek: 1, hour: 5, minute: 0 },  // Monday 5:00 - Download catalog images
+    { id: '2', taskName: 'products', enabled: true, dayOfWeek: 1, hour: 6, minute: 0 },  // Monday 6:00 - Extract products from images
+    { id: '3', taskName: 'recipes', enabled: true, dayOfWeek: 1, hour: 8, minute: 0 },   // Monday 8:00 - Generate recipes
+    { id: '4', taskName: 'images', enabled: true, dayOfWeek: 1, hour: 10, minute: 0 },   // Monday 10:00 - Generate images
 ];
 
 /**

@@ -288,6 +288,9 @@ model Catalog {
   // Local Images (JSON array of local paths)
   localImages    String? @map("local_images") @db.LongText
   imageBasePath  String? @map("image_base_path")  // e.g., /catalogs/kaufland/260113-myqru
+  
+  // Product Extraction Status
+  productsExtractedAt DateTime? @map("products_extracted_at")  // When products were extracted from this catalog
 
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
