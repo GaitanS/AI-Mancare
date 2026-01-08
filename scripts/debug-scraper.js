@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+console.log("STARTING MY SCRAPER DEBUG RUN");
+console.log("SIGNATURE: I AM THE NEW FILE VERSION 3");
 
 /**
  * Cron Scraper - Kimbino.ro (Romanian Catalog Aggregator)
@@ -39,10 +41,11 @@ const VISION_MODEL = 'google/gemini-2.5-flash-image';
 
 // Logging utilities
 const log = {
-  info: (msg) => console.log(`[SCRAPER] [INFO] ${new Date().toISOString()} - ${msg}`),
-  error: (msg) => console.error(`[SCRAPER] [ERROR] ${new Date().toISOString()} - ${msg}`),
-  success: (msg) => console.log(`[SCRAPER] [SUCCESS] ${new Date().toISOString()} - ${msg}`),
+  info: (msg) => console.log(`[MY-SCRAPER] [INFO] ${new Date().toISOString()} - ${msg}`),
+  error: (msg) => console.error(`[MY-SCRAPER] [ERROR] ${new Date().toISOString()} - ${msg}`),
+  success: (msg) => console.log(`[MY-SCRAPER] [SUCCESS] ${new Date().toISOString()} - ${msg}`),
 };
+console.log("DEBUG: Log object defined");
 
 // Stores we want to scrape
 const TARGET_STORES = [
@@ -234,51 +237,7 @@ async function scrapeStoreCatalogs(storeSlug, storeName) {
   });
 
   // Deduplicate by URL
-  let unique = [...new Map(catalogs.map(c => [c.url, c])).values()];
-
-  // FALLBACK: If Cheerio found nothing, try Regex on raw HTML (Nuxt/JSON hydration)
-  if (unique.length === 0) {
-    log.info(`No catalogs found via DOM for ${storeName}, trying Regex fallback...`);
-    // Pattern: "catalog-store-slug-date-id"
-    // Example: "catalog-kaufland-de-miercuri-07-01-2026-4627657"
-    const regex = new RegExp(`catalog-${storeSlug}-[a-z0-9-]+-\\d+`, 'g');
-    const matches = html.match(regex);
-
-    if (matches) {
-      const uniqueMatches = [...new Set(matches)];
-      log.info(`Found ${uniqueMatches.length} potential matches via Regex`);
-
-      for (const match of uniqueMatches) {
-        // Construct URL: https://kimbino.ro/kaufland/catalog-kaufland...
-        // Or just https://kimbino.ro/catalog-kaufland... (Kimbino often redirects)
-        // Actually better: https://kimbino.ro/${storeSlug}/${match}
-        const link = `https://kimbino.ro/${storeSlug}/${match}`;
-
-        // Extract dates from slug if possible
-        // catalog-kaufland-de-miercuri-07-01-2026-4627657
-        const dateMatch = match.match(/(\d{2}-\d{2}-\d{4})/);
-        let validFrom = new Date();
-        let validUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-        if (dateMatch) {
-          const parts = dateMatch[1].split('-');
-          validFrom = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`); // yyyy-mm-dd
-          validUntil = new Date(validFrom);
-          validUntil.setDate(validFrom.getDate() + 7); // Assume 1 week if finding start date
-        }
-
-        catalogs.push({
-          title: `Catalog ${storeName}`, // Generic title
-          url: link,
-          pdfUrl: null, // Scraper will try to find this later or use Vision on page
-          storeName: storeName,
-          validFrom: validFrom,
-          validUntil: validUntil
-        });
-      }
-      unique = [...new Map(catalogs.map(c => [c.url, c])).values()];
-    }
-  }
+  const unique = [...new Map(catalogs.map(c => [c.url, c])).values()];
 
   log.info(`Found ${unique.length} catalogs for ${storeName}`);
   return unique;
@@ -388,6 +347,7 @@ async function updateStatus(data) {
  * Main scraping function
  */
 async function runScraper() {
+  console.log("DEBUG: Entering runScraper");
   log.info('========================================');
   log.info('Starting Kimbino.ro Catalog Scraper');
   log.info('========================================');
@@ -726,7 +686,9 @@ async function performMondayReset() {
 }
 
 // Run if called directly
-if (require.main === module) {
+console.log("DEBUG: Checking require.main === module. Value:", require.main === module);
+if (true) {
+  console.log("DEBUG: Calling runScraper() (FORCED)");
   runScraper()
     .then((result) => {
       log.success(`Job finished. Found ${result.catalogsFound}, saved ${result.catalogsSaved}`);
