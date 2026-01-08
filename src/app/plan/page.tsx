@@ -408,6 +408,8 @@ export default function PlanPage() {
                             <div className="relative flex-1">
                                 <input
                                     type="text"
+                                    name="search"
+                                    id="search-input"
                                     placeholder="Caută rețete..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
