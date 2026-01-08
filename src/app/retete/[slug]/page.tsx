@@ -495,12 +495,19 @@ export default async function RecipePage(props: Props) {
     );
 }
 
-// Dummy Ad Component for now
+// Production-ready Ad Component structure
 function AdComponent({ slot }: { slot: string }) {
+    const isSidebar = slot === 'sidebar_square';
     return (
-        <div className="w-full bg-neutral-50 rounded-xl border border-neutral-100 border-dashed flex flex-col items-center justify-center py-4 px-2">
-            <span className="text-[10px] uppercase font-bold text-neutral-300 tracking-widest mb-1">Publicitate</span>
-            <div className="w-full h-[250px] bg-neutral-200/50 rounded-lg animate-pulse" />
+        <div className={`w-full flex items-center justify-center my-4 ${isSidebar ? 'min-h-[250px]' : 'min-h-[100px]'} bg-neutral-50/50 rounded-lg`}>
+            {/* Google AdSense Placeholder */}
+            <ins className="adsbygoogle"
+                style={{ display: 'block', width: '100%' }}
+                data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" // TODO: Replace with your AdSense Publisher ID
+                data-ad-slot={isSidebar ? "1234567890" : "0987654321"} // TODO: Replace with specific Ad Unit ID
+                data-ad-format="auto"
+                data-full-width-responsive="true"
+            />
         </div>
     );
 }
