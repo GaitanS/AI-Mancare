@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
-
-/**
- * Run Script API - VPS Compatible
- * 
- * Both scraper and recipe generator can run from here
- */
+import { spawn } from 'child_process';
+import path from 'path';
 
 export async function POST(req: Request) {
     try {
@@ -15,9 +11,6 @@ export async function POST(req: Request) {
             case 'scrape':
                 // Scraper uses axios+cheerio, no Puppeteer needed!
                 try {
-                    const { spawn } = require('child_process');
-                    const path = require('path');
-
                     const scriptPath = path.join(process.cwd(), 'scripts', 'cron-scraper.js');
 
                     // Run in background
