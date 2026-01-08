@@ -27,11 +27,46 @@ export default function AdminPage() {
     const [actionStatus, setActionStatus] = useState<string | null>(null);
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [savingSchedule, setSavingSchedule] = useState<string | null>(null);
+    const [scraperStatus, setScraperStatus] = useState<{
+        running: boolean;
+        current?: number;
+        total?: number;
+        currentStore?: string | null;
+        message?: string;
+        complete?: boolean;
+    } | null>(null);
 
     useEffect(() => {
         fetchStats();
         fetchSchedules();
+        fetchScraperStatus();
     }, []);
+
+    // Poll scraper status when running
+    useEffect(() => {
+        if (!scraperStatus?.running) return;
+
+        const interval = setInterval(() => {
+            fetchScraperStatus();
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [scraperStatus?.running]);
+
+    const fetchScraperStatus = async () => {
+        try {
+            const res = await fetch('/api/admin/scraper-status');
+            if (res.ok) {
+                const data = await res.json();
+                setScraperStatus(data);
+                if (data.complete && !data.running) {
+                    fetchStats(); // Refresh stats after completion
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch scraper status', e);
+        }
+    };
 
     const fetchStats = async () => {
         try {
@@ -161,37 +196,65 @@ export default function AdminPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Scraper Agent */}
                     <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-primary-500/30 transition-all">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-primary-500 select-none -translate-y-2 translate-x-2">AI</div>
+                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-primary-500 select-none -translate-y-2 translate-x-2">SCAN</div>
                         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Scraping Agent
+                            <span className={`w-2 h-2 rounded-full ${scraperStatus?.running ? 'bg-amber-500' : 'bg-emerald-500'} animate-pulse`}></span>
+                            Agent Catalog
                         </h2>
-                        <p className="text-neutral-400 text-sm mb-6 h-12">
-                            Crawls Catalog Sites (Lidl, Kaufland, etc.) to extract raw PDF data and offers.
+                        <p className="text-neutral-400 text-sm mb-4">
+                            Scanează Kimbino.ro pentru cataloage noi de la Lidl, Kaufland, Penny, Profi, Carrefour, Mega Image, Auchan și Selgros.
                         </p>
+
+                        {/* Progress Bar */}
+                        {scraperStatus?.running && (
+                            <div className="mb-4">
+                                <div className="flex justify-between text-xs text-neutral-400 mb-1">
+                                    <span>{scraperStatus.message || 'Procesăm...'}</span>
+                                    <span>{scraperStatus.current || 0}/{scraperStatus.total || 8}</span>
+                                </div>
+                                <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-primary-500 to-primary-400 rounded-full transition-all duration-500 ease-out"
+                                        style={{ width: `${((scraperStatus.current || 0) / (scraperStatus.total || 8)) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Completion Message */}
+                        {scraperStatus?.complete && !scraperStatus?.running && (
+                            <div className="mb-4 p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-lg text-emerald-400 text-sm">
+                                ✅ {scraperStatus.message}
+                            </div>
+                        )}
+
                         <button
-                            onClick={() => handleRunScript('scrape')}
-                            className="w-full py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white font-bold rounded-lg transition-all shadow-lg shadow-primary-900/20 active:scale-95 flex items-center justify-center gap-2"
+                            onClick={() => { handleRunScript('scrape'); fetchScraperStatus(); }}
+                            disabled={scraperStatus?.running}
+                            className={`w-full py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-primary-900/20 flex items-center justify-center gap-2 ${scraperStatus?.running
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : 'hover:from-primary-500 hover:to-primary-600 active:scale-95'
+                                }`}
                         >
-                            🚀 Run Scraper Now
+                            {scraperStatus?.running ? '⏳ Se rulează...' : '🚀 Pornește Scanarea'}
                         </button>
                     </div>
 
                     {/* Recipe Generator */}
                     <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-accent-500/30 transition-all">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-accent-500 select-none -translate-y-2 translate-x-2">GEN</div>
+                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-accent-500 select-none -translate-y-2 translate-x-2">AI</div>
                         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
-                            Recipe Generator
+                            Generator Rețete
                         </h2>
-                        <p className="text-neutral-400 text-sm mb-6 h-12">
-                            Uses LLMs (OpenRouter/Gemini) to generate cheap recipes based on current offers.
+                        <p className="text-neutral-400 text-sm mb-6">
+                            Folosește AI (Gemini/OpenRouter) pentru a crea rețete economice bazate pe ofertele curente din cataloage.
                         </p>
                         <button
                             onClick={() => handleRunScript('recipes')}
                             className="w-full py-3 bg-gradient-to-r from-accent-600 to-accent-700 hover:from-accent-500 hover:to-accent-600 text-white font-bold rounded-lg transition-all shadow-lg shadow-accent-900/20 active:scale-95 flex items-center justify-center gap-2"
                         >
-                            ✨ Generate Recipes
+                            ✨ Generează Rețete
                         </button>
                     </div>
                 </div>
@@ -296,8 +359,8 @@ function InteractiveScheduleCard({ schedule, info, onUpdate, saving }: {
 }) {
     return (
         <div className={`bg-neutral-900 rounded-xl border p-4 transition-all ${schedule.enabled
-                ? 'border-emerald-500/20 hover:border-emerald-500/40'
-                : 'border-neutral-800'
+            ? 'border-emerald-500/20 hover:border-emerald-500/40'
+            : 'border-neutral-800'
             }`}>
             <div className="flex flex-col md:flex-row md:items-center gap-4">
                 {/* Icon & Name */}

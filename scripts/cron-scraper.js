@@ -246,6 +246,22 @@ async function saveCatalog(catalog) {
 }
 
 /**
+ * Update scraper status file for progress tracking
+ */
+async function updateStatus(data) {
+  const statusPath = path.join(STORAGE_PATH, 'scraper-status.json');
+  try {
+    await fs.mkdir(STORAGE_PATH, { recursive: true });
+    await fs.writeFile(statusPath, JSON.stringify({
+      ...data,
+      updatedAt: new Date().toISOString()
+    }, null, 2));
+  } catch (e) {
+    log.error(`Failed to update status: ${e.message}`);
+  }
+}
+
+/**
  * Main scraping function
  */
 async function runScraper() {
@@ -254,12 +270,36 @@ async function runScraper() {
   log.info('========================================');
 
   const startTime = Date.now();
+  const totalStores = TARGET_STORES.length;
   let catalogsFound = 0;
   let catalogsSaved = 0;
 
+  // Write initial status
+  await updateStatus({
+    running: true,
+    current: 0,
+    total: totalStores,
+    currentStore: null,
+    message: 'Pornire scraper...',
+    startedAt: new Date().toISOString()
+  });
+
   try {
     // Scrape each target store
-    for (const store of TARGET_STORES) {
+    for (let i = 0; i < TARGET_STORES.length; i++) {
+      const store = TARGET_STORES[i];
+
+      // Update progress
+      await updateStatus({
+        running: true,
+        current: i,
+        total: totalStores,
+        currentStore: store.name,
+        message: `Procesăm: ${store.name}...`,
+        catalogsFound,
+        catalogsSaved
+      });
+
       try {
         await delay(2000); // Rate limiting
 
@@ -284,10 +324,32 @@ async function runScraper() {
     log.success(`Saved: ${catalogsSaved} new catalogs`);
     log.success('========================================');
 
+    // Write final status
+    await updateStatus({
+      running: false,
+      complete: true,
+      current: totalStores,
+      total: totalStores,
+      currentStore: null,
+      message: `Finalizat! ${catalogsSaved} cataloage noi găsite.`,
+      catalogsFound,
+      catalogsSaved,
+      duration: `${duration}s`
+    });
+
     return { catalogsFound, catalogsSaved };
 
   } catch (error) {
     log.error(`Fatal error: ${error.message}`);
+
+    // Write error status
+    await updateStatus({
+      running: false,
+      complete: false,
+      error: error.message,
+      message: `Eroare: ${error.message}`
+    });
+
     throw error;
   } finally {
     await prisma.$disconnect();
