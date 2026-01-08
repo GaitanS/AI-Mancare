@@ -8,10 +8,9 @@ import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Acasa', href: '/' },
-  { name: 'Plan', href: '/plan' },
+  { name: 'Rețete', href: '/plan' },
   { name: 'Oferte', href: '/cataloage' },
   { name: 'Cataloage', href: '/cataloage-digitale' },
-  { name: 'Retete', href: '/retete' },
   { name: 'Lista', href: '/cart' },
   { name: 'Profil', href: '/profile' },
 ];

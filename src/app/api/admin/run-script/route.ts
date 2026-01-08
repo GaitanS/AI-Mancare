@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 /**
  * Run Script API - VPS Compatible
  * 
- * VPS supports child_process and Puppeteer (if installed)
+ * Both scraper and recipe generator can run from here
  */
 
 export async function POST(req: Request) {
@@ -11,39 +11,41 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { script } = body;
 
-        const isProduction = process.env.NODE_ENV === 'production';
-
-        // In production, some scripts may still need to be run carefully
-        if (isProduction && script === 'scrape') {
-            return NextResponse.json({
-                success: false,
-                error: 'Use scheduled tasks',
-                message: `⚠️ Script "${script}" should run as a cron job on VPS.`,
-                details: 'Configure cron on VPS: crontab -e',
-                workaround: [
-                    '1. SSH to VPS: ssh root@185.224.139.191',
-                    '2. Add cron: 0 6 * * 1 cd /var/www/catalogsmart.ro && node scripts/cron-scraper.js',
-                    '3. Or run manually: node scripts/cron-scraper.js'
-                ]
-            }, { status: 501 });
-        }
-
-        // Development mode - can try to run (still may fail without Puppeteer setup)
         switch (script) {
             case 'scrape':
-                return NextResponse.json({
-                    success: false,
-                    message: 'Scraping necesită Puppeteer. Rulează local: node scripts/cron-scraper.js',
-                }, { status: 501 });
+                // Scraper uses axios+cheerio, no Puppeteer needed!
+                try {
+                    const { spawn } = require('child_process');
+                    const path = require('path');
+
+                    const scriptPath = path.join(process.cwd(), 'scripts', 'cron-scraper.js');
+
+                    // Run in background
+                    const child = spawn('node', [scriptPath], {
+                        detached: true,
+                        stdio: 'ignore',
+                        cwd: process.cwd(),
+                    });
+                    child.unref();
+
+                    return NextResponse.json({
+                        success: true,
+                        message: '🕷️ Scraper started in background! Check database in a few minutes.',
+                    });
+                } catch (e: unknown) {
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                    return NextResponse.json({
+                        success: false,
+                        message: `Scraper failed: ${errorMessage}`,
+                    }, { status: 500 });
+                }
 
             case 'recipes':
-                // Recipe generation might work without Puppeteer
+                // Recipe generation using OpenRouter/Gemini
                 try {
-                    // Dynamic import the module (uses default export)
                     const recipeGenerator = await import('@/lib/ai/recipe-generator');
 
-                    // Run in background-like fashion (without blocking response)
-                    // Note: This will still timeout if it takes too long
+                    // Run in background (without blocking response)
                     recipeGenerator.default.generateWeeklyRecipes(5).catch(console.error);
 
                     return NextResponse.json({
