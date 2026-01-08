@@ -4,6 +4,7 @@
  */
 
 import prisma from '@/lib/db';
+import type { RecipeArchive } from '@prisma/client';
 
 /**
  * Archive recipes older than 7 days
@@ -99,8 +100,8 @@ export async function archiveOldRecipes(): Promise<{ archived: number; errors: s
 export async function findMatchingArchivedRecipes(
     availableIngredients: string[],
     minMatchScore: number = 0.7
-): Promise<Array<{ archive: typeof prisma.recipeArchive.$inferSelect; matchScore: number }>> {
-    const matches: Array<{ archive: typeof prisma.recipeArchive.$inferSelect; matchScore: number }> = [];
+): Promise<Array<{ archive: RecipeArchive; matchScore: number }>> {
+    const matches: Array<{ archive: RecipeArchive; matchScore: number }> = [];
 
     try {
         // Normalize available ingredients
