@@ -199,7 +199,7 @@ export default async function RecipePage(props: Props) {
                         </span>
                         {recipe.estimatedCost && (
                             <span className="flex items-center gap-1.5 bg-emerald-900/60 text-emerald-100 px-3 py-1 rounded-full backdrop-blur-sm border border-emerald-500/30">
-                                <span className="font-bold">{recipe.estimatedCost.toFixed(0)} RON</span>
+                                <span className="font-bold">{Number(recipe.estimatedCost).toFixed(0)} RON</span>
                             </span>
                         )}
                     </div>
@@ -299,7 +299,7 @@ export default async function RecipePage(props: Props) {
                                 <div className="flex justify-between items-center mb-4">
                                     <span className="text-neutral-500 font-medium">Cost estimat</span>
                                     <span className="text-2xl font-bold text-primary-600">
-                                        {recipe.estimatedCost ? formatPrice(recipe.estimatedCost) : '-'}
+                                        {recipe.estimatedCost ? formatPrice(Number(recipe.estimatedCost)) : '-'}
                                     </span>
                                 </div>
                                 <Link
