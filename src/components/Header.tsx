@@ -10,7 +10,7 @@ const navigation = [
   { name: 'Acasa', href: '/' },
   { name: 'Rețete', href: '/plan' },
   { name: 'Oferte', href: '/cataloage' },
-  { name: 'Cataloage', href: '/cataloage-digitale' },
+  { name: 'Magazine', href: '/cataloage-digitale' },
   { name: 'Lista', href: '/cart' },
   { name: 'Profil', href: '/profile' },
 ];

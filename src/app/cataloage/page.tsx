@@ -17,14 +17,14 @@ const productSortOptions = [
 ];
 
 export const metadata: Metadata = {
-  title: 'Cataloage - Cele mai bune reduceri din supermarketuri',
+  title: 'Oferte & Cataloage - Cele mai bune reduceri din supermarketuri',
   description:
     'Descopera cele mai bune oferte si reduceri din Kaufland, Lidl, Penny, Carrefour, Mega Image si Auchan. Actualizam zilnic cataloagele pentru tine!',
   alternates: {
     canonical: '/cataloage',
   },
   openGraph: {
-    title: 'Cataloage - CatalogSmart',
+    title: 'Oferte & Cataloage - CatalogSmart',
     description: 'Cele mai bune reduceri din supermarketuri, extrase din cataloagele actuale.',
     url: '/cataloage',
   },
@@ -260,10 +260,10 @@ export default async function OfertePage({ searchParams }: PageProps) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                     </svg>
                   </div>
-                  <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Oferte & Cataloage</span>
+                  <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Oferte & Reduceri</span>
                 </div>
                 <h1 className="font-display text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
-                  Cataloage și Reduceri
+                  Oferte Speciale
                 </h1>
                 <p className="text-neutral-400 text-sm md:text-base max-w-lg">
                   Cele mai bune oferte din supermarketurile din România, actualizate zilnic.
