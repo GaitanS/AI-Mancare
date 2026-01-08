@@ -9,7 +9,7 @@ export async function POST(req: Request) {
 
         switch (script) {
             case 'scrape':
-                // Scraper uses axios+cheerio, no Puppeteer needed!
+                // Product scraper (offers from Kimbino)
                 try {
                     const scriptPath = path.join(process.cwd(), 'scripts', 'cron-scraper.js');
 
@@ -23,13 +23,38 @@ export async function POST(req: Request) {
 
                     return NextResponse.json({
                         success: true,
-                        message: '🕷️ Scraper started in background! Check database in a few minutes.',
+                        message: '🕷️ Product scraper started! Check database in a few minutes.',
                     });
                 } catch (e: unknown) {
                     const errorMessage = e instanceof Error ? e.message : 'Unknown error';
                     return NextResponse.json({
                         success: false,
                         message: `Scraper failed: ${errorMessage}`,
+                    }, { status: 500 });
+                }
+
+            case 'catalogs':
+                // Catalog scraper v2 (downloads catalog images locally from cataloagedeoferte.ro)
+                try {
+                    const scriptPath = path.join(process.cwd(), 'scripts', 'catalog-scraper-v2.js');
+
+                    // Run in background
+                    const child = spawn('node', [scriptPath], {
+                        detached: true,
+                        stdio: 'ignore',
+                        cwd: process.cwd(),
+                    });
+                    child.unref();
+
+                    return NextResponse.json({
+                        success: true,
+                        message: '📚 Catalog scraper started! Downloads ~700 pages. Check /cataloage-digitale in 10-15 minutes.',
+                    });
+                } catch (e: unknown) {
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                    return NextResponse.json({
+                        success: false,
+                        message: `Catalog scraper failed: ${errorMessage}`,
                     }, { status: 500 });
                 }
 

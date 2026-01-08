@@ -1,48 +1,59 @@
+/**
+ * API Route: Get all catalogs with local images
+ * Returns catalogs grouped by store for the catalog listing page
+ */
+
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/prisma';
 
-export const dynamic = 'force-dynamic';
-
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const store = searchParams.get('store');
-
-    const where = store ? { store: store } : {};
-
     const catalogs = await prisma.catalog.findMany({
-      where,
+      where: {
+        status: 'COMPLETED',
+        validUntil: { gte: new Date() },
+        localImages: { not: null }
+      },
+      orderBy: [
+        { store: 'asc' },
+        { validFrom: 'desc' }
+      ],
       select: {
         id: true,
-        title: true,
         store: true,
-        sourceUrl: true,
+        title: true,
+        slug: true,
         validFrom: true,
         validUntil: true,
-        status: true,
-      },
-      orderBy: {
-        validFrom: 'desc',
-      },
-      take: 50,
-    });
-
-    // Group by store
-    const groupedByStore: Record<string, typeof catalogs> = {};
-
-    catalogs.forEach((catalog) => {
-      const storeLower = catalog.store.toLowerCase();
-      if (!groupedByStore[storeLower]) {
-        groupedByStore[storeLower] = [];
+        totalPages: true,
+        imageBasePath: true,
+        localImages: true
       }
-      groupedByStore[storeLower].push(catalog);
     });
+
+    // Parse localImages JSON and group by store
+    const catalogsByStore: Record<string, any[]> = {};
+
+    for (const catalog of catalogs) {
+      const store = catalog.store;
+      if (!catalogsByStore[store]) {
+        catalogsByStore[store] = [];
+      }
+
+      catalogsByStore[store].push({
+        ...catalog,
+        localImages: catalog.localImages ? JSON.parse(catalog.localImages) : [],
+        // First image for thumbnail
+        thumbnail: catalog.imageBasePath ? `${catalog.imageBasePath}/page-01.webp` : null
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      catalogs: groupedByStore,
-      total: catalogs.length,
+      data: catalogsByStore,
+      totalCatalogs: catalogs.length
     });
+
   } catch (error) {
     console.error('Error fetching catalogs:', error);
     return NextResponse.json(

@@ -50,7 +50,12 @@
       "Bash(git diff:*)",
       "Bash(ssh -p 65002 u596471450@72.62.153.174 \"ls -la ~/domains/catalogsmart.ro/public_html/ 2>/dev/null || ls -la ~/ | head -20\")",
       "Bash(npm run build:*)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Skill(systematic-debugging)",
+      "Bash(npx hostinger-api-mcp@latest:*)",
+      "Bash(sshpass -p 'Frectie@2345' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@185.224.139.191 \"pm2 status\")",
+      "Bash(rm:*)",
+      "Bash(ls:*)"
     ]
   }
 }

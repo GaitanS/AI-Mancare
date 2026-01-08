@@ -2,22 +2,27 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { ExternalLink, Calendar, Store } from 'lucide-react';
+import { Calendar, Store, BookOpen, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
+import CatalogViewerLocal from './CatalogViewerLocal';
 
 interface Catalog {
   id: string;
   title: string;
+  slug: string;
   store: string;
-  sourceUrl: string;
   validFrom: string;
   validUntil: string;
-  status: string;
+  totalPages: number;
+  imageBasePath: string;
+  localImages: string[];
+  thumbnail: string | null;
 }
 
 interface CatalogsResponse {
   success: boolean;
-  catalogs: Record<string, Catalog[]>;
-  total: number;
+  data: Record<string, Catalog[]>;
+  totalCatalogs: number;
 }
 
 const storeConfig = [
@@ -29,6 +34,7 @@ const storeConfig = [
   { slug: 'mega image', name: 'Mega Image', color: 'from-[#e31837] to-[#b8142d]' },
   { slug: 'auchan', name: 'Auchan', color: 'from-[#e1001a] to-[#b00014]' },
   { slug: 'selgros', name: 'Selgros', color: 'from-[#ed1b2f] to-[#c9001b]' },
+  { slug: 'supeco', name: 'Supeco', color: 'from-[#f7941d] to-[#d47a17]' },
 ];
 
 export default function CatalogList() {
@@ -36,6 +42,7 @@ export default function CatalogList() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeCatalog, setActiveCatalog] = useState<Catalog | null>(null);
 
   useEffect(() => {
     fetchCatalogs();
@@ -48,7 +55,7 @@ export default function CatalogList() {
       const data: CatalogsResponse = await response.json();
 
       if (data.success) {
-        setCatalogs(data.catalogs);
+        setCatalogs(data.data);
         setError(null);
       } else {
         setError('Nu am putut încărca cataloagele');
@@ -71,7 +78,7 @@ export default function CatalogList() {
 
   function getStoreConfig(storeName: string) {
     return storeConfig.find(
-      (s) => s.slug.toLowerCase() === storeName.toLowerCase()
+      (s) => s.slug.toLowerCase() === storeName.toLowerCase() || s.name.toLowerCase() === storeName.toLowerCase()
     ) || { slug: storeName.toLowerCase(), name: storeName, color: 'from-gray-600 to-gray-800' };
   }
 
@@ -80,6 +87,7 @@ export default function CatalogList() {
     : catalogs;
 
   const availableStores = Object.keys(catalogs);
+  const totalCount = Object.values(catalogs).flat().length;
 
   if (isLoading) {
     return (
@@ -118,6 +126,16 @@ export default function CatalogList() {
     );
   }
 
+  // Show catalog viewer if a catalog is selected
+  if (activeCatalog) {
+    return (
+      <CatalogViewerLocal
+        catalog={activeCatalog}
+        onClose={() => setActiveCatalog(null)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Store Filter */}
@@ -131,7 +149,7 @@ export default function CatalogList() {
               : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
           )}
         >
-          Toate Magazinele ({Object.values(catalogs).flat().length})
+          Toate Magazinele ({totalCount})
         </button>
 
         {availableStores.map((storeName) => {
@@ -162,29 +180,42 @@ export default function CatalogList() {
             const config = getStoreConfig(storeName);
 
             return (
-              <a
+              <button
                 key={catalog.id}
-                href={catalog.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-neutral-200 hover:border-primary-300"
+                onClick={() => setActiveCatalog(catalog)}
+                className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-neutral-200 hover:border-primary-300 text-left"
               >
+                {/* Thumbnail */}
+                {catalog.thumbnail && (
+                  <div className="relative h-40 bg-neutral-100 overflow-hidden">
+                    <Image
+                      src={catalog.thumbnail}
+                      alt={catalog.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
+                      {catalog.totalPages} pagini
+                    </div>
+                  </div>
+                )}
+
                 {/* Store Header */}
                 <div
                   className={cn(
-                    'bg-gradient-to-r p-4 text-white',
+                    'bg-gradient-to-r p-3 text-white',
                     config.color
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-lg">{config.name}</span>
-                    <ExternalLink className="w-5 h-5 opacity-70 group-hover:opacity-100 transition" />
+                    <span className="font-bold">{config.name}</span>
+                    <BookOpen className="w-5 h-5 opacity-70" />
                   </div>
                 </div>
 
                 {/* Catalog Info */}
                 <div className="p-4 space-y-3">
-                  <h3 className="font-semibold text-neutral-900 line-clamp-2 min-h-[3rem]">
+                  <h3 className="font-semibold text-neutral-900 line-clamp-2 min-h-[2.5rem]">
                     {catalog.title}
                   </h3>
 
@@ -196,13 +227,13 @@ export default function CatalogList() {
                   </div>
 
                   <div className="pt-2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-semibold group-hover:bg-primary-100 transition">
-                      Vezi Catalog
-                      <ExternalLink className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm font-semibold group-hover:bg-primary-100 transition">
+                      Răsfoiește Catalogul
+                      <ChevronRight className="w-4 h-4" />
                     </span>
                   </div>
                 </div>
-              </a>
+              </button>
             );
           })
         )}
@@ -210,3 +241,4 @@ export default function CatalogList() {
     </div>
   );
 }
+

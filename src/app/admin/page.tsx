@@ -261,9 +261,12 @@ export default function AdminPage() {
                                 : 'hover:from-primary-500 hover:to-primary-600 active:scale-95'
                                 }`}
                         >
-                            {scraperStatus?.running ? '⏳ Se rulează...' : '🚀 Pornește Scanarea'}
+                            {scraperStatus?.running ? '⏳ Se rulează...' : '🚀 Pornește Scanarea Produse'}
                         </button>
                     </div>
+
+                    {/* Catalog Scraper - NEW SECTION */}
+                    <CatalogScraperSection onRunScript={handleRunScript} />
 
                     {/* Recipe Generator */}
                     <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-accent-500/30 transition-all">
@@ -303,8 +306,8 @@ export default function AdminPage() {
                             onClick={() => { handleRunScript('recipes'); fetchRecipeStatus(); }}
                             disabled={recipeStatus?.running}
                             className={`w-full py-3 bg-gradient-to-r from-accent-600 to-accent-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-accent-900/20 flex items-center justify-center gap-2 ${recipeStatus?.running
-                                    ? 'opacity-50 cursor-not-allowed'
-                                    : 'hover:from-accent-500 hover:to-accent-600 active:scale-95'
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'hover:from-accent-500 hover:to-accent-600 active:scale-95'
                                 }`}
                         >
                             {recipeStatus?.running ? '✨ Se generează...' : '✨ Generează Rețete'}
@@ -479,3 +482,131 @@ function InteractiveScheduleCard({ schedule, info, onUpdate, saving }: {
         </div>
     );
 }
+
+// Catalog Scraper Section with Status Display
+interface CatalogScraperSectionProps {
+    onRunScript: (script: string) => void;
+}
+
+interface CatalogStatus {
+    running: boolean;
+    startedAt: string | null;
+    completedAt: string | null;
+    totalCatalogs: number;
+    totalPages: number;
+    currentStore: string | null;
+    error: string | null;
+    stores: Record<string, { success: boolean; catalogs: number; pages: number; error: string | null }>;
+}
+
+function CatalogScraperSection({ onRunScript }: CatalogScraperSectionProps) {
+    const [status, setStatus] = useState<CatalogStatus | null>(null);
+    const [isPolling, setIsPolling] = useState(false);
+
+    const fetchStatus = async () => {
+        try {
+            const res = await fetch('/api/admin/catalog-status');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.status) {
+                    setStatus(data.status);
+                    setIsPolling(data.status.running);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch catalog status', e);
+        }
+    };
+
+    useEffect(() => {
+        fetchStatus();
+    }, []);
+
+    useEffect(() => {
+        if (!isPolling) return;
+        const interval = setInterval(fetchStatus, 3000);
+        return () => clearInterval(interval);
+    }, [isPolling]);
+
+    const handleStart = () => {
+        onRunScript('catalogs');
+        setIsPolling(true);
+        setTimeout(fetchStatus, 2000);
+    };
+
+    const formatDate = (dateStr: string | null) => {
+        if (!dateStr) return '-';
+        return new Date(dateStr).toLocaleString('ro-RO');
+    };
+
+    return (
+        <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-blue-500/30 transition-all">
+            <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-blue-500 select-none -translate-y-2 translate-x-2">📚</div>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${status?.running ? 'bg-amber-500 animate-pulse' : 'bg-blue-500'}`}></span>
+                Catalog Scraper (Imagini)
+            </h2>
+            <p className="text-neutral-400 text-sm mb-4">
+                Descarcă cataloagele de pe cataloagedeoferte.ro și le salvează local. Nu mai face redirect!
+            </p>
+
+            {/* Running Status */}
+            {status?.running && (
+                <div className="mb-4 p-3 bg-amber-950/30 border border-amber-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-amber-400 text-sm">
+                        <span className="animate-spin">⏳</span>
+                        <span>Se procesează: <strong>{status.currentStore || '...'}</strong></span>
+                    </div>
+                    <div className="mt-2 text-xs text-neutral-400">
+                        Cataloage: {status.totalCatalogs} | Pagini: {status.totalPages}
+                    </div>
+                </div>
+            )}
+
+            {/* Completed Status with Store Results */}
+            {status && !status.running && status.completedAt && (
+                <div className="mb-4 p-4 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+                    <div className="flex justify-between items-center mb-3">
+                        <span className="text-emerald-400 font-semibold">✅ Ultima rulare completă</span>
+                        <span className="text-xs text-neutral-500">{formatDate(status.completedAt)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div className="bg-neutral-900 rounded p-2 text-center">
+                            <div className="text-2xl font-bold text-blue-400">{status.totalCatalogs}</div>
+                            <div className="text-xs text-neutral-500">Cataloage</div>
+                        </div>
+                        <div className="bg-neutral-900 rounded p-2 text-center">
+                            <div className="text-2xl font-bold text-blue-400">{status.totalPages}</div>
+                            <div className="text-xs text-neutral-500">Pagini</div>
+                        </div>
+                    </div>
+                    <div className="text-xs text-neutral-400 mb-2">Magazine:</div>
+                    <div className="grid grid-cols-3 gap-1">
+                        {Object.entries(status.stores).map(([name, data]) => (
+                            <div key={name} className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${data.success ? 'bg-emerald-950/50 text-emerald-400' : 'bg-red-950/50 text-red-400'}`}>
+                                <span>{data.success ? '✅' : '❌'}</span>
+                                <span className="truncate">{name}</span>
+                                <span className="text-neutral-500">({data.catalogs})</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <button
+                onClick={handleStart}
+                disabled={status?.running}
+                className={`w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 ${status?.running
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:from-blue-500 hover:to-blue-600 active:scale-95'
+                    }`}
+            >
+                {status?.running ? '⏳ Se rulează...' : '📚 Actualizează Cataloage'}
+            </button>
+            <p className="text-neutral-500 text-xs mt-2 text-center">
+                ~10-15 minute pentru toate magazinele
+            </p>
+        </div>
+    );
+}
+

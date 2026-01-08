@@ -267,6 +267,7 @@ model Catalog {
   id     String @id @default(uuid())
   store  String
   title  String
+  slug   String @unique  // URL-friendly identifier
   pdfUrl String @map("pdf_url") @db.Text
   sourceUrl String? @map("source_url") @db.Text
 
@@ -283,6 +284,10 @@ model Catalog {
   // Page Info
   totalPages     Int? @map("total_pages")
   processedPages Int? @map("processed_pages")
+  
+  // Local Images (JSON array of local paths)
+  localImages    String? @map("local_images") @db.LongText
+  imageBasePath  String? @map("image_base_path")  // e.g., /catalogs/kaufland/260113-myqru
 
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
@@ -291,6 +296,7 @@ model Catalog {
   @@index([store])
   @@index([status])
   @@index([validFrom, validUntil])
+  @@index([slug])
 
   @@map("catalogs")
 }
