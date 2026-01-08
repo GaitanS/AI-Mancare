@@ -9,9 +9,9 @@ import { notFound as notFoundPage } from 'next/navigation';
 export const revalidate = 3600; // Revalidate every hour
 
 interface Props {
-    params: {
+    params: Promise<{
         slug: string;
-    };
+    }>;
 }
 
 async function getRecipe(slug: string) {
@@ -70,7 +70,8 @@ async function getRecipe(slug: string) {
     };
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+    const params = await props.params;
     const recipe = await getRecipe(params.slug);
 
     if (!recipe) {
@@ -94,7 +95,8 @@ const difficultyConfig = {
     DIFICIL: { label: 'Dificil', color: 'text-rose-700 bg-rose-50' },
 };
 
-export default async function RecipePage({ params }: Props) {
+export default async function RecipePage(props: Props) {
+    const params = await props.params;
     const recipe = await getRecipe(params.slug);
 
     if (!recipe) {
