@@ -17,6 +17,8 @@ const stores = [
     { slug: 'penny', name: 'Penny', color: 'from-[#cd1719] to-[#a81315]' },
     { slug: 'carrefour', name: 'Carrefour', color: 'from-[#004e9e] to-[#003a76]' },
     { slug: 'mega-image', name: 'Mega Image', color: 'from-[#e31837] to-[#b8142d]' },
+    { slug: 'auchan', name: 'Auchan', color: 'from-[#e1001a] to-[#b00014]' },
+    { slug: 'selgros', name: 'Selgros', color: 'from-[#ed1b2f] to-[#c9001b]' },
 ];
 
 export default function CatalogViewer() {

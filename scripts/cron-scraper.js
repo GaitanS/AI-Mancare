@@ -32,6 +32,8 @@ const TARGET_STORES = [
   { slug: 'profi', name: 'Profi' },
   { slug: 'mega-image', name: 'Mega Image' },
   { slug: 'carrefour', name: 'Carrefour' },
+  { slug: 'auchan', name: 'Auchan' },
+  { slug: 'selgros', name: 'Selgros' },
 ];
 
 /**
