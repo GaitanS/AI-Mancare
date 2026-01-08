@@ -88,6 +88,58 @@ function parseDateRange(dateString) {
 }
 
 /**
+ * Keywords that indicate non-food catalogs to skip
+ */
+const SKIP_KEYWORDS = [
+  'non-food', 'nonfood', 'non food',
+  'unelte', 'bricolaj', 'tools',
+  'grădină', 'gradina', 'garden',
+  'haine', 'îmbrăcăminte', 'fashion', 'textile',
+  'electrocasnice', 'electronice', 'electronics',
+  'auto', 'automotive',
+  'jucării', 'jucarii', 'toys',
+  'mobilă', 'mobila', 'furniture',
+  'papetărie', 'papetarie', 'office',
+];
+
+/**
+ * Check if catalog should be skipped based on keywords and date
+ * @param {string} title - Catalog title
+ * @param {Date} validFrom - Start date
+ * @param {Date} validUntil - End date
+ * @returns {{ skip: boolean, reason: string }} 
+ */
+function shouldSkipCatalog(title, validFrom, validUntil) {
+  // Normalize title for comparison
+  const normalizedTitle = (title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // Check for skip keywords
+  for (const keyword of SKIP_KEYWORDS) {
+    const normalizedKeyword = keyword.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (normalizedTitle.includes(normalizedKeyword)) {
+      return { skip: true, reason: `Keyword match: "${keyword}"` };
+    }
+  }
+
+  // Check date validity
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (validUntil && validUntil < today) {
+    return { skip: true, reason: `Expired: valid until ${validUntil.toISOString().split('T')[0]}` };
+  }
+
+  // Optional: Skip if catalog hasn't started yet (more than 7 days in future)
+  const sevenDaysFromNow = new Date(today);
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+  if (validFrom && validFrom > sevenDaysFromNow) {
+    return { skip: true, reason: `Future catalog: starts ${validFrom.toISOString().split('T')[0]}` };
+  }
+
+  return { skip: false, reason: null };
+}
+
+/**
  * Scrape Kimbino.ro homepage for all catalogs
  */
 async function scrapeKimbinoHomepage() {
@@ -209,6 +261,13 @@ async function scrapeCatalogProducts(catalogUrl) {
  */
 async function saveCatalog(catalog) {
   try {
+    // First check if catalog should be skipped
+    const skipCheck = shouldSkipCatalog(catalog.title, catalog.validFrom, catalog.validUntil);
+    if (skipCheck.skip) {
+      log.info(`SKIP: ${catalog.storeName} - "${catalog.title}" (${skipCheck.reason})`);
+      return { skipped: true, reason: skipCheck.reason };
+    }
+
     // Check if already exists
     const existing = await prisma.catalog.findFirst({
       where: {
@@ -306,10 +365,19 @@ async function runScraper() {
         const catalogs = await scrapeStoreCatalogs(store.slug, store.name);
         catalogsFound += catalogs.length;
 
-        // Save each catalog
+        // Save each catalog (with filtering)
+        let skippedCount = 0;
         for (const catalog of catalogs) {
-          const saved = await saveCatalog(catalog);
-          if (saved) catalogsSaved++;
+          const result = await saveCatalog(catalog);
+          if (result?.skipped) {
+            skippedCount++;
+          } else if (result) {
+            catalogsSaved++;
+          }
+        }
+
+        if (skippedCount > 0) {
+          log.info(`  → ${skippedCount} catalogs skipped (non-food/expired)`);
         }
 
       } catch (storeError) {
@@ -323,6 +391,7 @@ async function runScraper() {
     log.success(`Found: ${catalogsFound} catalogs`);
     log.success(`Saved: ${catalogsSaved} new catalogs`);
     log.success('========================================');
+
 
     // Write final status
     await updateStatus({

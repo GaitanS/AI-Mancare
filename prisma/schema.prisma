@@ -114,6 +114,41 @@ model Recipe {
 }
 
 // ==========================================
+// RECIPE ARCHIVE TABLE (for weekly rotation)
+// ==========================================
+model RecipeArchive {
+  id               String   @id @default(uuid())
+  originalRecipeId String   @map("original_recipe_id")
+  
+  // Recipe Data (copied from original)
+  title            String
+  slug             String
+  description      String   @db.Text
+  imageUrl         String?  @map("image_url") @db.Text
+  instructions     String   @db.LongText
+  tips             String?  @db.Text
+  servings         Int      @default(4)
+  difficulty       String   @default("medium")
+  
+  // Ingredient names (for matching, not IDs)
+  ingredientNames  String   @map("ingredient_names") @db.Text // JSON array of ingredient names
+  
+  // Archive metadata
+  archivedAt       DateTime @default(now()) @map("archived_at")
+  reactivatedAt    DateTime? @map("reactivated_at")
+  timesReactivated Int      @default(0) @map("times_reactivated")
+  
+  // Matching score (updated when reactivated)
+  lastMatchScore   Float?   @map("last_match_score")
+  
+  @@index([originalRecipeId])
+  @@index([archivedAt])
+  @@index([timesReactivated])
+  
+  @@map("recipe_archives")
+}
+
+// ==========================================
 // WEEKLY MENU TABLE
 // ==========================================
 model WeeklyMenu {
