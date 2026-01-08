@@ -1,15 +1,14 @@
 /**
- * AI PDF Processor using OpenRouter + Gemini Vision
- * Extracts product information from PDF catalog pages
+ * AI PDF Processor using OpenRouter + Gemini Vision + Puppeteer
+ * Extracts product information from PDF catalog pages and saves images for viewer
  */
 
 import OpenAI from 'openai';
-import { PDFDocument } from 'pdf-lib';
-import sharp from 'sharp';
 import fs from 'fs/promises';
 import path from 'path';
 import type { ExtractedProduct } from '@/types';
 import { retry, sleep } from '@/lib/utils';
+import puppeteer from 'puppeteer';
 
 // OpenRouter client (OpenAI-compatible API)
 const openrouter = new OpenAI({
@@ -25,46 +24,58 @@ const VISION_MODEL = process.env.AI_MODEL_VISION || 'google/gemini-2.5-flash';
 const RATE_LIMIT_DELAY = parseInt(process.env.OPENAI_RATE_LIMIT_DELAY_MS || '2000', 10);
 
 /**
- * Convert PDF page to high-quality PNG image
+ * Render PDF page to Base64 Image using Puppeteer (Headless Chrome)
+ * This bypasses the need for local system dependencies like Poppler or GraphicsMagick
  */
-export async function convertPDFPageToImage(
-  pdfPath: string,
-  pageIndex: number
-): Promise<string> {
+async function renderPdfPage(browser: any, pdfBytes: Uint8Array, pageIndex: number): Promise<string> {
+  const page = await browser.newPage();
   try {
-    // Read PDF file
-    const pdfBytes = await fs.readFile(pdfPath);
-    const pdfDoc = await PDFDocument.load(pdfBytes);
+    await page.goto('about:blank');
 
-    // Check if page exists
-    if (pageIndex >= pdfDoc.getPageCount()) {
-      throw new Error(`Page ${pageIndex} does not exist in PDF`);
-    }
+    // Inject PDF.js
+    await page.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js' });
 
-    // Extract single page
-    const singlePageDoc = await PDFDocument.create();
-    const [page] = await singlePageDoc.copyPages(pdfDoc, [pageIndex]);
-    singlePageDoc.addPage(page);
+    // Pass PDF data to page context
+    // We convert Uint8Array to Array for serializability
+    const pdfDataArray = Array.from(pdfBytes);
 
-    const singlePageBytes = await singlePageDoc.save();
+    const base64Image = await page.evaluate(async (data: number[], idx: number) => {
+      // @ts-ignore
+      const pdfjs = window['pdfjsLib'];
+      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    // Convert to PNG with high DPI for better OCR
-    const pngBuffer = await sharp(Buffer.from(singlePageBytes), {
-      density: 300, // High DPI
-    })
-      .png({
-        quality: 95,
-        compressionLevel: 6,
-      })
-      .toBuffer();
+      const loadingTask = pdfjs.getDocument({ data: new Uint8Array(data) });
+      const pdf = await loadingTask.promise;
+      const pdfPage = await pdf.getPage(idx + 1); // 1-based index in PDF.js
 
-    // Convert to base64
-    return pngBuffer.toString('base64');
-  } catch (error) {
-    console.error(`Error converting PDF page ${pageIndex}:`, error);
-    throw new Error(`Failed to convert PDF page to image: ${(error as any).message}`);
+      const viewport = pdfPage.getViewport({ scale: 2.0 }); // High quality (2x)
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      if (!context) throw new Error('Canvas context not found');
+
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport
+      };
+
+      await pdfPage.render(renderContext).promise;
+      return canvas.toDataURL('image/jpeg', 0.9);
+    }, pdfDataArray, pageIndex);
+
+    // Strip prefix "data:image/jpeg;base64,"
+    return base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+
+  } catch (e) {
+    console.error(`Error rendering page ${pageIndex} with Puppeteer:`, e);
+    throw e;
+  } finally {
+    await page.close();
   }
 }
+
 
 /**
  * Extract products from catalog image using GPT-4o Vision
@@ -118,7 +129,7 @@ REGULI IMPORTANTE:
                 {
                   type: 'image_url',
                   image_url: {
-                    url: `data:image/png;base64,${imageBase64}`,
+                    url: `data:image/jpeg;base64,${imageBase64}`,
                     detail: 'high',
                   },
                 },
@@ -177,6 +188,7 @@ export async function processCatalog(catalogId: string): Promise<{
 }> {
   const { PrismaClient } = await import('@prisma/client');
   const prisma = new PrismaClient();
+  let browser = null;
 
   const errors: string[] = [];
   let productsExtracted = 0;
@@ -206,10 +218,25 @@ export async function processCatalog(catalogId: string): Promise<{
       },
     });
 
-    // Load PDF
-    // Fetch PDF from URL
+    // 1. Fetch PDF from URL
+    console.log(`[PROCESSOR] Fetching PDF from: ${catalog.pdfUrl}`);
     const pdfResponse = await fetch(catalog.pdfUrl);
-    const pdfBytes = await pdfResponse.arrayBuffer();
+    if (!pdfResponse.ok) throw new Error(`Failed to fetch PDF: ${pdfResponse.statusText}`);
+
+    const pdfBuffer = await pdfResponse.arrayBuffer();
+    const pdfBytes = new Uint8Array(pdfBuffer);
+
+    // 2. Launch Puppeteer
+    console.log('[PROCESSOR] Launching Puppeteer for PDF rendering...');
+    browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+
+    // Get total pages via PDF.js logic or we could trust the DB if set
+    // We'll rely on the loop until error/bound
+    // But first let's get page count using pdf-lib or just try to render? 
+    // We can use pdf-lib just for counting pages efficiently.
+    const { PDFDocument } = await import('pdf-lib'); // Still use pdf-lib for structure checks
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const totalPages = pdfDoc.getPageCount();
 
@@ -220,15 +247,26 @@ export async function processCatalog(catalogId: string): Promise<{
       data: { totalPages },
     });
 
+    // Ensure public/catalog-images/[store] exists
+    const publicDir = path.join(process.cwd(), 'public', 'catalog-images', catalog.store);
+    await fs.mkdir(publicDir, { recursive: true });
+
     // Process each page
     for (let i = 0; i < totalPages; i++) {
       console.log(`[PROCESSOR] Processing page ${i + 1}/${totalPages}`);
 
       try {
-        // Convert page to image
-        // Note: This requires the PDF to be saved locally first, or use a URL-based approach
-        // For now, we'll skip this as it requires local file access
-        const imageBase64 = ''; // TODO: Implement URL-based PDF page extraction
+        // Convert page to image (Puppeteer)
+        const imageBase64 = await renderPdfPage(browser, pdfBytes, i);
+
+        // Save image to disk for Viewer
+        const pageNum = String(i + 1).padStart(2, '0');
+        const fileName = `page-${pageNum}.jpg`; // Standard pattern: page-01.jpg
+        const filePath = path.join(publicDir, fileName);
+
+        const imageBuffer = Buffer.from(imageBase64, 'base64');
+        await fs.writeFile(filePath, imageBuffer);
+        console.log(`[PROCESSOR] Saved image to: ${filePath}`);
 
         // Extract products with AI
         const products = await extractProductsFromImage(imageBase64, catalog.store);
@@ -258,9 +296,7 @@ export async function processCatalog(catalogId: string): Promise<{
             });
             productsExtracted++;
           } catch (dbError) {
-            const error = `Failed to insert product ${product.name}: ${(dbError as any).message}`;
-            console.error(`[PROCESSOR] ${error}`);
-            errors.push(error);
+            console.error(`[PROCESSOR] Failed to insert product: ${(dbError as any).message}`);
           }
         }
 
@@ -270,13 +306,13 @@ export async function processCatalog(catalogId: string): Promise<{
           data: { processedPages: i + 1 },
         });
 
-        // Rate limiting - don't spam OpenAI API
+        // Rate limiting
         await sleep(RATE_LIMIT_DELAY);
+
       } catch (pageError) {
         const error = `Error on page ${i + 1}: ${(pageError as any).message}`;
         console.error(`[PROCESSOR] ${error}`);
         errors.push(error);
-        // Continue processing next pages
       }
     }
 
@@ -291,16 +327,14 @@ export async function processCatalog(catalogId: string): Promise<{
     });
 
     console.log(`[PROCESSOR] Completed catalog for store: ${catalog.store}`);
-    console.log(`[PROCESSOR] Total products extracted: ${productsExtracted}`);
-
     return {
       success: true,
       productsExtracted,
       errors,
     };
+
   } catch (error) {
     console.error('[PROCESSOR] Fatal error:', error);
-
     await prisma.catalog.update({
       where: { id: catalogId },
       data: {
@@ -308,19 +342,18 @@ export async function processCatalog(catalogId: string): Promise<{
         processingErrors: JSON.stringify({ error: (error as any).message, errors }),
       },
     });
-
     return {
       success: false,
       productsExtracted,
       errors: [...errors, (error as any).message],
     };
   } finally {
+    if (browser) await browser.close();
     await prisma.$disconnect();
   }
 }
 
 export default {
-  convertPDFPageToImage,
   extractProductsFromImage,
   processCatalog,
 };

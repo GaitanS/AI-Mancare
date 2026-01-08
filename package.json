@@ -71,6 +71,7 @@
     "pdf-parse": "^1.1.1",
     "postcss": "^8.4.49",
     "prisma": "^6.1.0",
+    "puppeteer": "^24.34.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-hook-form": "^7.54.2",
