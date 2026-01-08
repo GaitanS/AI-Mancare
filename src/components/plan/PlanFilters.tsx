@@ -9,6 +9,8 @@ interface PlanFiltersProps {
     setFilterMeatType: (val: string[]) => void;
     filterDietaryRestrictions: string[];
     setFilterDietaryRestrictions: (val: string[]) => void;
+    filterStores: string[];
+    setFilterStores: (val: string[]) => void;
     filterMaxTime: number | null;
     setFilterMaxTime: (val: number | null) => void;
     filterMaxCost: number | null;
@@ -31,6 +33,8 @@ export function PlanFilters({
     setFilterMeatType,
     filterDietaryRestrictions,
     setFilterDietaryRestrictions,
+    filterStores,
+    setFilterStores,
     filterMaxTime,
     setFilterMaxTime,
     filterMaxCost,
@@ -51,6 +55,14 @@ export function PlanFilters({
         }
     };
 
+    const toggleStore = (store: string) => {
+        if (filterStores.includes(store)) {
+            setFilterStores(filterStores.filter(s => s !== store));
+        } else {
+            setFilterStores([...filterStores, store]);
+        }
+    };
+
     const toggleSelection = (current: string[], set: (val: string[]) => void, item: string) => {
         if (current.includes(item)) {
             set(current.filter(i => i !== item));
@@ -62,6 +74,42 @@ export function PlanFilters({
     return (
         <div className={cn("flex flex-col h-full", className)}>
             <div className="flex-1 overflow-y-auto px-1 py-2 space-y-6">
+                {/* Stores */}
+                <div className="pb-5 border-b border-neutral-100">
+                    <h3 className="text-sm font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                        <span className="text-primary-500">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m8-2a2 2 0 100-4 2 2 0 000 4zm-6-4a2 2 0 110-4 2 2 0 010 4zm6-10V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v3h6z" />
+                            </svg>
+                        </span>
+                        Magazine Preferate
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { slug: 'lidl', name: 'Lidl' },
+                            { slug: 'kaufland', name: 'Kaufland' },
+                            { slug: 'penny', name: 'Penny' },
+                            { slug: 'profi', name: 'Profi' },
+                            { slug: 'carrefour', name: 'Carrefour' },
+                            { slug: 'mega-image', name: 'Mega Image' },
+                            { slug: 'auchan', name: 'Auchan' },
+                            { slug: 'selgros', name: 'Selgros' }
+                        ].map(store => (
+                            <button
+                                key={store.slug}
+                                onClick={() => toggleStore(store.slug)}
+                                className={cn(
+                                    "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
+                                    filterStores.includes(store.slug)
+                                        ? "bg-primary-600 text-white"
+                                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                                )}
+                            >
+                                {store.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
                 {/* Difficulty */}
                 <div className="pb-5 border-b border-neutral-100">
                     <h3 className="text-sm font-bold text-neutral-900 mb-3 flex items-center gap-2">

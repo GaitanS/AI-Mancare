@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch data directly (cache removed for production)
-    const [recipes, total] = await Promise.all([
+    const [recipesRaw, total] = await Promise.all([
       prisma.recipe.findMany({
         where,
         orderBy,
@@ -92,15 +92,53 @@ export async function GET(request: NextRequest) {
       prisma.recipe.count({ where }),
     ]);
 
-    const result = {
-      recipes: recipes.map((r: any) => ({
+    // Extract all ingredient IDs to fetch store info
+    const allIngredientIds = new Set<string>();
+    recipesRaw.forEach((r: any) => {
+      const ids = typeof r.ingredientIds === 'string' ? JSON.parse(r.ingredientIds) : r.ingredientIds;
+      if (Array.isArray(ids)) {
+        ids.forEach((id: string) => allIngredientIds.add(id));
+      }
+    });
+
+    // Fetch products to get stores
+    const products = await prisma.product.findMany({
+      where: {
+        id: { in: Array.from(allIngredientIds) }
+      },
+      select: {
+        id: true,
+        store: true
+      }
+    });
+
+    // Map product ID to store
+    const productStores = new Map(products.map(p => [p.id, p.store]));
+
+    const recipes = recipesRaw.map((r: any) => {
+      const ids = typeof r.ingredientIds === 'string' ? JSON.parse(r.ingredientIds) : r.ingredientIds;
+      const stores = new Set<string>();
+
+      if (Array.isArray(ids)) {
+        ids.forEach((id: string) => {
+          const store = productStores.get(id);
+          if (store) {
+            // Normalize store name to slug (e.g. "Mega Image" -> "mega-image", "Lidl" -> "lidl")
+            const slug = store.toLowerCase().trim().replace(/\s+/g, '-');
+            stores.add(slug);
+          }
+        });
+      }
+
+      return {
         ...r,
         difficulty: r.difficulty as 'USOR' | 'MEDIU' | 'DIFICIL',
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
         instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
         tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : null,
         tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
-        ingredientIds: typeof r.ingredientIds === 'string' ? JSON.parse(r.ingredientIds) : r.ingredientIds,
+        ingredientIds: ids,
+        availableStores: Array.from(stores), // Add available stores
         nutritionPerServing: r.nutritionPerServing ? (typeof r.nutritionPerServing === 'string' ? JSON.parse(r.nutritionPerServing) : r.nutritionPerServing) : null,
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
@@ -109,7 +147,11 @@ export async function GET(request: NextRequest) {
         isDairyFree: r.isDairyFree,
         isVegan: r.isVegan,
         isVegetarian: r.isVegetarian
-      })) as unknown as Recipe[],
+      };
+    }) as unknown as Recipe[];
+
+    const result = {
+      recipes,
       total,
     };
 

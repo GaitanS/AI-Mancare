@@ -21,49 +21,10 @@ interface Recipe {
     estimatedCost: number | null;
     tags: string[];
     slug: string;
+    availableStores?: string[]; // Added
 }
 
-interface FullRecipe extends Recipe {
-    instructions: { step: number; text: string }[];
-    tips: string[];
-    nutritionPerServing: {
-        calories?: number;
-        protein?: number;
-        carbs?: number;
-        fat?: number;
-    } | null;
-    ingredients: {
-        id: string;
-        name: string;
-        price: number;
-        originalPrice: number | null;
-        store: string;
-        unit: string;
-        quantity: number;
-    }[];
-}
-
-interface PlannedRecipe {
-    recipeId: string;
-    recipeTitle: string;
-    portions: number;
-    day: string | null;
-    ingredients: {
-        id: string;
-        name: string;
-        price: number;
-        quantity: number;
-        unit: string;
-        scaledQuantity: number;
-    }[];
-}
-
-interface MealPlan {
-    recipes: PlannedRecipe[];
-    updatedAt: string;
-}
-
-const STORAGE_KEY = 'mealPlan';
+// ... (Other interfaces)
 
 export default function PlanPage() {
     const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -82,6 +43,7 @@ export default function PlanPage() {
     const [filterMealType, setFilterMealType] = useState<string[]>([]);
     const [filterMeatType, setFilterMeatType] = useState<string[]>([]);
     const [filterDietaryRestrictions, setFilterDietaryRestrictions] = useState<string[]>([]);
+    const [filterStores, setFilterStores] = useState<string[]>([]); // Added
     const [filterMaxTime, setFilterMaxTime] = useState<number | null>(null);
     const [filterMaxCost, setFilterMaxCost] = useState<number | null>(null);
     const [filterTag, setFilterTag] = useState<string | null>(null);
@@ -222,6 +184,7 @@ export default function PlanPage() {
         setFilterMealType([]);
         setFilterMeatType([]);
         setFilterDietaryRestrictions([]);
+        setFilterStores([]); // Added
         setFilterMaxTime(null);
         setFilterMaxCost(null);
         setFilterTag(null);
@@ -233,6 +196,7 @@ export default function PlanPage() {
         filterMealType.length > 0,
         filterMeatType.length > 0,
         filterDietaryRestrictions.length > 0,
+        filterStores.length > 0, // Added
         filterMaxTime !== null,
         filterMaxCost !== null,
         filterTag !== null
@@ -249,6 +213,18 @@ export default function PlanPage() {
         if (filterMealType.length > 0 && !filterMealType.some(m => recipe.tags.includes(m))) return false;
         // Meat type filter (check tags)
         if (filterMeatType.length > 0 && !filterMeatType.some(m => recipe.tags.includes(m))) return false;
+
+        // Store filter
+        if (filterStores.length > 0) {
+            // Recipe must list available stores. If empty, we can't be sure, so maybe show or hide?
+            // Assuming strict mode: if I say "Lidl", I want recipes with ingredients found in Lidl.
+            if (!recipe.availableStores || recipe.availableStores.length === 0) return false;
+
+            // Check if recipe stores are a subset of selected filter stores
+            const isSubset = recipe.availableStores.every(store => filterStores.includes(store));
+            if (!isSubset) return false;
+        }
+
         return true;
     });
 
@@ -345,6 +321,8 @@ export default function PlanPage() {
                                 setFilterMeatType={setFilterMeatType}
                                 filterDietaryRestrictions={filterDietaryRestrictions}
                                 setFilterDietaryRestrictions={setFilterDietaryRestrictions}
+                                filterStores={filterStores} // Added
+                                setFilterStores={setFilterStores} // Added
                                 filterMaxTime={filterMaxTime}
                                 setFilterMaxTime={setFilterMaxTime}
                                 filterMaxCost={filterMaxCost}
@@ -387,6 +365,8 @@ export default function PlanPage() {
                                     setFilterMeatType={setFilterMeatType}
                                     filterDietaryRestrictions={filterDietaryRestrictions}
                                     setFilterDietaryRestrictions={setFilterDietaryRestrictions}
+                                    filterStores={filterStores} // Added
+                                    setFilterStores={setFilterStores} // Added
                                     filterMaxTime={filterMaxTime}
                                     setFilterMaxTime={setFilterMaxTime}
                                     filterMaxCost={filterMaxCost}
