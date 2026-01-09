@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { Fraunces, DM_Sans, Geist_Mono } from 'next/font/google';
-import Script from 'next/script';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -164,6 +163,13 @@ export default function RootLayout({
         {/* Google AdSense - Verification Meta Tag */}
         <meta name="google-adsense-account" content="ca-pub-4509784482094331" />
 
+        {/* Google AdSense - Auto Ads (using regular script to avoid data-nscript warning) */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4509784482094331"
+          crossOrigin="anonymous"
+        />
+
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
@@ -179,12 +185,6 @@ export default function RootLayout({
         <main className="flex-1 pb-20 lg:pb-0">{children}</main>
         <Footer />
         <BottomNav />
-        {/* Google AdSense - Auto Ads */}
-        <Script
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4509784482094331"
-          strategy="afterInteractive"
-          crossOrigin="anonymous"
-        />
       </body>
     </html>
   );
