@@ -35,7 +35,7 @@ async function callAI(prompt, systemPrompt = '') {
       {
         model: AI_MODEL,
         messages: [
-          { role: 'system', content: systemPrompt || 'Ești un chef profesionist român specializat în rețete economice.' },
+          { role: 'system', content: systemPrompt || 'Ești un chef profesionist român cu experiență în bucătăria tradițională. Dai instrucțiuni TEHNICE și PRECISE: temperaturi exacte (cu/fără ventilator), gramaje precise, tehnici de tăiere cu dimensiuni, timpi de gătire și semne vizuale de verificare. Rețetele tale sunt economice dar detaliate ca într-o carte de bucate profesională.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.8,
@@ -116,6 +116,14 @@ async function generateRecipe(ingredients, existingTitles = []) {
 
 Titluri DE EVITAT (deja există): ${existingTitles.slice(-10).join(', ') || 'niciuna'}
 
+IMPORTANT - Instrucțiunile trebuie să fie TEHNICE și DETALIATE:
+- Specifică EXACT cantitățile în grame (ex: "200g piept de pui")
+- Indică tehnici de tăiere (ex: "tăiați cubulețe de 2cm", "felii subțiri de 3mm")
+- Pentru cuptor: temperatura exactă, cu/fără ventilator (ex: "180°C cu ventilator" sau "200°C fără ventilator")
+- Timp de gătit precis pentru fiecare pas (ex: "prăjiți 3-4 minute până se rumenesc")
+- Semne vizuale de gătire (ex: "până capătă o crustă aurie", "până sosul se reduce la jumătate")
+- Grosimea și dimensiunile ingredientelor (ex: "cartofi tăiați cuburi de 1.5cm")
+
 Răspunde STRICT în format JSON:
 {
     "title": "Numele rețetei (unic, creativ)",
@@ -125,14 +133,18 @@ Răspunde STRICT în format JSON:
     "difficulty": "Ușor|Mediu|Dificil",
     "estimatedCost": 25.00,
     "ingredients": [
-        {"name": "Ingredient", "quantity": "200", "unit": "g"}
+        {"name": "Piept de pui", "quantity": "500", "unit": "g"},
+        {"name": "Cartofi", "quantity": "800", "unit": "g"}
     ],
     "steps": [
-        "Pasul 1: ...",
-        "Pasul 2: ..."
+        "Preîncălziți cuptorul la 180°C cu ventilator (sau 200°C fără ventilator).",
+        "Tăiați pieptul de pui în cuburi de aproximativ 3cm. Cartofii îi tăiați felii de 5mm grosime.",
+        "Într-o tigaie încinsă cu 2 linguri ulei, rumetiți carnea 4-5 minute pe foc mare, amestecând, până capătă o crustă aurie.",
+        "Adăugați cartofii și gătiți încă 8-10 minute, amestecând ocazional, până sunt aurii și crocante la exterior.",
+        "Transferați într-un vas termorezistent și coaceți 20-25 minute până carnea atinge temperatura internă de 74°C."
     ],
-    "tips": "Sfaturi utile pentru economie",
-    "tags": ["economic", "traditional", "rapid"]
+    "tips": "Sfaturi utile pentru economie și tehnici de gătit",
+    "tags": ["economic", "traditional", "detaliat"]
 }`;
 
   const response = await callAI(prompt);
