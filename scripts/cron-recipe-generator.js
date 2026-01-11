@@ -217,7 +217,10 @@ async function generateRecipe(ingredients, existingTitles = []) {
 /**
  * Save recipe to database
  */
-async function saveRecipe(recipeData) {
+/**
+ * Save recipe to database
+ */
+async function saveRecipe(recipeData, availableProducts = []) {
   try {
     const slug = recipeData.title
       .toLowerCase()
@@ -236,6 +239,42 @@ async function saveRecipe(recipeData) {
       return null;
     }
 
+    // MATCHING LOGIC: Try to link AI ingredients to real Product IDs
+    const matchedIngredients = (recipeData.ingredients || []).map(ing => {
+      // 1. Try exact match
+      let match = availableProducts.find(p =>
+        p.name.toLowerCase() === ing.name.toLowerCase()
+      );
+
+      // 2. Try fuzzy match: Product name contains ingredient name (e.g. AI: "Lapte" -> DB: "Lapte 1.5% Zuzu")
+      if (!match) {
+        match = availableProducts.find(p =>
+          p.name.toLowerCase().includes(ing.name.toLowerCase())
+        );
+      }
+
+      // 3. Try reverse fuzzy: Ingredient name contains product name (rare but distinct)
+      if (!match) {
+        match = availableProducts.find(p =>
+          ing.name.toLowerCase().includes(p.name.toLowerCase())
+        );
+      }
+
+      if (match) {
+        // Return object WITH ID for the API to use
+        return {
+          id: match.id, // CRITICAL: This links to the DB product
+          name: ing.name, // Keep the display name from AI (e.g. "Lapte") or use product name? AI name is usually better for reading.
+          quantity: ing.quantity,
+          unit: ing.unit,
+          matchedProduct: match.name // stored for debugging/reference
+        };
+      }
+
+      // No match found - keep as raw text (API fallback will handle display)
+      return ing;
+    });
+
     // Schema uses: instructions (LongText), ingredientIds (Text), cookTime, prepTime, tags (Text)
     const recipe = await prisma.recipe.create({
       data: {
@@ -248,8 +287,8 @@ async function saveRecipe(recipeData) {
         servings: recipeData.servings || 4,
         difficulty: (recipeData.difficulty || 'mediu').toLowerCase(),
         estimatedCost: recipeData.estimatedCost || 25,
-        // ingredientIds stores JSON array of ingredient objects
-        ingredientIds: JSON.stringify(recipeData.ingredients || []),
+        // ingredientIds stores JSON array of ingredient objects (now with IDs!)
+        ingredientIds: JSON.stringify(matchedIngredients),
         // instructions stores JSON array of steps
         instructions: JSON.stringify(recipeData.steps || recipeData.instructions || []),
         tips: JSON.stringify(recipeData.tips || []),
@@ -337,7 +376,8 @@ async function generateWeeklyRecipes(count = 10) {
       const recipeData = await generateRecipe(selectedProducts, [...existingTitles, ...createdRecipes.map(r => r.title)]);
 
       if (recipeData) {
-        const saved = await saveRecipe(recipeData);
+        // Pass selectedProducts for matching logic
+        const saved = await saveRecipe(recipeData, selectedProducts);
         if (saved) {
           createdRecipes.push(saved);
         }
