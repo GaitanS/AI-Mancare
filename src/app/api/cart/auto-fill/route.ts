@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         const { recipeIds, ingredients: rawIngredients, store } = body;
 
         // Get ingredients either from recipes or directly provided
-        let ingredientNames: string[] = [];
+        let ingredientsWithQuantities: Array<{ name: string; quantity: number; unit: string }> = [];
 
         if (recipeIds && recipeIds.length > 0) {
             // Fetch recipes and extract ingredients
@@ -52,20 +52,50 @@ export async function POST(request: NextRequest) {
             for (const recipe of recipes) {
                 try {
                     const recipeIngredients = JSON.parse(recipe.ingredientIds);
-                    ingredientNames.push(...recipeIngredients.map((i: { name: string }) => i.name?.toLowerCase() || i));
+                    ingredientsWithQuantities.push(...recipeIngredients.map((i: any) => ({
+                        name: (i.name || i)?.toLowerCase(),
+                        quantity: i.quantity || 1,
+                        unit: i.unit || 'buc'
+                    })));
                 } catch {
                     // If not valid JSON, treat as comma-separated
-                    ingredientNames.push(...recipe.ingredientIds.split(',').map((s: string) => s.trim().toLowerCase()));
+                    ingredientsWithQuantities.push(...recipe.ingredientIds.split(',').map((s: string) => ({
+                        name: s.trim().toLowerCase(),
+                        quantity: 1,
+                        unit: 'buc'
+                    })));
                 }
             }
         } else if (rawIngredients && rawIngredients.length > 0) {
-            ingredientNames = rawIngredients.map((i: string) => i.toLowerCase());
+            // Check if ingredients have quantity info
+            if (typeof rawIngredients[0] === 'object' && rawIngredients[0].name) {
+                ingredientsWithQuantities = rawIngredients.map((i: any) => ({
+                    name: i.name.toLowerCase(),
+                    quantity: i.quantity || 1,
+                    unit: i.unit || 'buc'
+                }));
+            } else {
+                // Old format: just strings
+                ingredientsWithQuantities = rawIngredients.map((i: string) => ({
+                    name: i.toLowerCase(),
+                    quantity: 1,
+                    unit: 'buc'
+                }));
+            }
         }
 
-        // Remove duplicates
-        ingredientNames = [...new Set(ingredientNames)];
+        // Merge duplicates
+        const ingredientsMap = new Map<string, { quantity: number; unit: string }>();
+        for (const ing of ingredientsWithQuantities) {
+            if (ingredientsMap.has(ing.name)) {
+                const existing = ingredientsMap.get(ing.name)!;
+                existing.quantity += ing.quantity;
+            } else {
+                ingredientsMap.set(ing.name, { quantity: ing.quantity, unit: ing.unit });
+            }
+        }
 
-        if (ingredientNames.length === 0) {
+        if (ingredientsMap.size === 0) {
             return NextResponse.json(
                 { error: 'No ingredients provided' },
                 { status: 400 }
@@ -80,7 +110,7 @@ export async function POST(request: NextRequest) {
         let totalSavings = 0;
         const storeBreakdown: Record<string, { count: number; subtotal: number }> = {};
 
-        for (const ingredientName of ingredientNames) {
+        for (const [ingredientName, { quantity, unit }] of ingredientsMap.entries()) {
             // Find ingredient mapping
             const mapping = await prisma.ingredientMapping.findFirst({
                 where: {
@@ -134,8 +164,8 @@ export async function POST(request: NextRequest) {
 
             const item: CartItem = {
                 ingredientName,
-                requiredQuantity: 1,
-                unit: mapping?.defaultUnit || 'buc',
+                requiredQuantity: quantity,
+                unit: unit || mapping?.defaultUnit || 'buc',
                 matchedProduct: bestMatch
                     ? {
                         id: bestMatch.id,
@@ -158,15 +188,16 @@ export async function POST(request: NextRequest) {
                 const price = Number(bestMatch.price);
                 const originalPrice = bestMatch.originalPrice ? Number(bestMatch.originalPrice) : price;
 
-                totalCost += price;
-                totalSavings += originalPrice - price;
+                // Multiply price by quantity for correct total
+                totalCost += price * quantity;
+                totalSavings += (originalPrice - price) * quantity;
 
                 // Track store breakdown
                 if (!storeBreakdown[bestMatch.store]) {
                     storeBreakdown[bestMatch.store] = { count: 0, subtotal: 0 };
                 }
                 storeBreakdown[bestMatch.store].count++;
-                storeBreakdown[bestMatch.store].subtotal += price;
+                storeBreakdown[bestMatch.store].subtotal += price * quantity;
             }
         }
 
