@@ -7,6 +7,8 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const statusFile = path.join(process.cwd(), 'logs', 'product-extractor-status.json');
