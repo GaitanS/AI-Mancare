@@ -250,30 +250,47 @@ async function saveRecipe(recipeData, availableProducts = []) {
 
     // MATCHING LOGIC: Try to link AI ingredients to real Product IDs
     const matchedIngredients = (recipeData.ingredients || []).map(ing => {
-      // 1. Try exact match
+      // CLEANUP: Remove parenthetical explanations AI might have added
+      // e.g. "Bere blondă (pentru aciditate)" -> "Bere blondă"
+      const cleanName = ing.name.replace(/\s*\(.*?\)\s*/g, '').trim().toLowerCase();
+
+      // 1. Try exact match (using clean name)
       let match = availableProducts.find(p =>
-        p.name.toLowerCase() === ing.name.toLowerCase()
+        p.name.toLowerCase() === cleanName
       );
 
-      // 2. Try fuzzy match: Product name contains ingredient name (e.g. AI: "Lapte" -> DB: "Lapte 1.5% Zuzu")
+      // 2. Try fuzzy match: Product name contains ingredient name
+      // DB: "Bere Blondă Ursus" contains Clean: "bere blondă" -> MATCH
       if (!match) {
         match = availableProducts.find(p =>
-          p.name.toLowerCase().includes(ing.name.toLowerCase())
+          p.name.toLowerCase().includes(cleanName)
         );
       }
 
-      // 3. Try reverse fuzzy: Ingredient name contains product name (rare but distinct)
+      // 3. Try reverse fuzzy: Ingredient name contains product name
+      // Clean: "piept de pui dezosat" contains DB: "piept de pui" -> MATCH
       if (!match) {
         match = availableProducts.find(p =>
-          ing.name.toLowerCase().includes(p.name.toLowerCase())
+          cleanName.includes(p.name.toLowerCase())
         );
+      }
+
+      // 4. Try word intersection (last resort for things like "Ciolan de porc")
+      // If we match 3+ words, it's likely the same thing
+      if (!match && cleanName.split(' ').length > 2) {
+        match = availableProducts.find(p => {
+          const pWords = p.name.toLowerCase().split(' ');
+          const iWords = cleanName.split(' ');
+          const intersection = pWords.filter(w => iWords.includes(w));
+          return intersection.length >= 3; // e.g. "Ciolan", "de", "porc"
+        });
       }
 
       if (match) {
         // Return object WITH ID for the API to use
         return {
           id: match.id, // CRITICAL: This links to the DB product
-          name: ing.name, // Keep the display name from AI (e.g. "Lapte") or use product name? AI name is usually better for reading.
+          name: ing.name.replace(/\s*\(.*?\)\s*/g, ''), // Store clean name for display too, looks better
           quantity: ing.quantity,
           unit: ing.unit,
           matchedProduct: match.name // stored for debugging/reference
@@ -281,7 +298,11 @@ async function saveRecipe(recipeData, availableProducts = []) {
       }
 
       // No match found - keep as raw text (API fallback will handle display)
-      return ing;
+      // Also clean the display name even if no match, to avoid "(pentru aciditate)" cluttering the UI
+      return {
+        ...ing,
+        name: ing.name.replace(/\s*\(.*?\)\s*/g, '').trim()
+      };
     });
 
     // Schema uses: instructions (LongText), ingredientIds (Text), cookTime, prepTime, tags (Text)
