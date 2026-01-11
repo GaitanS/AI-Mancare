@@ -188,16 +188,84 @@ export async function POST(request: NextRequest) {
                 const price = Number(bestMatch.price);
                 const originalPrice = bestMatch.originalPrice ? Number(bestMatch.originalPrice) : price;
 
-                // Multiply price by quantity for correct total
-                totalCost += price * quantity;
-                totalSavings += (originalPrice - price) * quantity;
+                // Smart Quantity Calculation
+                // 1. Try to extract package size from product name (e.g. "Faina 1kg", "Lapte 1.5L", "Mix 400g")
+                let packageSize = 1;
+                let packageUnit = 'buc';
+
+                // Matches "400g", "1.5 kg", "100 ml", etc.
+                const sizeMatch = bestMatch.name.match(/(\d+(?:[.,]\d+)?)\s*(g|ml|kg|l|litri|grame|buc)/i);
+
+                if (sizeMatch) {
+                    const val = parseFloat(sizeMatch[1].replace(',', '.'));
+                    const u = sizeMatch[2].toLowerCase();
+
+                    if (u === 'kg' || u === 'l' || u === 'litri') {
+                        packageSize = val * 1000; // Normalized to g/ml
+                        packageUnit = u === 'kg' ? 'g' : 'ml';
+                    } else if (u === 'g' || u === 'grame') {
+                        packageSize = val;
+                        packageUnit = 'g';
+                    } else if (u === 'ml') {
+                        packageSize = val;
+                        packageUnit = 'ml';
+                    } else {
+                        // 'buc' or others
+                        packageSize = val;
+                        packageUnit = 'buc';
+                    }
+                }
+
+                // 2. Normalize required quantity
+                // If recipe asks for 'g'/'ml' and we found pack size, divide.
+                let packsToBuy = 1;
+
+                const isMassOrVolume = ['g', 'ml', 'kg', 'l', 'grame', 'litri'].includes(unit.toLowerCase());
+
+                if (isMassOrVolume) {
+                    let requiredAmount = quantity;
+                    if (unit.toLowerCase() === 'kg' || unit.toLowerCase() === 'l') requiredAmount *= 1000;
+
+                    // If we successfully found a package size in same/compatible unit
+                    if (packageSize > 1) { // Assuming meaningful pack size
+                        packsToBuy = Math.ceil(requiredAmount / packageSize);
+                    } else {
+                        // Fallback: If we assume package is ~1 unit of whatever (e.g. 1kg pack for 400g needed -> 1)
+                        // But if quantity is large (e.g. 1500g needed), and we don't know pack size... default to 1 is safer than 1500.
+                        // However, if unit was 'kg' and quantity was 1.5, we'd have 1.5 packs? No.
+                        // Let's stick to: "If it's mass/volume, default to 1 unless explicit math works".
+                        packsToBuy = 1;
+                    }
+                } else {
+                    // Unit is 'buc' or similar
+                    // If quantity is absurdly high (e.g. > 20), assume parsing error and clamp to 1.
+                    if (quantity > 20) {
+                        packsToBuy = 1;
+                    } else {
+                        packsToBuy = Math.ceil(quantity);
+                    }
+                }
+
+                // Final safety valve: prices over 500 RON for a standard item are suspicious
+                if (price * packsToBuy > 500 && price < 100) {
+                    packsToBuy = 1; // Auto-correct crazy multiples
+                }
+
+                // UPDATE ITEM with calculated purchase quantity
+                // This ensures frontend displays "1 buc" - "24 lei" instead of "400 g" - "9600 lei"
+                item.requiredQuantity = packsToBuy;
+                item.unit = bestMatch.unit || 'buc';
+
+                // Multiply price by CALCULATED packs
+                totalCost += price * packsToBuy;
+                totalSavings += (originalPrice - price) * packsToBuy;
 
                 // Track store breakdown
                 if (!storeBreakdown[bestMatch.store]) {
                     storeBreakdown[bestMatch.store] = { count: 0, subtotal: 0 };
                 }
                 storeBreakdown[bestMatch.store].count++;
-                storeBreakdown[bestMatch.store].subtotal += price * quantity;
+                storeBreakdown[bestMatch.store].subtotal += price * packsToBuy;
             }
         }
 
