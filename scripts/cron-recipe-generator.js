@@ -217,10 +217,10 @@ CATEGORII ACCEPTATE (orice rețetă REALĂ din aceste categorii):
  IMPORTANT - Instrucțiunile trebuie să fie TEHNICE și DETALIATE:
  - Specifică EXACT cantitățile în grame (ex: "200g piept de pui")
  - Indică tehnici de tăiere (ex: "tăiați cubulețe de 2cm", "felii subțiri de 3mm")
- - Pentru cuptor: temperatura exactă, cu/fără ventilator (ex: "180°C cu ventilator" sau "200°C fără ventilator")`;
-  - Timp de gătit precis pentru fiecare pas(ex: "prăjiți 3-4 minute până se rumenesc")
-    - Semne vizuale de gătire(ex: "până capătă o crustă aurie", "până sosul se reduce la jumătate")
-      - Grosimea și dimensiunile ingredientelor(ex: "cartofi tăiați cuburi de 1.5cm")
+ - Pentru cuptor: temperatura exactă, cu/fără ventilator (ex: "180°C cu ventilator" sau "200°C fără ventilator")
+ - Timp de gătit precis pentru fiecare pas (ex: "prăjiți 3-4 minute până se rumenesc")
+ - Semne vizuale de gătire (ex: "până capătă o crustă aurie", "până sosul se reduce la jumătate")
+ - Grosimea și dimensiunile ingredientelor (ex: "cartofi tăiați cuburi de 1.5cm")
 
 Răspunde STRICT în format JSON:
   {
@@ -243,7 +243,7 @@ Răspunde STRICT în format JSON:
                   ],
                     "tips": "Sfaturi utile pentru economie și tehnici de gătit",
                       "tags": ["economic", "traditional", "detaliat"]
-  } `;
+  }`;
 
   const response = await callAI(prompt);
 
@@ -258,7 +258,7 @@ Răspunde STRICT în format JSON:
 
     return JSON.parse(jsonStr.trim());
   } catch (parseError) {
-    log.error(`Failed to parse recipe JSON: ${ parseError.message } `);
+    log.error(`Failed to parse recipe JSON: ${parseError.message} `);
     return null;
   }
 }
@@ -308,10 +308,10 @@ async function saveRecipe(recipeData) {
       }
     });
 
-    log.success(`Created recipe: ${ recipe.title } `);
+    log.success(`Created recipe: ${recipe.title} `);
     return recipe;
   } catch (error) {
-    log.error(`Failed to save recipe: ${ error.message } `);
+    log.error(`Failed to save recipe: ${error.message} `);
     return null;
   }
 }
@@ -320,7 +320,7 @@ async function saveRecipe(recipeData) {
  * Generate multiple recipes
  */
 async function generateWeeklyRecipes(count = 10) {
-  log.info(`Starting generation of ${ count } recipes`);
+  log.info(`Starting generation of ${count} recipes`);
 
   // Write initial status
   writeStatus({
@@ -342,13 +342,13 @@ async function generateWeeklyRecipes(count = 10) {
 
   // Get products on sale
   const products = await getProductsOnSale();
-  log.info(`Found ${ products.length } products to use for recipes`);
+  log.info(`Found ${products.length} products to use for recipes`);
 
   writeStatus({
     running: true,
     current: 0,
     total: count,
-    message: `Găsite ${ products.length } produse cu reducere`,
+    message: `Găsite ${products.length} produse cu reducere`,
     complete: false,
     generatedCount: 0,
     error: null
@@ -366,54 +366,54 @@ async function generateWeeklyRecipes(count = 10) {
 
   for (let i = 0; i < count; i++) {
     try {
-      log.info(`Generating recipe ${ i + 1 }/${count}...`);
+      log.info(`Generating recipe ${i + 1}/${count}...`);
 
+      writeStatus({
+        running: true,
+        current: i,
+        total: count,
+        message: `Generăm rețeta ${i + 1}/${count}...`,
+        complete: false,
+        generatedCount: createdRecipes.length,
+        error: null
+      });
+
+      // Deduplicate products by name to avoid "Wine, Wine, Wine" scenarios
+      const uniqueProducts = Array.from(new Map(products.map(p => [p.name, p])).values());
+      const shuffled = [...uniqueProducts].sort(() => Math.random() - 0.5);
+      const selectedProducts = shuffled.slice(0, 12); // Give it more options (12 instead of 8)
+
+      const recipeData = await generateRecipe(selectedProducts, [...existingTitles, ...createdRecipes.map(r => r.title)]);
+
+      if (recipeData) {
+        const saved = await saveRecipe(recipeData);
+        if (saved) {
+          createdRecipes.push(saved);
+        }
+      }
+
+      // Rate limiting - wait 2 seconds between API calls
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+    } catch (error) {
+      log.error(`Failed to generate recipe ${i + 1}: ${error.message}`);
+    }
+  }
+
+  // Write final status
   writeStatus({
-    running: true,
-    current: i,
+    running: false,
+    startedAt: null,
+    completedAt: new Date().toISOString(),
+    current: count,
     total: count,
-    message: `Generăm rețeta ${i + 1}/${count}...`,
-    complete: false,
+    message: `Generare completă! ${createdRecipes.length} rețete noi.`,
+    complete: true,
     generatedCount: createdRecipes.length,
     error: null
   });
 
-  // Deduplicate products by name to avoid "Wine, Wine, Wine" scenarios
-  const uniqueProducts = Array.from(new Map(products.map(p => [p.name, p])).values());
-  const shuffled = [...uniqueProducts].sort(() => Math.random() - 0.5);
-  const selectedProducts = shuffled.slice(0, 12); // Give it more options (12 instead of 8)
-
-  const recipeData = await generateRecipe(selectedProducts, [...existingTitles, ...createdRecipes.map(r => r.title)]);
-
-  if (recipeData) {
-    const saved = await saveRecipe(recipeData);
-    if (saved) {
-      createdRecipes.push(saved);
-    }
-  }
-
-  // Rate limiting - wait 2 seconds between API calls
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-} catch (error) {
-  log.error(`Failed to generate recipe ${i + 1}: ${error.message}`);
-}
-  }
-
-// Write final status
-writeStatus({
-  running: false,
-  startedAt: null,
-  completedAt: new Date().toISOString(),
-  current: count,
-  total: count,
-  message: `Generare completă! ${createdRecipes.length} rețete noi.`,
-  complete: true,
-  generatedCount: createdRecipes.length,
-  error: null
-});
-
-return createdRecipes;
+  return createdRecipes;
 }
 
 /**
