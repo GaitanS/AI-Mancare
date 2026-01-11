@@ -98,13 +98,14 @@ async function callAI(prompt, systemPrompt = '') {
  */
 async function getProductsOnSale() {
   try {
-    // Try to get products with discounts (field is discountPercentage in schema)
+    // Get ANY products from the last 7 days (fresh data)
+    // We don't rely only on discountPercentage because sometimes AI misses the original price
     const products = await prisma.product.findMany({
       where: {
-        discountPercentage: { gt: 0 }
+        createdAt: { gt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
       },
       take: 50,
-      orderBy: { discountPercentage: 'desc' }
+      orderBy: { createdAt: 'desc' }
     });
 
     if (products.length > 0) {
