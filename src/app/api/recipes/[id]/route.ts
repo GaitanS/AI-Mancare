@@ -102,7 +102,10 @@ export async function GET(
                 totalTime: recipe.totalTime,
                 difficulty: recipe.difficulty,
                 estimatedCost: recipe.estimatedCost ? Number(recipe.estimatedCost) : null,
-                instructions: safeParseArray(recipe.instructions),
+                instructions: safeParseArray(recipe.instructions).map((step: string, index: number) => ({
+                    step: index + 1,
+                    text: step
+                })),
                 tips: safeParseArray(recipe.tips),
                 tags: safeParseArray(recipe.tags),
                 nutritionPerServing: safeParseJSON(recipe.nutritionPerServing),
