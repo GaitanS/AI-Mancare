@@ -300,8 +300,8 @@ async function saveRecipe(recipeData) {
         // ingredientIds stores JSON array of ingredient objects
         ingredientIds: JSON.stringify(recipeData.ingredients || []),
         // instructions stores JSON array of steps
-        instructions: JSON.stringify(recipeData.steps || []),
-        tips: recipeData.tips || '',
+        instructions: JSON.stringify(recipeData.steps || recipeData.instructions || []),
+        tips: JSON.stringify(recipeData.tips || []),
         // tags is a Text field, store as comma-separated or JSON
         tags: JSON.stringify(recipeData.tags || ['economic']),
         isPublished: true,
