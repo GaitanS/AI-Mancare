@@ -100,21 +100,27 @@ async function getProductsOnSale() {
   try {
     // Get ANY products from the last 7 days (fresh data)
     // We don't rely only on discountPercentage because sometimes AI misses the original price
+    // Fetch a large pool of ACTIVE products (not just recent ones) to ensure staples (flour, oil, vegetables) are included
     const products = await prisma.product.findMany({
       where: {
-        createdAt: { gt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+        // Only ensure they are still valid offers
+        validUntil: { gte: new Date() }
       },
-      take: 50,
-      orderBy: { createdAt: 'desc' }
+      take: 300, // Increased to 300 to give AI a rich pantry
+      orderBy: [
+        { discountPercentage: 'desc' }, // Deals first
+        { price: 'asc' } // Then cheap staples
+      ]
     });
 
     if (products.length > 0) {
       return products;
     }
 
-    // If no discounted products, get any products
+    // If no valid-dated products, get ANY products (fallback)
     const anyProducts = await prisma.product.findMany({
-      take: 30
+      take: 200,
+      orderBy: { createdAt: 'desc' }
     });
 
     if (anyProducts.length > 0) {
