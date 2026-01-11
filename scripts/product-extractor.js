@@ -16,6 +16,17 @@ const OpenAI = require('openai');
 
 const prisma = new PrismaClient();
 
+// Debug API Key
+const apiKey = process.env.OPENROUTER_API_KEY;
+console.log('----------------------------------------');
+console.log(`DEBUG: API Key present: ${!!apiKey}`);
+if (apiKey) {
+    console.log(`DEBUG: API Key prefix: ${apiKey.substring(0, 10)}...`);
+} else {
+    console.log('DEBUG: API Key is MISSING or EMPTY');
+}
+console.log('----------------------------------------');
+
 // Configuration
 const CATALOGS_DIR = path.join(process.cwd(), 'public', 'catalogs');
 const LOGS_DIR = path.join(process.cwd(), 'logs');
