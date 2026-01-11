@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
         log.info(`Killing script: ${script} (cmd: ${command})`);
 
-        return new Promise((resolve) => {
+        return new Promise<NextResponse>((resolve) => {
             exec(command, (error, stdout, stderr) => {
                 // pkill returns exit code 1 if no process found, which is fine
                 // we treat "process not found" as "already stopped" success for UI purposes
