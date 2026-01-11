@@ -133,6 +133,27 @@ export default function AdminPage() {
         }
     };
 
+    const handleKillScript = async (script: string) => {
+        setActionStatus(`Stopping ${script}...`);
+        try {
+            const res = await fetch('/api/admin/kill-script', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ script }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setActionStatus(`✅ Stopped: ${script}`);
+            } else {
+                setActionStatus(`❌ Failed: ${data.message || data.error}`);
+            }
+        } catch (e: any) {
+            setActionStatus(`❌ Error: ${e.message}`);
+        } finally {
+            setTimeout(() => setActionStatus(null), 3000);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-neutral-950 text-white p-8 font-sans">
             <div className="max-w-4xl mx-auto">
@@ -161,16 +182,16 @@ export default function AdminPage() {
                 {/* Action Panel - 2x2 Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Catalog Scraper - Downloads catalog images */}
-                    <CatalogScraperSection onRunScript={handleRunScript} />
+                    <CatalogScraperSection onRunScript={handleRunScript} onKillScript={handleKillScript} />
 
                     {/* Product Extractor - Extracts products using AI/OCR */}
-                    <ProductExtractorSection onRunScript={handleRunScript} />
+                    <ProductExtractorSection onRunScript={handleRunScript} onKillScript={handleKillScript} />
 
                     {/* Recipe Generator */}
-                    <RecipeGeneratorSection onRunScript={handleRunScript} />
+                    <RecipeGeneratorSection onRunScript={handleRunScript} onKillScript={handleKillScript} />
 
                     {/* Image Generator */}
-                    <ImageGeneratorSection onRunScript={handleRunScript} />
+                    <ImageGeneratorSection onRunScript={handleRunScript} onKillScript={handleKillScript} />
                 </div>
 
                 {/* Automated Schedules Section - INTERACTIVE */}
@@ -344,6 +365,7 @@ function InteractiveScheduleCard({ schedule, info, onUpdate, saving }: {
 // Catalog Scraper Section with Status Display
 interface CatalogScraperSectionProps {
     onRunScript: (script: string) => void;
+    onKillScript: (script: string) => void;
 }
 
 interface CatalogStatus {
@@ -360,7 +382,7 @@ interface CatalogStatus {
     stores: Record<string, { success: boolean; catalogs: number; pages: number; error: string | null }>;
 }
 
-function CatalogScraperSection({ onRunScript }: CatalogScraperSectionProps) {
+function CatalogScraperSection({ onRunScript, onKillScript }: CatalogScraperSectionProps) {
     const [status, setStatus] = useState<CatalogStatus | null>(null);
     const [isPolling, setIsPolling] = useState(false);
 
@@ -469,21 +491,10 @@ function CatalogScraperSection({ onRunScript }: CatalogScraperSectionProps) {
 
             {status?.running && (
                 <button
-                    onClick={async () => {
-                        try {
-                            await fetch('/api/admin/stop-script', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ script: 'catalog-scraper' })
-                            });
-                            fetchStatus();
-                        } catch (e) {
-                            console.error('Failed to stop script', e);
-                        }
-                    }}
+                    onClick={() => onKillScript ? onKillScript('catalogs') : {}}
                     className="w-full py-2 mb-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-lg transition-all hover:from-red-500 hover:to-red-600 active:scale-95 flex items-center justify-center gap-2"
                 >
-                    🛑 Oprește Scraping
+                    🛑 Oprește Scraping (Kill)
                 </button>
             )}
             <button
@@ -518,7 +529,7 @@ interface ProductExtractorStatus {
     stores: Record<string, { success: boolean; catalogs: number; products: number; error: string | null }>;
 }
 
-function ProductExtractorSection({ onRunScript }: CatalogScraperSectionProps) {
+function ProductExtractorSection({ onRunScript, onKillScript }: CatalogScraperSectionProps) {
     const [status, setStatus] = useState<ProductExtractorStatus | null>(null);
     const [isPolling, setIsPolling] = useState(false);
 
@@ -631,21 +642,10 @@ function ProductExtractorSection({ onRunScript }: CatalogScraperSectionProps) {
 
             {status?.running && (
                 <button
-                    onClick={async () => {
-                        try {
-                            await fetch('/api/admin/stop-script', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ script: 'product-extractor' })
-                            });
-                            fetchStatus();
-                        } catch (e) {
-                            console.error('Failed to stop script', e);
-                        }
-                    }}
+                    onClick={() => onKillScript ? onKillScript('products') : {}}
                     className="w-full py-2 mb-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-lg transition-all hover:from-red-500 hover:to-red-600 active:scale-95 flex items-center justify-center gap-2"
                 >
-                    🛑 Oprește Extragerea
+                    🛑 Oprește Extragerea (Kill)
                 </button>
             )}
             <button
@@ -676,7 +676,7 @@ interface RecipeStatus {
     error: string | null;
 }
 
-function RecipeGeneratorSection({ onRunScript }: CatalogScraperSectionProps) {
+function RecipeGeneratorSection({ onRunScript, onKillScript }: CatalogScraperSectionProps) {
     const [status, setStatus] = useState<RecipeStatus | null>(null);
     const [isPolling, setIsPolling] = useState(false);
 
@@ -799,7 +799,7 @@ interface ImageStatus {
     currentRecipe: string | null;
 }
 
-function ImageGeneratorSection({ onRunScript }: CatalogScraperSectionProps) {
+function ImageGeneratorSection({ onRunScript, onKillScript }: CatalogScraperSectionProps) {
     const [status, setStatus] = useState<ImageStatus | null>(null);
     const [isPolling, setIsPolling] = useState(false);
 
