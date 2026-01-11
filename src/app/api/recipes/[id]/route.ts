@@ -85,8 +85,56 @@ export async function GET(
                 originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
                 store: p.store,
                 unit: p.unit,
-                quantity: 1, // Default quantity per recipe
+                quantity: 1,
             }));
+        } else if (Array.isArray(ingredientIds) && ingredientIds.length > 0) {
+            // Fallback: Try to match ingredients by name if they are objects
+            const potentialIngredients = ingredientIds.filter((i: any) => typeof i === 'object' && i.name);
+            const potentialNames = potentialIngredients.map((i: any) => i.name);
+
+            let matchedProducts: any[] = [];
+
+            if (potentialNames.length > 0) {
+                matchedProducts = await prisma.product.findMany({
+                    where: { name: { in: potentialNames } },
+                    select: {
+                        id: true,
+                        name: true,
+                        price: true,
+                        originalPrice: true,
+                        store: true,
+                        unit: true,
+                    }
+                });
+            }
+
+            ingredients = potentialIngredients.map((i: any, index: number) => {
+                // Try to find exact match
+                const match = matchedProducts.find(p => p.name === i.name);
+
+                if (match) {
+                    return {
+                        id: match.id,
+                        name: match.name,
+                        price: Number(match.price),
+                        originalPrice: match.originalPrice ? Number(match.originalPrice) : null,
+                        store: match.store,
+                        unit: match.unit,
+                        quantity: Number(i.quantity) || 1
+                    };
+                }
+
+                // Return raw ingredient with generated ID and 0 price
+                return {
+                    id: `gen-${index}-${Date.now()}`,
+                    name: i.name,
+                    price: 0,
+                    originalPrice: null,
+                    store: 'Generic',
+                    unit: i.unit || 'buc',
+                    quantity: Number(i.quantity) || 1
+                };
+            });
         }
 
         const response = {
