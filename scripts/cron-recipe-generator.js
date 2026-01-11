@@ -147,103 +147,51 @@ async function getProductsOnSale() {
 async function generateRecipe(ingredients, existingTitles = []) {
   const ingredientList = ingredients.map(p => p.name).join(', ');
 
-  const prompt = `Ești un chef bucătar profesionist cu experiență practică în bucătăria românească.
-Creezi doar rețete testate, cu ingrediente uzuale din România.
-Nu inventezi tehnici, timpi sau temperaturi.
-Nu adaptezi, nu improvizezi, nu optimizezi fără cerere explicită.
+  const prompt = `Ești un GURU al bucătăriei românești tradiționale (stilul JamilaCuisine / Gina Bradea).
+  TONUL TĂU TREBUIE SĂ FIE:
+  - Cald, prietenos, explicativ, ca o gospodină cu experiență care explică unui începător.
+  - Folosește diminutive naturale unde e cazul ("călim ceapa", "lăsăm să fearbă la foc mic", "sosuleț", "mămăliguță"), dar păstrează profesionalismul tehnic.
+  - Evită termenii "de fițe" sau traduceri directe din engleză.
 
-AI la dispoziție următoarele ingrediente principale (la reducere): ${ingredientList}
+  VOCABULAR OBLIGATORIU:
+  - NU folosi "dressing" (zi "sos"), "confiat" (zi "gătit lent" sau "caramelizat"), "topping" (zi "garnitură" sau "decor").
+  - NU folosi "Skyr" (zi "iaurt grecesc" sau "iaurt scurs") decât dacă e specificat ca ingredient.
+  - Folosește termeni românești: "călit", "înăbușit", "rumenit", "dres cu ou", "pufos", "scăzut".
 
-SARCINA TA:
-Alege 2-3 ingrediente din listă care se potrivesc PERFECT (ex: carne + cartofi, paste + sos) și creează o rețetă CLASICĂ.
-Dacă ingredientele nu se potrivesc, IGNORĂ-LE și folosește ingrediente de bază (făină, ouă, ulei, apă, condimente) pe care le are oricine în casă.
+  AI la dispoziție următoarele ingrediente principale (la reducere): ${ingredientList}
 
-Răspunsul trebuie să fie un JSON valid cu următoarea structură STRICTĂ:
-{
-  "title": "Denumire rețetă (Clasică, fără 'în stil propriu')",
-  "description": "Scurtă descriere apetisantă (max 2 fraze)",
-  "servings": 4,
-  "prepTime": 0,
-  "cookTime": 0,
-  "difficulty": "MEDIU",
-  "ingredients": [
-    { "name": "Ingredient exact", "quantity": "100", "unit": "g" }
-  ],
-  "instructions": [
-    "Pasul 1...",
-    "Pasul 2..."
-  ],
-  "tips": ["Sfat 1", "Sfat 2"],
-  "tags": ["Fel principal", "Prânz"] // Maxim 3 tag-uri relevante
-}
+  SARCINA TA:
+  Alege 2-3 ingrediente din listă și creează o rețetă GUSTOASĂ și POPULARĂ.
+  
+  REGULI CRITICE DE "BUN SIMȚ CULINAR":
+  1. Dacă combini carne cu fructe (ex: pui cu ananas), asigură-te că e o rețetă clasică, nu o invenție ciudată.
+  2. Nu pune "dressing" pe mâncare gătită. Sosul se face în cratiță.
+  3. Dacă ingredientele sunt banale (ex: pui, cartofi), fă cea mai bună Mâncare de Cartofi cu Pui, nu "pui descompus". Fă-o ca la bunica acasă.
 
-REGULI CRITICE:
-1. NU inventa combinații ciudate (ex: NU pune croissante în ciorbă).
-2. Dacă ai "Croissant" și "Vin", NU le combina. Fă un desert rapid sau o gustare.
-3. Cantitățile trebuie să fie METRICE și REALISTE.
-4. Timpii trebuie să fie corecți fizic (nu fierbe puiul în 2 minute).
-
-Titluri DE EVITAT (deja există): ${existingTitles.slice(-10).join(', ') || 'niciuna'}
-
-CATEGORII ACCEPTATE (orice rețetă REALĂ din aceste categorii):
- 
- ✓ Bucătărie românească tradițională:
-   - sarmale, mici, mămăligă, tocană, ciorbă, papricaș, gulaș, papanași, cozonac, plăcintă
- 
- ✓ Bucătărie mediteraneană:
-   - musaca, tzatziki, souvlaki, moussaka, falafel, hummus, bruschetta
- 
- ✓ Bucătărie turcească / balcanică:
-   - kebab, börek, dolma, baklava, pilaf, imam bayildi
- 
- ✓ Mâncăruri simple de zi cu zi (FOARTE IMPORTANTE):
-   - cartofi prăjiți cu ou, omletă cu brânză, paste cu unt și parmezan
-   - spaghete carbonara / bolognese / aglio e olio, pizza simplă
-   - orez fiert cu legume, piure de cartofi, salată de roșii cu brânză
-
- ✓ Deserturi clasice și populare:
-   - tiramisu, panna cotta, salam de biscuiți, negresă, brownie
-   - orez cu lapte, griș cu lapte, budincă de vanilie, clătite
-   - prăjitură cu mere, cheesecake, pavlova
-
- ✓ Brunch / Mic dejun modern:
-   - avocado toast cu ou, pancakes, french toast
-   - smoothie bowl, granola cu iaurt, ouă Benedict
-
- ✓ Fast food / Comfort food:
-   - burger de casă, quesadilla, burrito simplu, sandwich-uri
-   - supă cremă de legume, wrap-uri, nachos cu brânză
-
- IMPORTANT - Instrucțiunile trebuie să fie TEHNICE și DETALIATE:
- - Specifică EXACT cantitățile în grame (ex: "200g piept de pui")
- - Indică tehnici de tăiere (ex: "tăiați cubulețe de 2cm", "felii subțiri de 3mm")
- - Pentru cuptor: temperatura exactă, cu/fără ventilator (ex: "180°C cu ventilator" sau "200°C fără ventilator")
- - Timp de gătit precis pentru fiecare pas (ex: "prăjiți 3-4 minute până se rumenesc")
- - Semne vizuale de gătire (ex: "până capătă o crustă aurie", "până sosul se reduce la jumătate")
- - Grosimea și dimensiunile ingredientelor (ex: "cartofi tăiați cuburi de 1.5cm")
-
-Răspunde STRICT în format JSON:
+  Răspunde STRICT în format JSON:
   {
-    "title": "Numele rețetei (unic, creativ)",
-      "description": "Descriere scurtă (50 cuvinte)",
-        "cookingTime": 30,
-          "servings": 4,
-            "difficulty": "Ușor|Mediu|Dificil",
-              "estimatedCost": 25.00,
-                "ingredients": [
-                  { "name": "Piept de pui", "quantity": "500", "unit": "g" },
-                  { "name": "Cartofi", "quantity": "800", "unit": "g" }
-                ],
-                  "steps": [
-                    "Preîncălziți cuptorul la 180°C cu ventilator (sau 200°C fără ventilator).",
-                    "Tăiați pieptul de pui în cuburi de aproximativ 3cm. Cartofii îi tăiați felii de 5mm grosime.",
-                    "Într-o tigaie încinsă cu 2 linguri ulei, rumetiți carnea 4-5 minute pe foc mare, amestecând, până capătă o crustă aurie.",
-                    "Adăugați cartofii și gătiți încă 8-10 minute, amestecând ocazional, până sunt aurii și crocante la exterior.",
-                    "Transferați într-un vas termorezistent și coaceți 20-25 minute până carnea atinge temperatura internă de 74°C."
-                  ],
-                    "tips": "Sfaturi utile pentru economie și tehnici de gătit",
-                      "tags": ["economic", "traditional", "detaliat"]
-  }`;
+    "title": "Titlu apetisant (ex: 'Ciorbă de perișoare pufoase', 'Plăcintă cu brânză ca la țară')",
+    "description": "Descriere caldă, de 1-2 fraze, care să te facă să salivezi (ex: 'O mâncărică scăzută, perfectă de întins cu pâine...').",
+    "cookingTime": 30,
+    "servings": 4,
+    "difficulty": "Ușor|Mediu|Dificil",
+    "estimatedCost": 25.00,
+    "ingredients": [
+      { "name": "Ingredient", "quantity": "100", "unit": "g" }
+    ],
+    "steps": [
+      "Instrucțiuni pas cu pas, scrise cald dar precis.",
+      "Ex: 'Mai întâi, curățăm cartofii și îi tăiem cubulețe potrivite...'",
+      "Ex: 'Călim ceapa în puțin ulei până devine sticloasă...'"
+    ],
+    "tips": ["Un sfat practic (ex: 'Dacă nu aveți smântână fermentată, puteți folosi...')"],
+    "tags": ["tradițional", "gustos", "prânz"]
+  }
+
+  IMPORTANT - Instrucțiunile trebuie să fie TEHNICE și DETALIATE:
+  - Specifică EXACT cantitățile în grame (ex: "200g piept de pui")
+  - Indică tehnici de tăiere (ex: "tăiați cubulețe de 2cm", "felii subțiri de 3mm")
+  - Pentru cuptor: temperatura exactă, cu/fără ventilator (ex: "180°C cu ventilator" sau "200°C fără ventilator")`;
 
   const response = await callAI(prompt);
 
