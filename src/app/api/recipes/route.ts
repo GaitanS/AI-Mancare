@@ -101,7 +101,14 @@ export async function GET(request: NextRequest) {
       } catch (e) { ids = []; }
 
       if (Array.isArray(ids)) {
-        ids.forEach((id: string) => allIngredientIds.add(id));
+        ids.forEach((id: any) => {
+          if (typeof id === 'string') {
+            allIngredientIds.add(id);
+          } else if (typeof id === 'object' && id !== null && typeof id.id === 'string') {
+            // Handle case where full object was saved instead of ID
+            allIngredientIds.add(id.id);
+          }
+        });
       }
     });
 
@@ -186,12 +193,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching recipes:', error);
 
-    const response: ApiResponse = {
+    return NextResponse.json({
       success: false,
-      error: 'Failed to fetch recipes',
-    };
-
-    return NextResponse.json(response, { status: 500 });
+      error: `Failed to fetch recipes: ${error instanceof Error ? error.message : String(error)}`,
+      stack: error instanceof Error ? error.stack : undefined
+    }, { status: 500 });
   }
 }
 
