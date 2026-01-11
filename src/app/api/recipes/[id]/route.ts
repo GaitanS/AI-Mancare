@@ -52,10 +52,22 @@ export async function GET(
         const ingredientIds = safeParseArray(recipe.ingredientIds);
         let ingredients: any[] = [];
 
+        // Filter ingredient IDs to avoid crashing prisma with objects
+        const validIngredientIds: string[] = [];
+        if (Array.isArray(ingredientIds)) {
+            ingredientIds.forEach((id: any) => {
+                if (typeof id === 'string') {
+                    validIngredientIds.push(id);
+                } else if (typeof id === 'object' && id !== null && typeof id.id === 'string') {
+                    validIngredientIds.push(id.id);
+                }
+            });
+        }
+
         // Fetch ingredients if available
-        if (ingredientIds.length > 0) {
+        if (validIngredientIds.length > 0) {
             const products = await prisma.product.findMany({
-                where: { id: { in: ingredientIds } },
+                where: { id: { in: validIngredientIds } },
                 select: {
                     id: true,
                     name: true,

@@ -147,31 +147,45 @@ async function getProductsOnSale() {
 async function generateRecipe(ingredients, existingTitles = []) {
   const ingredientList = ingredients.map(p => p.name).join(', ');
 
-  const prompt = `Ești un Chef Expert. Ai la dispoziție o listă de ingrediente la reducere: ${ingredientList}
- 
-Sarcina ta:
-Alege 2-3 ingrediente principale din listă CARE SE POTRIVESC BINE ÎMPREUNĂ și creează o rețetă delicioasă, coerentă și realistă.
+  const prompt = `Ești un chef bucătar profesionist cu experiență practică în bucătăria românească.
+Creezi doar rețete testate, cu ingrediente uzuale din România.
+Nu inventezi tehnici, timpi sau temperaturi.
+Nu adaptezi, nu improvizezi, nu optimizezi fără cerere explicită.
 
-🚨 REGULI CRITICE:
-1. NU ești obligat să folosești toate ingredientele. Ignoră-le pe cele care nu se potrivesc (ex: nu combina vin cu croissante într-o tocană).
-2. PRIORITATE: Gustul și logica culinară. Dacă ai doar "Vin" și "Croissant", NU le combina. Mai bine inventezi o rețetă de "Croissant cu unt și gem" (presupunând ingrediente de bază) decât "Supă de croissant în vin".
-3. Evită titlurile care există deja: ${existingTitles.slice(-10).join(', ') || 'niciuna'}
+AI la dispoziție următoarele ingrediente principale (la reducere): ${ingredientList}
 
-TITLURI INTERZISE:
-- Orice combinație forțată tip "X cu aromă de Y" dacă nu e clasic.
-- "Pere în vin cu croissant" (deja e prea mult).
+SARCINA TA:
+Alege 2-3 ingrediente din listă care se potrivesc PERFECT (ex: carne + cartofi, paste + sos) și creează o rețetă CLASICĂ.
+Dacă ingredientele nu se potrivesc, IGNORĂ-LE și folosește ingrediente de bază (făină, ouă, ulei, apă, condimente) pe care le are oricine în casă.
 
-REȚETA TREBUIE SĂ FIE:
-- Realistă (oamenii chiar o gătesc acasă)
-- gustoasă
-- Economică
+Răspunsul trebuie să fie un JSON valid cu următoarea structură STRICTĂ:
+{
+  "title": "Denumire rețetă (Clasică, fără 'în stil propriu')",
+  "description": "Scurtă descriere apetisantă (max 2 fraze)",
+  "servings": 4,
+  "prepTime": 0,
+  "cookTime": 0,
+  "difficulty": "MEDIU",
+  "ingredients": [
+    { "name": "Ingredient exact", "quantity": "100", "unit": "g" }
+  ],
+  "instructions": [
+    "Pasul 1...",
+    "Pasul 2..."
+  ],
+  "tips": ["Sfat 1", "Sfat 2"],
+  "tags": ["Fel principal", "Prânz"] // Maxim 3 tag-uri relevante
+}
 
-CATEGORII SUGERATE:
-- Mâncare gătită (Tocănițe, Paste, Orez, Cartofi la cuptor)
-- Mic dejun (Omlete, Bruschete)
-- Desert (Doar dacă ai ingrediente de desert: făină, zahăr, fructe, lactate)
+REGULI CRITICE:
+1. NU inventa combinații ciudate (ex: NU pune croissante în ciorbă).
+2. Dacă ai "Croissant" și "Vin", NU le combina. Fă un desert rapid sau o gustare.
+3. Cantitățile trebuie să fie METRICE și REALISTE.
+4. Timpii trebuie să fie corecți fizic (nu fierbe puiul în 2 minute).
 
-CATEGORII ACCEPTATE (orice rețetă REALĂ din aceste categorii):
+Titluri DE EVITAT (deja există): ${existingTitles.slice(-10).join(', ') || 'niciuna'}`;
+
+CATEGORII ACCEPTATE(orice rețetă REALĂ din aceste categorii):
 
 ✓ Bucătărie românească tradițională:
   - sarmale, mici, mămăligă, tocană, ciorbă, papricaș, gulaș, papanași, cozonac, plăcintă
@@ -179,57 +193,57 @@ CATEGORII ACCEPTATE (orice rețetă REALĂ din aceste categorii):
 ✓ Bucătărie mediteraneană:
   - musaca, tzatziki, souvlaki, moussaka, falafel, hummus, bruschetta
 
-✓ Bucătărie turcească/balcanică:
+✓ Bucătărie turcească / balcanică:
   - kebab, börek, dolma, baklava, pilaf, imam bayildi
 
-✓ Mâncăruri simple de zi cu zi (FOARTE IMPORTANTE):
+✓ Mâncăruri simple de zi cu zi(FOARTE IMPORTANTE):
   - cartofi prăjiți cu ou, omletă cu brânză, paste cu unt și parmezan
-  - spaghete carbonara/bolognese/aglio e olio, pizza simplă
-  - orez fiert cu legume, piure de cartofi, salată de roșii cu brânză
+    - spaghete carbonara / bolognese / aglio e olio, pizza simplă
+      - orez fiert cu legume, piure de cartofi, salată de roșii cu brânză
 
 ✓ Deserturi clasice și populare:
   - tiramisu, panna cotta, salam de biscuiți, negresă, brownie
-  - orez cu lapte, griș cu lapte, budincă de vanilie, clătite
-  - prăjitură cu mere, cheesecake, pavlova
+    - orez cu lapte, griș cu lapte, budincă de vanilie, clătite
+      - prăjitură cu mere, cheesecake, pavlova
 
-✓ Brunch/Mic dejun modern:
+✓ Brunch / Mic dejun modern:
   - avocado toast cu ou, pancakes, french toast
-  - smoothie bowl, granola cu iaurt, ouă Benedict
+    - smoothie bowl, granola cu iaurt, ouă Benedict
 
-✓ Fast food/Comfort food:
-  - burger de casă, quesadilla, burrito simplu, sandwich-uri
-  - supă cremă de legume, wrap-uri, nachos cu brânză
+✓ Fast food / Comfort food:
+  - burger de casă, quesadilla, burrito simplu, sandwich - uri
+    - supă cremă de legume, wrap - uri, nachos cu brânză
 
-IMPORTANT - Instrucțiunile trebuie să fie TEHNICE și DETALIATE:
-- Specifică EXACT cantitățile în grame (ex: "200g piept de pui")
-- Indică tehnici de tăiere (ex: "tăiați cubulețe de 2cm", "felii subțiri de 3mm")
-- Pentru cuptor: temperatura exactă, cu/fără ventilator (ex: "180°C cu ventilator" sau "200°C fără ventilator")
-- Timp de gătit precis pentru fiecare pas (ex: "prăjiți 3-4 minute până se rumenesc")
-- Semne vizuale de gătire (ex: "până capătă o crustă aurie", "până sosul se reduce la jumătate")
-- Grosimea și dimensiunile ingredientelor (ex: "cartofi tăiați cuburi de 1.5cm")
+  IMPORTANT - Instrucțiunile trebuie să fie TEHNICE și DETALIATE:
+  - Specifică EXACT cantitățile în grame(ex: "200g piept de pui")
+    - Indică tehnici de tăiere(ex: "tăiați cubulețe de 2cm", "felii subțiri de 3mm")
+      - Pentru cuptor: temperatura exactă, cu / fără ventilator(ex: "180°C cu ventilator" sau "200°C fără ventilator")
+        - Timp de gătit precis pentru fiecare pas(ex: "prăjiți 3-4 minute până se rumenesc")
+          - Semne vizuale de gătire(ex: "până capătă o crustă aurie", "până sosul se reduce la jumătate")
+            - Grosimea și dimensiunile ingredientelor(ex: "cartofi tăiați cuburi de 1.5cm")
 
 Răspunde STRICT în format JSON:
-{
+  {
     "title": "Numele rețetei (unic, creativ)",
-    "description": "Descriere scurtă (50 cuvinte)",
-    "cookingTime": 30,
-    "servings": 4,
-    "difficulty": "Ușor|Mediu|Dificil",
-    "estimatedCost": 25.00,
-    "ingredients": [
-        {"name": "Piept de pui", "quantity": "500", "unit": "g"},
-        {"name": "Cartofi", "quantity": "800", "unit": "g"}
-    ],
-    "steps": [
-        "Preîncălziți cuptorul la 180°C cu ventilator (sau 200°C fără ventilator).",
-        "Tăiați pieptul de pui în cuburi de aproximativ 3cm. Cartofii îi tăiați felii de 5mm grosime.",
-        "Într-o tigaie încinsă cu 2 linguri ulei, rumetiți carnea 4-5 minute pe foc mare, amestecând, până capătă o crustă aurie.",
-        "Adăugați cartofii și gătiți încă 8-10 minute, amestecând ocazional, până sunt aurii și crocante la exterior.",
-        "Transferați într-un vas termorezistent și coaceți 20-25 minute până carnea atinge temperatura internă de 74°C."
-    ],
-    "tips": "Sfaturi utile pentru economie și tehnici de gătit",
-    "tags": ["economic", "traditional", "detaliat"]
-}`;
+      "description": "Descriere scurtă (50 cuvinte)",
+        "cookingTime": 30,
+          "servings": 4,
+            "difficulty": "Ușor|Mediu|Dificil",
+              "estimatedCost": 25.00,
+                "ingredients": [
+                  { "name": "Piept de pui", "quantity": "500", "unit": "g" },
+                  { "name": "Cartofi", "quantity": "800", "unit": "g" }
+                ],
+                  "steps": [
+                    "Preîncălziți cuptorul la 180°C cu ventilator (sau 200°C fără ventilator).",
+                    "Tăiați pieptul de pui în cuburi de aproximativ 3cm. Cartofii îi tăiați felii de 5mm grosime.",
+                    "Într-o tigaie încinsă cu 2 linguri ulei, rumetiți carnea 4-5 minute pe foc mare, amestecând, până capătă o crustă aurie.",
+                    "Adăugați cartofii și gătiți încă 8-10 minute, amestecând ocazional, până sunt aurii și crocante la exterior.",
+                    "Transferați într-un vas termorezistent și coaceți 20-25 minute până carnea atinge temperatura internă de 74°C."
+                  ],
+                    "tips": "Sfaturi utile pentru economie și tehnici de gătit",
+                      "tags": ["economic", "traditional", "detaliat"]
+  } `;
 
   const response = await callAI(prompt);
 
@@ -237,14 +251,14 @@ Răspunde STRICT în format JSON:
   try {
     // Extract JSON from markdown code blocks if present
     let jsonStr = response;
-    const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const jsonMatch = response.match(/```(?: json) ?\s * ([\s\S] *?)```/);
     if (jsonMatch) {
       jsonStr = jsonMatch[1];
     }
 
     return JSON.parse(jsonStr.trim());
   } catch (parseError) {
-    log.error(`Failed to parse recipe JSON: ${parseError.message}`);
+    log.error(`Failed to parse recipe JSON: ${ parseError.message } `);
     return null;
   }
 }
@@ -294,10 +308,10 @@ async function saveRecipe(recipeData) {
       }
     });
 
-    log.success(`Created recipe: ${recipe.title}`);
+    log.success(`Created recipe: ${ recipe.title } `);
     return recipe;
   } catch (error) {
-    log.error(`Failed to save recipe: ${error.message}`);
+    log.error(`Failed to save recipe: ${ error.message } `);
     return null;
   }
 }
@@ -306,7 +320,7 @@ async function saveRecipe(recipeData) {
  * Generate multiple recipes
  */
 async function generateWeeklyRecipes(count = 10) {
-  log.info(`Starting generation of ${count} recipes`);
+  log.info(`Starting generation of ${ count } recipes`);
 
   // Write initial status
   writeStatus({
@@ -328,13 +342,13 @@ async function generateWeeklyRecipes(count = 10) {
 
   // Get products on sale
   const products = await getProductsOnSale();
-  log.info(`Found ${products.length} products to use for recipes`);
+  log.info(`Found ${ products.length } products to use for recipes`);
 
   writeStatus({
     running: true,
     current: 0,
     total: count,
-    message: `Găsite ${products.length} produse cu reducere`,
+    message: `Găsite ${ products.length } produse cu reducere`,
     complete: false,
     generatedCount: 0,
     error: null
@@ -352,54 +366,54 @@ async function generateWeeklyRecipes(count = 10) {
 
   for (let i = 0; i < count; i++) {
     try {
-      log.info(`Generating recipe ${i + 1}/${count}...`);
+      log.info(`Generating recipe ${ i + 1 }/${count}...`);
 
-      writeStatus({
-        running: true,
-        current: i,
-        total: count,
-        message: `Generăm rețeta ${i + 1}/${count}...`,
-        complete: false,
-        generatedCount: createdRecipes.length,
-        error: null
-      });
-
-      // Deduplicate products by name to avoid "Wine, Wine, Wine" scenarios
-      const uniqueProducts = Array.from(new Map(products.map(p => [p.name, p])).values());
-      const shuffled = [...uniqueProducts].sort(() => Math.random() - 0.5);
-      const selectedProducts = shuffled.slice(0, 12); // Give it more options (12 instead of 8)
-
-      const recipeData = await generateRecipe(selectedProducts, [...existingTitles, ...createdRecipes.map(r => r.title)]);
-
-      if (recipeData) {
-        const saved = await saveRecipe(recipeData);
-        if (saved) {
-          createdRecipes.push(saved);
-        }
-      }
-
-      // Rate limiting - wait 2 seconds between API calls
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-    } catch (error) {
-      log.error(`Failed to generate recipe ${i + 1}: ${error.message}`);
-    }
-  }
-
-  // Write final status
   writeStatus({
-    running: false,
-    startedAt: null,
-    completedAt: new Date().toISOString(),
-    current: count,
+    running: true,
+    current: i,
     total: count,
-    message: `Generare completă! ${createdRecipes.length} rețete noi.`,
-    complete: true,
+    message: `Generăm rețeta ${i + 1}/${count}...`,
+    complete: false,
     generatedCount: createdRecipes.length,
     error: null
   });
 
-  return createdRecipes;
+  // Deduplicate products by name to avoid "Wine, Wine, Wine" scenarios
+  const uniqueProducts = Array.from(new Map(products.map(p => [p.name, p])).values());
+  const shuffled = [...uniqueProducts].sort(() => Math.random() - 0.5);
+  const selectedProducts = shuffled.slice(0, 12); // Give it more options (12 instead of 8)
+
+  const recipeData = await generateRecipe(selectedProducts, [...existingTitles, ...createdRecipes.map(r => r.title)]);
+
+  if (recipeData) {
+    const saved = await saveRecipe(recipeData);
+    if (saved) {
+      createdRecipes.push(saved);
+    }
+  }
+
+  // Rate limiting - wait 2 seconds between API calls
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+} catch (error) {
+  log.error(`Failed to generate recipe ${i + 1}: ${error.message}`);
+}
+  }
+
+// Write final status
+writeStatus({
+  running: false,
+  startedAt: null,
+  completedAt: new Date().toISOString(),
+  current: count,
+  total: count,
+  message: `Generare completă! ${createdRecipes.length} rețete noi.`,
+  complete: true,
+  generatedCount: createdRecipes.length,
+  error: null
+});
+
+return createdRecipes;
 }
 
 /**
