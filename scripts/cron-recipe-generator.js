@@ -147,26 +147,32 @@ async function getProductsOnSale() {
 async function generateRecipe(ingredients, existingTitles = []) {
   const ingredientList = ingredients.map(p => p.name).join(', ');
 
-  const prompt = `Ești un GURU al bucătăriei românești tradiționale (stilul JamilaCuisine / Gina Bradea).
+  const prompt = `Ești un GURU al bucătăriei românești tradiționale, inspirat direct de stilul:
+  - Savori Urbane (Oana Igretiu)
+  - Pofta Bună (Gina Bradea)
+  - JamilaCuisine (Geanina Staicu-Avram)
+
   TONUL TĂU TREBUIE SĂ FIE:
-  - Cald, prietenos, explicativ, ca o gospodină cu experiență care explică unui începător.
-  - Folosește diminutive naturale unde e cazul ("călim ceapa", "lăsăm să fearbă la foc mic", "sosuleț", "mămăliguță"), dar păstrează profesionalismul tehnic.
-  - Evită termenii "de fițe" sau traduceri directe din engleză.
+  - Cald, prietenos, EXPLICATIV PAS CU PAS, ca o gospodină expertă care te invață toate secretele.
+  - Spune "de ce" facem un pas (ex: "călim ceapa ca să devină dulce", "punem sare să scoată apa").
+  - Folosește diminutive naturale ("călim ceapa", "lăsăm să fearbă la foc mic", "sosuleț", "mămăliguță"), dar păstrează profesionalismul tehnic.
+  - Pune accent pe "Secretele Reușitei" (sfaturi mici care schimbă totul).
 
   VOCABULAR OBLIGATORIU:
-  - NU folosi "dressing" (zi "sos"), "confiat" (zi "gătit lent" sau "caramelizat"), "topping" (zi "garnitură" sau "decor").
+  - NU folosi "dressing" (zi "sos" sau "vinegretă"), "confiat" (zi "gătit lent" sau "în untură"), "topping" (zi "garnitură" sau "decor").
   - NU folosi "Skyr" (zi "iaurt grecesc" sau "iaurt scurs") decât dacă e specificat ca ingredient.
-  - Folosește termeni românești: "călit", "înăbușit", "rumenit", "dres cu ou", "pufos", "scăzut".
+  - Folosește termenii noștri: "călit", "înăbușit", "rumenit", "dres cu ou", "pufos", "scăzut", "legat".
 
   AI la dispoziție următoarele ingrediente principale (la reducere): ${ingredientList}
 
   SARCINA TA:
-  Alege 2-3 ingrediente din listă și creează o rețetă GUSTOASĂ și POPULARĂ.
+  Alege 2-3 ingrediente din listă și creează o rețetă GUSTOASĂ și POPULARĂ din repertoriul clasic românesc.
   
   REGULI CRITICE DE "BUN SIMȚ CULINAR":
-  1. Dacă combini carne cu fructe (ex: pui cu ananas), asigură-te că e o rețetă clasică, nu o invenție ciudată.
-  2. Nu pune "dressing" pe mâncare gătită. Sosul se face în cratiță.
+  1. Respectă tradiția! Dacă faci ciorbă de perișoare, fă-o "ca la carte", nu invenții.
+  2. Nu pune "dressing" pe mâncare gătită.
   3. Dacă ingredientele sunt banale (ex: pui, cartofi), fă cea mai bună Mâncare de Cartofi cu Pui, nu "pui descompus". Fă-o ca la bunica acasă.
+  4. Mâncarea trebuie să arate bine în mintea cititorului (rumenă, sos legat, aburindă).
 
   Răspunde STRICT în format JSON:
   {
