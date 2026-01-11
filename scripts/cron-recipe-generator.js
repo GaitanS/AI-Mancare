@@ -146,14 +146,29 @@ async function getProductsOnSale() {
 async function generateRecipe(ingredients, existingTitles = []) {
   const ingredientList = ingredients.map(p => p.name).join(', ');
 
-  const prompt = `Generează o rețetă REALĂ și APRECIATĂ folosind OBLIGATORIU cel puțin 3 din aceste ingrediente la reducere: ${ingredientList}
+  const prompt = `Ești un Chef Expert. Ai la dispoziție o listă de ingrediente la reducere: ${ingredientList}
+ 
+Sarcina ta:
+Alege 2-3 ingrediente principale din listă CARE SE POTRIVESC BINE ÎMPREUNĂ și creează o rețetă delicioasă, coerentă și realistă.
 
-Titluri DE EVITAT (deja există): ${existingTitles.slice(-10).join(', ') || 'niciuna'}
+🚨 REGULI CRITICE:
+1. NU ești obligat să folosești toate ingredientele. Ignoră-le pe cele care nu se potrivesc (ex: nu combina vin cu croissante într-o tocană).
+2. PRIORITATE: Gustul și logica culinară. Dacă ai doar "Vin" și "Croissant", NU le combina. Mai bine inventezi o rețetă de "Croissant cu unt și gem" (presupunând ingrediente de bază) decât "Supă de croissant în vin".
+3. Evită titlurile care există deja: ${existingTitles.slice(-10).join(', ') || 'niciuna'}
 
-REGULI STRICTE - Doar rețete REALE care există și sunt apreciate:
-- ✅ ACCEPTATE: Orice rețetă pe care oamenii chiar o fac și o mănâncă
-- ❌ INTERZISE: Combinații inventate sau ciudate care NU există în realitate (ex: "budincă de croissante cu bere")
-- Fiecare rețetă TREBUIE să fie recunoscută și gătită de oameni reali
+TITLURI INTERZISE:
+- Orice combinație forțată tip "X cu aromă de Y" dacă nu e clasic.
+- "Pere în vin cu croissant" (deja e prea mult).
+
+REȚETA TREBUIE SĂ FIE:
+- Realistă (oamenii chiar o gătesc acasă)
+- gustoasă
+- Economică
+
+CATEGORII SUGERATE:
+- Mâncare gătită (Tocănițe, Paste, Orez, Cartofi la cuptor)
+- Mic dejun (Omlete, Bruschete)
+- Desert (Doar dacă ai ingrediente de desert: făină, zahăr, fructe, lactate)
 
 CATEGORII ACCEPTATE (orice rețetă REALĂ din aceste categorii):
 
@@ -348,9 +363,10 @@ async function generateWeeklyRecipes(count = 10) {
         error: null
       });
 
-      // Shuffle products for variety
-      const shuffled = [...products].sort(() => Math.random() - 0.5);
-      const selectedProducts = shuffled.slice(0, 8);
+      // Deduplicate products by name to avoid "Wine, Wine, Wine" scenarios
+      const uniqueProducts = Array.from(new Map(products.map(p => [p.name, p])).values());
+      const shuffled = [...uniqueProducts].sort(() => Math.random() - 0.5);
+      const selectedProducts = shuffled.slice(0, 12); // Give it more options (12 instead of 8)
 
       const recipeData = await generateRecipe(selectedProducts, [...existingTitles, ...createdRecipes.map(r => r.title)]);
 
