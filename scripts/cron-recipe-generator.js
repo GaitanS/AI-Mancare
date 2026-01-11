@@ -197,30 +197,30 @@ CATEGORII ACCEPTATE (orice rețetă REALĂ din aceste categorii):
    - kebab, börek, dolma, baklava, pilaf, imam bayildi
  
  ✓ Mâncăruri simple de zi cu zi (FOARTE IMPORTANTE):
-   - cartofi prăjiți cu ou, omletă cu brânză, paste cu unt și parmezan`;
-  - spaghete carbonara / bolognese / aglio e olio, pizza simplă
-    - orez fiert cu legume, piure de cartofi, salată de roșii cu brânză
+   - cartofi prăjiți cu ou, omletă cu brânză, paste cu unt și parmezan
+   - spaghete carbonara / bolognese / aglio e olio, pizza simplă
+   - orez fiert cu legume, piure de cartofi, salată de roșii cu brânză
 
-✓ Deserturi clasice și populare:
-  - tiramisu, panna cotta, salam de biscuiți, negresă, brownie
-    - orez cu lapte, griș cu lapte, budincă de vanilie, clătite
-      - prăjitură cu mere, cheesecake, pavlova
+ ✓ Deserturi clasice și populare:
+   - tiramisu, panna cotta, salam de biscuiți, negresă, brownie
+   - orez cu lapte, griș cu lapte, budincă de vanilie, clătite
+   - prăjitură cu mere, cheesecake, pavlova
 
-✓ Brunch / Mic dejun modern:
-  - avocado toast cu ou, pancakes, french toast
-    - smoothie bowl, granola cu iaurt, ouă Benedict
+ ✓ Brunch / Mic dejun modern:
+   - avocado toast cu ou, pancakes, french toast
+   - smoothie bowl, granola cu iaurt, ouă Benedict
 
-✓ Fast food / Comfort food:
-  - burger de casă, quesadilla, burrito simplu, sandwich - uri
-    - supă cremă de legume, wrap - uri, nachos cu brânză
+ ✓ Fast food / Comfort food:
+   - burger de casă, quesadilla, burrito simplu, sandwich-uri
+   - supă cremă de legume, wrap-uri, nachos cu brânză
 
-  IMPORTANT - Instrucțiunile trebuie să fie TEHNICE și DETALIATE:
-  - Specifică EXACT cantitățile în grame(ex: "200g piept de pui")
-    - Indică tehnici de tăiere(ex: "tăiați cubulețe de 2cm", "felii subțiri de 3mm")
-      - Pentru cuptor: temperatura exactă, cu / fără ventilator(ex: "180°C cu ventilator" sau "200°C fără ventilator")
-        - Timp de gătit precis pentru fiecare pas(ex: "prăjiți 3-4 minute până se rumenesc")
-          - Semne vizuale de gătire(ex: "până capătă o crustă aurie", "până sosul se reduce la jumătate")
-            - Grosimea și dimensiunile ingredientelor(ex: "cartofi tăiați cuburi de 1.5cm")
+ IMPORTANT - Instrucțiunile trebuie să fie TEHNICE și DETALIATE:
+ - Specifică EXACT cantitățile în grame (ex: "200g piept de pui")
+ - Indică tehnici de tăiere (ex: "tăiați cubulețe de 2cm", "felii subțiri de 3mm")
+ - Pentru cuptor: temperatura exactă, cu/fără ventilator (ex: "180°C cu ventilator" sau "200°C fără ventilator")`;
+  - Timp de gătit precis pentru fiecare pas(ex: "prăjiți 3-4 minute până se rumenesc")
+    - Semne vizuale de gătire(ex: "până capătă o crustă aurie", "până sosul se reduce la jumătate")
+      - Grosimea și dimensiunile ingredientelor(ex: "cartofi tăiați cuburi de 1.5cm")
 
 Răspunde STRICT în format JSON:
   {
