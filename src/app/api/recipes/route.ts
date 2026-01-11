@@ -116,33 +116,41 @@ export async function GET(request: NextRequest) {
     const productStores = new Map(products.map(p => [p.id, p.store]));
 
     const recipes = recipesRaw.map((r: any) => {
-      const ids = typeof r.ingredientIds === 'string' ? JSON.parse(r.ingredientIds) : r.ingredientIds;
+      let ids: string[] = [];
+      try {
+        ids = typeof r.ingredientIds === 'string' ? JSON.parse(r.ingredientIds) : r.ingredientIds || [];
+      } catch (e) { ids = []; }
+
       const stores = new Set<string>();
 
       if (Array.isArray(ids)) {
         ids.forEach((id: string) => {
           const store = productStores.get(id);
           if (store) {
-            // Normalize store name to slug (e.g. "Mega Image" -> "mega-image", "Lidl" -> "lidl")
             const slug = store.toLowerCase().trim().replace(/\s+/g, '-');
             stores.add(slug);
           }
         });
       }
 
+      const safeJsonParse = (val: any, fallback: any) => {
+        if (!val) return fallback;
+        if (typeof val !== 'string') return val;
+        try { return JSON.parse(val); } catch (e) { return fallback; }
+      };
+
       return {
         ...r,
         difficulty: r.difficulty as 'USOR' | 'MEDIU' | 'DIFICIL',
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-        instructions: typeof r.instructions === 'string' ? JSON.parse(r.instructions) : r.instructions,
-        tips: r.tips ? (typeof r.tips === 'string' ? JSON.parse(r.tips) : r.tips) : null,
-        tags: r.tags ? (typeof r.tags === 'string' ? JSON.parse(r.tags) : r.tags) : [],
+        instructions: safeJsonParse(r.instructions, []),
+        tips: safeJsonParse(r.tips, null),
+        tags: safeJsonParse(r.tags, []),
         ingredientIds: ids,
-        availableStores: Array.from(stores), // Add available stores
-        nutritionPerServing: r.nutritionPerServing ? (typeof r.nutritionPerServing === 'string' ? JSON.parse(r.nutritionPerServing) : r.nutritionPerServing) : null,
+        availableStores: Array.from(stores),
+        nutritionPerServing: safeJsonParse(r.nutritionPerServing, null),
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
-        // Dietary Flags
         isGlutenFree: r.isGlutenFree,
         isDairyFree: r.isDairyFree,
         isVegan: r.isVegan,
