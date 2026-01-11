@@ -770,6 +770,15 @@ function RecipeGeneratorSection({ onRunScript, onKillScript }: CatalogScraperSec
                 </div>
             )}
 
+            {status?.running && (
+                <button
+                    onClick={() => onKillScript ? onKillScript('recipes') : {}}
+                    className="w-full py-2 mb-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-lg transition-all hover:from-red-500 hover:to-red-600 active:scale-95 flex items-center justify-center gap-2"
+                >
+                    🛑 Oprește Generarea (Kill)
+                </button>
+            )}
+
             <button
                 onClick={handleStart}
                 disabled={status?.running}
@@ -891,6 +900,15 @@ function ImageGeneratorSection({ onRunScript, onKillScript }: CatalogScraperSect
                 <div className="mb-4 p-3 bg-red-950/30 border border-red-500/20 rounded-lg text-red-400 text-sm">
                     ❌ {status.error}
                 </div>
+            )}
+
+            {status?.running && (
+                <button
+                    onClick={() => onKillScript ? onKillScript('images') : {}}
+                    className="w-full py-2 mb-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-lg transition-all hover:from-red-500 hover:to-red-600 active:scale-95 flex items-center justify-center gap-2"
+                >
+                    🛑 Oprește Generarea (Kill)
+                </button>
             )}
 
             <button
