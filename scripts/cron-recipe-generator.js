@@ -183,23 +183,23 @@ REGULI CRITICE:
 3. Cantitățile trebuie să fie METRICE și REALISTE.
 4. Timpii trebuie să fie corecți fizic (nu fierbe puiul în 2 minute).
 
-Titluri DE EVITAT (deja există): ${existingTitles.slice(-10).join(', ') || 'niciuna'}`;
+Titluri DE EVITAT (deja există): ${existingTitles.slice(-10).join(', ') || 'niciuna'}
 
-CATEGORII ACCEPTATE(orice rețetă REALĂ din aceste categorii):
-
-✓ Bucătărie românească tradițională:
-  - sarmale, mici, mămăligă, tocană, ciorbă, papricaș, gulaș, papanași, cozonac, plăcintă
-
-✓ Bucătărie mediteraneană:
-  - musaca, tzatziki, souvlaki, moussaka, falafel, hummus, bruschetta
-
-✓ Bucătărie turcească / balcanică:
-  - kebab, börek, dolma, baklava, pilaf, imam bayildi
-
-✓ Mâncăruri simple de zi cu zi(FOARTE IMPORTANTE):
-  - cartofi prăjiți cu ou, omletă cu brânză, paste cu unt și parmezan
-    - spaghete carbonara / bolognese / aglio e olio, pizza simplă
-      - orez fiert cu legume, piure de cartofi, salată de roșii cu brânză
+CATEGORII ACCEPTATE (orice rețetă REALĂ din aceste categorii):
+ 
+ ✓ Bucătărie românească tradițională:
+   - sarmale, mici, mămăligă, tocană, ciorbă, papricaș, gulaș, papanași, cozonac, plăcintă
+ 
+ ✓ Bucătărie mediteraneană:
+   - musaca, tzatziki, souvlaki, moussaka, falafel, hummus, bruschetta
+ 
+ ✓ Bucătărie turcească / balcanică:
+   - kebab, börek, dolma, baklava, pilaf, imam bayildi
+ 
+ ✓ Mâncăruri simple de zi cu zi (FOARTE IMPORTANTE):
+   - cartofi prăjiți cu ou, omletă cu brânză, paste cu unt și parmezan`;
+  - spaghete carbonara / bolognese / aglio e olio, pizza simplă
+    - orez fiert cu legume, piure de cartofi, salată de roșii cu brânză
 
 ✓ Deserturi clasice și populare:
   - tiramisu, panna cotta, salam de biscuiți, negresă, brownie
