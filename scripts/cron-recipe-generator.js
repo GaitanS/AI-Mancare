@@ -250,10 +250,13 @@ Răspunde STRICT în format JSON:
   // Parse JSON from response
   try {
     // Extract JSON from markdown code blocks if present
+    // Extract JSON string using robust bracket matching
     let jsonStr = response;
-    const jsonMatch = response.match(/```(?: json) ?\s * ([\s\S] *?)```/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[1];
+    const firstBrace = response.indexOf('{');
+    const lastBrace = response.lastIndexOf('}');
+
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonStr = response.substring(firstBrace, lastBrace + 1);
     }
 
     return JSON.parse(jsonStr.trim());
