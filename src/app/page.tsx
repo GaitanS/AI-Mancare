@@ -10,6 +10,7 @@ import type { Metadata } from 'next';
 import heroVegetables from '../../public/hero-vegetables.png';
 import heroSpices from '../../public/hero-spices.png';
 import heroPlate from '../../public/hero-plate.png';
+import FeaturedOffersSection from '@/components/FeaturedOffersSection';
 
 export const metadata: Metadata = {
   title: 'CatalogSmart - Oferte si Retete Economice pentru Toata Familia',
@@ -135,6 +136,7 @@ const stores = [
   { name: 'Carrefour', slug: 'carrefour', gradient: 'from-[#004e9e] to-[#003a76]' },
   { name: 'Mega Image', slug: 'mega-image', gradient: 'from-[#e31837] to-[#b8142d]' },
   { name: 'Auchan', slug: 'auchan', gradient: 'from-[#e2001a] to-[#b80016]' },
+  { name: 'Selgros', slug: 'selgros', gradient: 'from-[#d2001e] to-[#a00017]' },
 ];
 
 export default async function HomePage() {
@@ -218,7 +220,7 @@ export default async function HomePage() {
             {/* Subheadline - SEO + Features */}
             <p className="text-lg text-neutral-300 mb-8 max-w-2xl mx-auto leading-relaxed px-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
               Oferte din <span className="text-white font-semibold">Lidl, Kaufland, Penny</span> și altele.
-              Alege o rețetă și AI-ul găsește <span className="text-white font-semibold">cele mai bune prețuri</span> din toate magazinele — gata de comparat!
+              Alege o rețetă și AI-ul găsește <span className="text-white font-semibold">cele mai bune prețuri</span> din toate magazinele — gata de comparat! Găsești toate ofertele aici la zi!
             </p>
 
             {/* CTAs */}
@@ -238,7 +240,7 @@ export default async function HomePage() {
                 </span>
               </Link>
               <Link
-                href="/retete"
+                href="/plan"
                 className="px-8 py-3.5 bg-white/5 backdrop-blur-sm border border-white/10 text-white rounded-xl font-bold text-lg hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 transition-all duration-300"
               >
                 Vezi Rețetele
@@ -312,6 +314,8 @@ export default async function HomePage() {
         </div>
       </section>
 
+
+
       {/* Featured Offers Section */}
       <section id="catalog-section" className="py-12 sm:py-20 bg-white">
         <div className="container-custom">
@@ -337,20 +341,7 @@ export default async function HomePage() {
           </div>
 
           <Suspense fallback={<ProductsGridSkeleton />}>
-            {featuredOffers.length > 0 ? (
-              <div className="grid-products">
-                {featuredOffers.map((product, index) => (
-                  <div key={product.id} className="stagger-item" style={{ animationDelay: `${index * 50}ms` }}>
-                    <ProductCard product={product} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                title="Nicio oferta disponibila"
-                description="Revino curand pentru noi oferte!"
-              />
-            )}
+            <FeaturedOffersSection offers={featuredOffers} />
           </Suspense>
 
           <div className="mt-8 text-center sm:hidden">
@@ -378,7 +369,7 @@ export default async function HomePage() {
               </h2>
             </div>
             <Link
-              href="/retete"
+              href="/plan"
               className="hidden sm:inline-flex items-center gap-2 px-6 py-3 bg-accent-500 text-white text-sm font-semibold rounded-xl hover:bg-accent-600 shadow-glow-accent hover:shadow-lg transition-all duration-300 group"
             >
               Vezi toate retetele
@@ -390,7 +381,7 @@ export default async function HomePage() {
 
           <Suspense fallback={<RecipesGridSkeleton />}>
             {featuredRecipes.length > 0 ? (
-              <div className="grid-recipes">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {featuredRecipes.map((recipe, index) => (
                   <div key={recipe.id} className="stagger-item" style={{ animationDelay: `${index * 50}ms` }}>
                     <RecipeCard recipe={recipe} />
@@ -406,7 +397,7 @@ export default async function HomePage() {
           </Suspense>
 
           <div className="mt-8 text-center sm:hidden">
-            <Link href="/retete" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-accent-700 bg-accent-50 rounded-xl hover:bg-accent-100 transition-colors border border-accent-100">
+            <Link href="/plan" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-accent-700 bg-accent-50 rounded-xl hover:bg-accent-100 transition-colors border border-accent-100">
               Vezi toate retetele
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -530,7 +521,7 @@ export default async function HomePage() {
               </span>
             </Link>
             <Link
-              href="/retete"
+              href="/plan"
               className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border border-white/30 hover:bg-white/20 hover:border-white/40 transition-all duration-300"
             >
               Gaseste Retete

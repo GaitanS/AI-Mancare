@@ -237,6 +237,19 @@ export interface ProductFilters {
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface FilterOption {
+  value: string;
+  label: string;
+  count?: number;
+}
+
+export interface ProductFilterConfig {
+  stores: FilterOption[];
+  categories: FilterOption[];
+  priceRange: { min: number; max: number };
+  discountRange: { min: number; max: number };
+}
+
 export interface RecipeFilters {
   difficulty?: 'USOR' | 'MEDIU' | 'DIFICIL';
   maxCost?: number;

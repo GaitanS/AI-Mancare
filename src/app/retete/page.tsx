@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import prisma from '@/lib/db';
 import { cache, CacheKeys } from '@/lib/cache';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
+import FancyPageHeader from '@/components/FancyPageHeader';
 import type { Recipe } from '@/types';
 import type { Metadata } from 'next';
 
@@ -73,8 +74,25 @@ export default async function RecipesPage() {
 
     return (
         <>
-            {/* Hero Section */}
-            <section className="relative py-12 sm:py-20 bg-gradient-to-br from-accent-50 via-kitchen-cream to-kitchen-butter overflow-hidden">
+            {/* Fancy Desktop Header */}
+            <FancyPageHeader
+                icon={
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                }
+                badge="Rețete & Inspirație"
+                title="Rețete Economice"
+                subtitle="Descoperă rețete delicioase create special pentru ingredientele aflate în promoție. Gătește gustos și economisește bani!"
+                stats={[
+                    { value: recipes.length, label: 'Rețete' },
+                    { value: grouped.easy.length, label: 'Ușoare' },
+                    { value: grouped.medium.length, label: 'Medii' }
+                ]}
+            />
+
+            {/* Hero Section (Mobile & Tablet) */}
+            <section className="lg:hidden relative py-12 sm:py-20 bg-gradient-to-br from-accent-50 via-kitchen-cream to-kitchen-butter overflow-hidden">
                 {/* Background decoration */}
                 <div className="absolute inset-0 pattern-kitchen opacity-10" />
                 <div className="absolute top-10 right-10 w-64 h-64 bg-accent-200 rounded-full filter blur-[80px] opacity-40" />

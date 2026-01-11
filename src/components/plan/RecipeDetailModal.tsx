@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -17,6 +17,60 @@ interface Ingredient {
 interface RecipeStep {
     step: number;
     text: string;
+}
+
+// Component to parse tips and create product links
+function TipWithProductLinks({ tip, ingredients }: { tip: string; ingredients: Ingredient[] }) {
+    // Regex to find product IDs (UUID)
+    const idRegex = /\b([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\b/gi;
+
+    // Find all product IDs in the tip
+    const productIds = tip.match(idRegex) || [];
+
+    // If no IDs found, just return the text
+    if (productIds.length === 0) {
+        return <span>{tip}</span>;
+    }
+
+    // Build parts array
+    const parts: (string | React.ReactElement)[] = [];
+    let lastIndex = 0;
+
+    productIds.forEach((productId, idx) => {
+        const ingredient = ingredients.find(ing => ing.id === productId);
+        const productIndex = tip.indexOf(productId, lastIndex);
+
+        if (productIndex === -1) return;
+
+        // Add text before the ID
+        if (productIndex > lastIndex) {
+            parts.push(tip.substring(lastIndex, productIndex));
+        }
+
+        // Add link to product or just the name if found
+        if (ingredient) {
+            parts.push(
+                <Link
+                    key={`product-${idx}`}
+                    href={`/oferte?search=${encodeURIComponent(ingredient.name)}`}
+                    className="text-amber-700 font-semibold underline hover:text-amber-900 transition-colors"
+                >
+                    {ingredient.name}
+                </Link>
+            );
+        } else {
+            parts.push(productId);
+        }
+
+        lastIndex = productIndex + productId.length;
+    });
+
+    // Add remaining text
+    if (lastIndex < tip.length) {
+        parts.push(tip.substring(lastIndex));
+    }
+
+    return <>{parts}</>;
 }
 
 interface RecipeDetailModalProps {
@@ -58,6 +112,14 @@ export default function RecipeDetailModal({ recipe, isInPlan, onAddToPlan, onClo
     const [showShareToast, setShowShareToast] = useState(false);
     const difficultyInfo = difficultyConfig[recipe.difficulty as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
 
+    // Block body scroll when modal is open
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, []);
+
     const handleShare = async () => {
         const shareData = {
             title: recipe.title,
@@ -87,7 +149,7 @@ export default function RecipeDetailModal({ recipe, isInPlan, onAddToPlan, onClo
             />
 
             {/* Modal - Full screen on mobile, centered on desktop */}
-            <div className="absolute inset-x-0 bottom-0 max-h-[90vh] md:inset-4 md:max-h-none md:m-auto md:max-w-2xl md:rounded-2xl bg-white shadow-2xl flex flex-col rounded-t-3xl md:rounded-2xl overflow-hidden animate-slide-up">
+            <div className="absolute inset-x-0 bottom-0 max-h-[90vh] md:inset-4 md:max-h-none md:m-auto md:max-w-5xl md:rounded-2xl bg-white shadow-2xl flex flex-col rounded-t-3xl md:rounded-2xl overflow-hidden animate-slide-up">
                 {/* Header with Image */}
                 <div className="relative h-48 md:h-64 bg-neutral-100 flex-shrink-0">
                     {recipe.imageUrl ? (
@@ -120,23 +182,23 @@ export default function RecipeDetailModal({ recipe, isInPlan, onAddToPlan, onClo
 
                     {/* Title and Meta on Image */}
                     <div className="absolute bottom-4 left-4 right-4">
-                        <h2 className="font-display font-bold text-2xl md:text-3xl text-white mb-2 line-clamp-2">
+                        <h2 className="font-display font-bold text-2xl md:text-4xl text-white mb-2 line-clamp-2">
                             {recipe.title}
                         </h2>
-                        <div className="flex flex-wrap items-center gap-3 text-white/90 text-sm">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${difficultyInfo.color}`}>
+                        <div className="flex flex-wrap items-center gap-3 text-white/90 text-sm md:text-base">
+                            <span className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-bold ${difficultyInfo.color}`}>
                                 {difficultyInfo.label}
                             </span>
                             {recipe.totalTime && (
                                 <span className="flex items-center gap-1">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     {recipe.totalTime} min
                                 </span>
                             )}
                             <span className="flex items-center gap-1">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                                 {recipe.servings} porții
@@ -152,17 +214,17 @@ export default function RecipeDetailModal({ recipe, isInPlan, onAddToPlan, onClo
 
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto">
-                    <div className="p-5 space-y-6">
+                    <div className="p-4 md:p-8 space-y-4 md:space-y-6">
                         {/* Description */}
-                        <p className="text-neutral-600 leading-relaxed">{recipe.description}</p>
+                        <p className="text-sm md:text-lg text-neutral-600 leading-relaxed">{recipe.description}</p>
 
                         {/* Tags */}
                         {recipe.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5 md:gap-2">
                                 {recipe.tags.map(tag => (
                                     <span
                                         key={tag}
-                                        className="px-3 py-1 bg-primary-50 text-primary-700 text-sm font-semibold rounded-full"
+                                        className="px-2 py-0.5 md:px-3 md:py-1 bg-primary-50 text-primary-700 text-xs md:text-sm font-semibold rounded-full"
                                     >
                                         {tag}
                                     </span>
@@ -173,20 +235,20 @@ export default function RecipeDetailModal({ recipe, isInPlan, onAddToPlan, onClo
                         {/* Ingredients */}
                         {recipe.ingredients.length > 0 && (
                             <div>
-                                <h3 className="font-display font-bold text-lg text-neutral-900 mb-3 flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <h3 className="font-display font-bold text-base md:text-xl text-neutral-900 mb-2 md:mb-4 flex items-center gap-2">
+                                    <svg className="w-4 h-4 md:w-6 md:h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                     </svg>
                                     Ingrediente ({recipe.ingredients.length})
                                 </h3>
-                                <ul className="space-y-2 bg-neutral-50 rounded-xl p-4">
+                                <ul className="space-y-1.5 md:space-y-3 bg-neutral-50 rounded-xl p-3 md:p-5">
                                     {recipe.ingredients.map(ing => (
-                                        <li key={ing.id} className="flex items-center justify-between text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <span className="w-2 h-2 bg-primary-500 rounded-full" />
+                                        <li key={ing.id} className="flex items-center justify-between text-xs md:text-base">
+                                            <div className="flex items-center gap-1.5 md:gap-2">
+                                                <span className="w-1 h-1 md:w-2 md:h-2 bg-primary-500 rounded-full flex-shrink-0" />
                                                 <span className="font-medium text-neutral-800">{ing.name}</span>
                                                 {ing.store && (
-                                                    <span className="text-xs text-neutral-400">({ing.store})</span>
+                                                    <span className="text-[10px] md:text-sm text-neutral-400">({ing.store})</span>
                                                 )}
                                             </div>
                                             <span className="font-bold text-neutral-700">{ing.price.toFixed(2)} RON</span>
@@ -199,19 +261,19 @@ export default function RecipeDetailModal({ recipe, isInPlan, onAddToPlan, onClo
                         {/* Instructions */}
                         {recipe.instructions.length > 0 && (
                             <div>
-                                <h3 className="font-display font-bold text-lg text-neutral-900 mb-4 flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <h3 className="font-display font-bold text-base md:text-xl text-neutral-900 mb-2 md:mb-4 flex items-center gap-2">
+                                    <svg className="w-4 h-4 md:w-6 md:h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                     </svg>
                                     Mod de preparare
                                 </h3>
-                                <div className="space-y-4">
+                                <div className="space-y-2 md:space-y-4">
                                     {recipe.instructions.map((step, idx) => (
-                                        <div key={idx} className="flex gap-4">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold text-sm">
+                                        <div key={idx} className="flex gap-2 md:gap-4">
+                                            <div className="flex-shrink-0 w-5 h-5 md:w-8 md:h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold text-[10px] md:text-sm">
                                                 {step.step}
                                             </div>
-                                            <p className="text-neutral-700 leading-relaxed pt-1">{step.text}</p>
+                                            <p className="text-xs md:text-base text-neutral-700 leading-relaxed pt-0.5 md:pt-1">{step.text}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -220,18 +282,18 @@ export default function RecipeDetailModal({ recipe, isInPlan, onAddToPlan, onClo
 
                         {/* Tips */}
                         {recipe.tips.length > 0 && (
-                            <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                                <h3 className="font-bold text-amber-900 mb-2 flex items-center gap-2 text-sm uppercase tracking-wide">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="bg-amber-50 rounded-xl p-3 md:p-5 border border-amber-100">
+                                <h3 className="font-bold text-amber-900 mb-2 md:mb-3 flex items-center gap-2 text-xs md:text-base uppercase tracking-wide">
+                                    <svg className="w-3.5 h-3.5 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     Sfaturi
                                 </h3>
-                                <ul className="space-y-1">
+                                <ul className="space-y-1 md:space-y-2">
                                     {recipe.tips.map((tip, i) => (
-                                        <li key={i} className="text-sm text-amber-800 flex gap-2">
-                                            <span className="text-amber-600">•</span>
-                                            <span>{tip}</span>
+                                        <li key={i} className="text-xs md:text-sm text-amber-800 flex gap-1.5 md:gap-2">
+                                            <span className="text-amber-600 flex-shrink-0">•</span>
+                                            <TipWithProductLinks tip={tip} ingredients={recipe.ingredients} />
                                         </li>
                                     ))}
                                 </ul>

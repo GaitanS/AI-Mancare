@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import AddToPlanModal from '@/components/plan/AddToPlanModal';
 import RecipeDetailModal from '@/components/plan/RecipeDetailModal';
 import { PlanFilters } from '@/components/plan/PlanFilters';
+import AdSenseBanner from '@/components/AdSenseBanner';
 
 interface Recipe {
     id: string;
@@ -67,6 +69,7 @@ interface MealPlan {
 const STORAGE_KEY = 'mealPlan';
 
 export default function PlanPage() {
+    const router = useRouter();
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [loading, setLoading] = useState(true);
     const [mealPlan, setMealPlan] = useState<MealPlan>({ recipes: [], updatedAt: '' });
@@ -208,6 +211,22 @@ export default function PlanPage() {
         saveMealPlan(newPlan);
     };
 
+    // Send ingredients to cart
+    const sendToCart = () => {
+        // Extract ingredients with their quantities
+        const ingredientsForCart = totalIngredients.map(ing => ({
+            name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit
+        }));
+
+        // Store in localStorage for cart page to pick up
+        localStorage.setItem('cart_pending_ingredients', JSON.stringify(ingredientsForCart));
+
+        // Navigate to cart
+        router.push('/cart');
+    };
+
     // Get difficulty label
     const getDifficultyLabel = (d: string) => {
         switch (d) {
@@ -293,17 +312,42 @@ export default function PlanPage() {
     const allTags = [...new Set(recipes.flatMap(r => r.tags))].slice(0, 8);
 
     return (
-        <div className="min-h-screen bg-[#FDFBF7] pb-20">
-            {/* Header */}
-            <div className="relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 text-white overflow-hidden">
-                <div className="absolute inset-0 overflow-hidden">
-                    <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20" />
-                    <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-accent-500 rounded-full mix-blend-screen filter blur-[100px] opacity-15" />
+        <div className="bg-neutral-50 min-h-screen pb-20">
+            {/* Mobile Header */}
+            <header className="lg:hidden bg-white sticky top-0 z-40 border-b border-neutral-200">
+                <div className="container mx-auto px-3 h-12 flex items-center justify-between">
+                    <h1 className="text-lg font-bold text-neutral-900">Planifică Mesele</h1>
+                    {mealPlan.recipes.length > 0 && (
+                        <div className="relative flex items-center gap-2">
+                            <span className="text-sm font-semibold text-emerald-600">{totalCost.toFixed(0)} RON</span>
+                            <button
+                                onClick={sendToCart}
+                                className="relative w-8 h-8 flex items-center justify-center text-primary-600"
+                                title="Trimite la coș"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                <span className="absolute top-0.5 right-0 w-2.5 h-2.5 bg-emerald-500 border border-white rounded-full"></span>
+                            </button>
+                        </div>
+                    )}
                 </div>
+            </header>
+
+            {/* Desktop Header */}
+            <div className="hidden lg:block relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 overflow-hidden mb-8">
+                {/* Animated gradient orbs */}
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-float" />
+                    <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-accent-500 rounded-full mix-blend-screen filter blur-[100px] opacity-15 animate-float" style={{ animationDelay: '2s' }} />
+                </div>
+
+                {/* Grid pattern */}
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px]" />
 
-                <div className="relative container-custom py-8 md:py-10 z-10">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="relative container-custom py-10 z-10 px-8">
+                    <div className="flex items-end justify-between gap-6">
                         <div>
                             <div className="flex items-center gap-3 mb-3">
                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-orange-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
@@ -313,10 +357,10 @@ export default function PlanPage() {
                                 </div>
                                 <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Planificator</span>
                             </div>
-                            <h1 className="font-display text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
+                            <h1 className="font-display text-4xl font-bold text-white mb-2 leading-tight">
                                 Planifică Mesele
                             </h1>
-                            <p className="text-neutral-400 text-sm md:text-base max-w-lg">
+                            <p className="text-neutral-400 text-base max-w-lg">
                                 Alege rețetele, selectează porțiile și creează-ți planul săptămânal.
                             </p>
                         </div>
@@ -325,20 +369,32 @@ export default function PlanPage() {
                         {mealPlan.recipes.length > 0 && (
                             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
                                 <div className="flex items-center gap-4">
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-white">{mealPlan.recipes.length}</div>
-                                        <div className="text-xs text-white/60">Rețete</div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-white">{mealPlan.recipes.length}</div>
+                                            <div className="text-xs text-white/60">Rețete</div>
+                                        </div>
+                                        <div className="w-px h-10 bg-white/20" />
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-emerald-400">{totalCost.toFixed(0)}</div>
+                                            <div className="text-xs text-white/60">RON</div>
+                                        </div>
+                                        <div className="w-px h-10 bg-white/20" />
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-white">{totalIngredients.length}</div>
+                                            <div className="text-xs text-white/60">Ingrediente</div>
+                                        </div>
                                     </div>
                                     <div className="w-px h-10 bg-white/20" />
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-emerald-400">{totalCost.toFixed(0)}</div>
-                                        <div className="text-xs text-white/60">RON</div>
-                                    </div>
-                                    <div className="w-px h-10 bg-white/20" />
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-white">{totalIngredients.length}</div>
-                                        <div className="text-xs text-white/60">Ingrediente</div>
-                                    </div>
+                                    <button
+                                        onClick={sendToCart}
+                                        className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                        Vezi Lista
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -346,13 +402,42 @@ export default function PlanPage() {
                 </div>
             </div>
 
-            <div className="container-custom py-6">
-                <div className="flex flex-col lg:flex-row gap-8">
+            {/* Mobile Filter Bar */}
+            <div className="lg:hidden bg-white sticky top-12 z-30 shadow-sm px-3 py-2 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
+                <button
+                    onClick={() => setShowFilters(true)}
+                    className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap active:bg-neutral-200",
+                        activeFilterCount > 0 ? "bg-primary-600 text-white" : "bg-neutral-100 text-neutral-700"
+                    )}
+                >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    Filtre
+                    {activeFilterCount > 0 && (
+                        <span className="bg-white/30 px-1.5 py-0.5 rounded-full text-xs">{activeFilterCount}</span>
+                    )}
+                </button>
+
+                <div className="text-xs font-semibold text-neutral-500 whitespace-nowrap">
+                    {filteredRecipes.length} rețete
+                </div>
+            </div>
+
+            {/* ADSENSE BANNER - Top (Mobile Only) */}
+            <div className="px-2 pt-2 lg:hidden">
+                <AdSenseBanner slotId="8962383842" className="h-24 w-full" />
+            </div>
+
+            <div className="max-w-md mx-auto lg:max-w-7xl">
+                <div className="flex flex-col lg:flex-row gap-6 lg:p-4">
                     {/* Desktop Sidebar */}
                     <aside className="hidden lg:block w-72 flex-shrink-0">
-                        <div className="sticky top-24 bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
-                            <h2 className="font-display font-bold text-lg text-neutral-900 mb-4 px-1">Filtre</h2>
-                            <PlanFilters
+                        <div className="sticky top-28">
+                            <div className="bg-white rounded-2xl border border-neutral-200/60 shadow-sm p-5">
+                                <h2 className="font-display font-bold text-lg text-neutral-900 mb-4">Filtre</h2>
+                                <PlanFilters
                                 filterDifficulty={filterDifficulty}
                                 setFilterDifficulty={setFilterDifficulty}
                                 filterMealType={filterMealType}
@@ -370,10 +455,11 @@ export default function PlanPage() {
                                 portions={4}
                                 profileRestrictions={[]}
                                 onReset={clearAllFilters}
-                                onApply={() => { }}
-                                activeCount={activeFilterCount}
-                                hideApplyButton={true}
-                            />
+                                    onApply={() => { }}
+                                    activeCount={activeFilterCount}
+                                    hideApplyButton={true}
+                                />
+                            </div>
                         </div>
                     </aside>
 
@@ -423,9 +509,9 @@ export default function PlanPage() {
 
                     {/* Main Content */}
                     <main className="flex-1 min-w-0">
-                        {/* Search + Filter Button Row */}
-                        <div className="flex gap-3 mb-6">
-                            <div className="relative flex-1">
+                        {/* Desktop Search Bar */}
+                        <div className="hidden lg:block mb-6">
+                            <div className="relative">
                                 <input
                                     type="text"
                                     name="search"
@@ -433,33 +519,33 @@ export default function PlanPage() {
                                     placeholder="Caută rețete..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                    className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent shadow-sm"
                                 />
                                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
-                            <button
-                                onClick={() => setShowFilters(true)}
-                                className={cn(
-                                    "lg:hidden flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors",
-                                    activeFilterCount > 0
-                                        ? "bg-primary-600 text-white"
-                                        : "bg-white border border-neutral-200 text-neutral-600"
-                                )}
-                            >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </div>
+
+                        {/* Mobile Search Bar */}
+                        <div className="lg:hidden px-3 mb-3">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    name="search-mobile"
+                                    placeholder="Caută rețete..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                />
+                                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
-                                Filtre
-                                {activeFilterCount > 0 && (
-                                    <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-xs">{activeFilterCount}</span>
-                                )}
-                            </button>
+                            </div>
                         </div>
 
                         {/* Quick Tag Filters */}
-                        <div className="flex gap-2 overflow-x-auto pb-4 mb-4 [&::-webkit-scrollbar]:hidden">
+                        <div className="flex gap-2 overflow-x-auto pb-4 mb-4 px-3 lg:px-0 [&::-webkit-scrollbar]:hidden">
                             {allTags.map(tag => (
                                 <button
                                     key={tag}
@@ -476,15 +562,15 @@ export default function PlanPage() {
                             ))}
                         </div>
 
-                        {/* Results Count */}
-                        <p className="text-sm text-neutral-500 mb-4">
-                            {filteredRecipes.length} rețete găsite
+                        {/* Results Count - Desktop */}
+                        <p className="hidden lg:block text-sm text-neutral-500 mb-4">
+                            <span className="text-neutral-900 font-bold">{filteredRecipes.length}</span> rețete găsite
                             {activeFilterCount > 0 && ` (${activeFilterCount} filtre active)`}
                         </p>
 
                         {/* Recipe Grid */}
                         {loading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-6 px-3 lg:px-0">
                                 {[...Array(6)].map((_, i) => (
                                     <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm animate-pulse">
                                         <div className="h-48 bg-neutral-200" />
@@ -506,21 +592,22 @@ export default function PlanPage() {
                                 <p className="text-neutral-500">Încearcă alte filtre sau elimină căutarea.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredRecipes.map(recipe => {
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-6 px-3 lg:px-0">
+                                {filteredRecipes.map((recipe, index) => {
                                     const inPlan = isRecipeInPlan(recipe.id);
 
                                     return (
+                                        <React.Fragment key={recipe.id}>
                                         <div
-                                            key={recipe.id}
                                             className={cn(
-                                                "bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all border-2",
-                                                inPlan ? "border-emerald-400" : "border-transparent"
+                                                "bg-white rounded-xl lg:rounded-2xl overflow-hidden shadow-sm lg:shadow-soft transition-all duration-300",
+                                                "hover:shadow-md lg:hover:shadow-hard hover:-translate-y-1 lg:hover:-translate-y-1.5 cursor-pointer",
+                                                inPlan ? "border-2 border-emerald-400" : "border border-neutral-200/60 hover:border-primary-200"
                                             )}
                                         >
                                             {/* Card Image - Click to view details */}
                                             <div
-                                                className="relative h-48 bg-neutral-100 cursor-pointer group"
+                                                className="relative h-40 lg:h-48 bg-neutral-100 cursor-pointer group"
                                                 onClick={() => fetchRecipeDetails(recipe.id)}
                                             >
                                                 {recipe.imageUrl ? (
@@ -542,15 +629,15 @@ export default function PlanPage() {
 
                                                 {/* Hover overlay */}
                                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-4 py-2 rounded-full text-sm font-semibold text-neutral-900">
+                                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full text-xs lg:text-sm font-semibold text-neutral-900">
                                                         Vezi detalii
                                                     </span>
                                                 </div>
 
                                                 {/* Tags */}
                                                 {recipe.tags.length > 0 && (
-                                                    <div className="absolute top-3 left-3 flex gap-1">
-                                                        <span className="px-2 py-1 bg-black/60 backdrop-blur-sm text-white text-xs font-semibold rounded">
+                                                    <div className="absolute top-2 left-2 lg:top-3 lg:left-3 flex gap-1 z-10">
+                                                        <span className="px-1.5 py-0.5 lg:px-2.5 lg:py-1 bg-black/60 backdrop-blur-sm text-white text-[9px] lg:text-xs font-semibold rounded lg:rounded-lg">
                                                             {recipe.tags[0]}
                                                         </span>
                                                     </div>
@@ -558,16 +645,16 @@ export default function PlanPage() {
                                             </div>
 
                                             {/* Card Content */}
-                                            <div className="p-4">
-                                                <div className="flex items-start justify-between gap-3">
+                                            <div className="p-2 lg:p-4">
+                                                <div className="flex items-start justify-between gap-2 lg:gap-3">
                                                     <div
                                                         className="flex-1 cursor-pointer"
                                                         onClick={() => fetchRecipeDetails(recipe.id)}
                                                     >
-                                                        <h3 className="font-bold text-neutral-900 mb-1 line-clamp-2 hover:text-primary-600 transition-colors">
+                                                        <h3 className="text-xs lg:text-base font-bold text-neutral-900 mb-1 lg:mb-2 line-clamp-2 hover:text-primary-600 transition-colors font-display leading-tight">
                                                             {recipe.title}
                                                         </h3>
-                                                        <div className="flex items-center gap-3 text-sm text-neutral-500">
+                                                        <div className="flex items-center gap-1.5 lg:gap-3 text-[10px] lg:text-sm text-neutral-500">
                                                             <span>{getDifficultyLabel(recipe.difficulty)}</span>
                                                             {recipe.totalTime && <span>• {recipe.totalTime} min</span>}
                                                             {recipe.estimatedCost && (
@@ -589,7 +676,7 @@ export default function PlanPage() {
                                                             }
                                                         }}
                                                         className={cn(
-                                                            "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all border-2",
+                                                            "flex-shrink-0 w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-all border-2",
                                                             inPlan
                                                                 ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/30"
                                                                 : "bg-white text-neutral-400 border-neutral-200 hover:border-primary-400 hover:text-primary-500"
@@ -597,11 +684,11 @@ export default function PlanPage() {
                                                         title={inPlan ? "Elimină din plan" : "Adaugă în plan"}
                                                     >
                                                         {inPlan ? (
-                                                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                            <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                                             </svg>
                                                         ) : (
-                                                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                            <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                                                             </svg>
                                                         )}
@@ -609,50 +696,19 @@ export default function PlanPage() {
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* ADSENSE BANNER - In-Feed (Mobile only after 4th recipe) */}
+                                        {index === 3 && (
+                                            <div className="col-span-2 lg:hidden my-2">
+                                                <AdSenseBanner slotId="1234567890" layout="in-article" className="h-[120px]" />
+                                            </div>
+                                        )}
+                                        </React.Fragment>
                                     );
                                 })}
                             </div>
                         )}
 
-                        {/* Shopping List Section */}
-                        {mealPlan.recipes.length > 0 && totalIngredients.length > 0 && (
-                            <div className="mt-12 bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="font-display text-xl font-bold text-neutral-900 flex items-center gap-2">
-                                        <svg className="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                                        </svg>
-                                        Lista de cumpărături
-                                    </h2>
-                                    <span className="text-lg font-bold text-emerald-600">{totalCost.toFixed(2)} RON</span>
-                                </div>
-
-                                <div className="grid gap-2">
-                                    {totalIngredients.map((ing, idx) => (
-                                        <div key={idx} className="flex items-center justify-between py-2 border-b border-neutral-100 last:border-0">
-                                            <div className="flex items-center gap-3">
-                                                <input type="checkbox" className="w-5 h-5 rounded border-neutral-300 text-primary-600" />
-                                                <span className="font-medium text-neutral-800">{ing.name}</span>
-                                                <span className="text-sm text-neutral-400">
-                                                    ({ing.quantity.toFixed(1)} {ing.unit})
-                                                </span>
-                                            </div>
-                                            <span className="font-semibold text-neutral-700">{ing.totalPrice.toFixed(2)} RON</span>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <button
-                                    onClick={() => {
-                                        localStorage.removeItem(STORAGE_KEY);
-                                        setMealPlan({ recipes: [], updatedAt: '' });
-                                    }}
-                                    className="mt-6 text-sm text-red-500 hover:text-red-600 font-medium"
-                                >
-                                    Șterge tot planul
-                                </button>
-                            </div>
-                        )}
                     </main>
                 </div>
 

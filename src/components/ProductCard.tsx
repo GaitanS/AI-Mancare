@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { cn, formatPrice, formatDate, isOfferValid } from '@/lib/utils';
 import type { Product } from '@/types';
 
@@ -72,6 +73,7 @@ interface ProductCardProps {
   className?: string;
   showStore?: boolean;
   priority?: boolean;
+  onClick?: () => void;
 }
 
 // Store color mapping - Premium gradient colors
@@ -82,6 +84,7 @@ const storeColors: Record<string, { gradient: string; solid: string; text: strin
   'mega-image': { gradient: 'from-[#e31837] to-[#b8142d]', solid: 'bg-[#e31837]', text: 'text-[#e31837]' },
   carrefour: { gradient: 'from-[#004e9e] to-[#003a76]', solid: 'bg-[#004e9e]', text: 'text-[#004e9e]' },
   auchan: { gradient: 'from-[#e2001a] to-[#b80016]', solid: 'bg-[#e2001a]', text: 'text-[#e2001a]' },
+  selgros: { gradient: 'from-[#d2001e] to-[#a00017]', solid: 'bg-[#d2001e]', text: 'text-[#d2001e]' },
 };
 
 export default function ProductCard({
@@ -89,6 +92,7 @@ export default function ProductCard({
   className,
   showStore = true,
   priority = false,
+  onClick
 }: ProductCardProps) {
   const isValid = isOfferValid(new Date(product.validFrom), new Date(product.validUntil));
   const hasDiscount = product.discountPercentage && product.discountPercentage > 0;
@@ -97,10 +101,11 @@ export default function ProductCard({
 
   return (
     <article
+      onClick={onClick}
       className={cn(
-        'group relative flex flex-col h-full bg-white rounded-2xl border border-neutral-200/60',
-        'shadow-soft transition-all duration-300',
-        'hover:shadow-hard hover:border-primary-200 hover:-translate-y-1.5',
+        'group relative flex flex-col h-full bg-white rounded-xl lg:rounded-2xl border border-neutral-200/60',
+        'shadow-sm lg:shadow-soft transition-all duration-300',
+        'hover:shadow-md lg:hover:shadow-hard hover:border-primary-200 hover:-translate-y-1 lg:hover:-translate-y-1.5 cursor-pointer',
         !isValid && 'opacity-60',
         className
       )}
@@ -109,12 +114,12 @@ export default function ProductCard({
     >
       {/* Discount Badge */}
       {hasDiscount && (
-        <div className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 z-10">
+        <div className="absolute top-2 left-2 lg:top-3 lg:left-3 z-10">
           <span className={cn(
-            'inline-flex items-center px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl',
-            'text-xs sm:text-sm font-bold text-white',
+            'inline-flex items-center px-1.5 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl',
+            'text-[10px] lg:text-xs font-bold text-white',
             'bg-gradient-to-r from-primary-500 to-primary-600',
-            'shadow-warm',
+            'shadow-sm lg:shadow-warm',
             product.discountPercentage && product.discountPercentage >= 30 && 'animate-pulse-warm'
           )}>
             -{product.discountPercentage}%
@@ -124,12 +129,12 @@ export default function ProductCard({
 
       {/* Store Badge */}
       {showStore && (
-        <div className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 z-10">
+        <div className="absolute top-2 right-2 lg:top-3 lg:right-3 z-10">
           <span
             className={cn(
-              'inline-flex items-center px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl',
-              'text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider',
-              'shadow-md bg-gradient-to-r',
+              'inline-flex items-center px-1.5 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl',
+              'text-white text-[9px] lg:text-[10px] font-bold uppercase tracking-wider',
+              'shadow-sm lg:shadow-md bg-gradient-to-r',
               storeStyle.gradient
             )}
           >
@@ -138,14 +143,14 @@ export default function ProductCard({
         </div>
       )}
 
-      {/* Compact Header - no image, just minimal spacing for badges */}
-      <div className="h-12 sm:h-14 bg-gradient-to-br from-neutral-50 to-white rounded-t-2xl" />
+      {/* Compact Header - reduced height mobile, larger on desktop */}
+      <div className="h-10 lg:h-14 bg-gradient-to-br from-neutral-50 to-white rounded-t-xl lg:rounded-t-2xl" />
 
       {/* Product Info */}
-      <div className="flex flex-col flex-1 p-3 sm:p-4">
-        {/* Category */}
-        <div className="mb-1.5 sm:mb-2 hidden sm:block">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary-50 text-primary-700 text-xs font-semibold">
+      <div className="flex flex-col flex-1 p-2 lg:p-4">
+        {/* Category - Hidden on mobile, Visible on Desktop */}
+        <div className="mb-1 lg:mb-2 hidden lg:block">
+          <span className="inline-flex items-center px-1.5 py-0.5 lg:px-2.5 lg:py-1 rounded bg-primary-50 text-primary-700 text-[10px] lg:text-xs font-semibold">
             {product.category}
             {product.subcategory && ` / ${product.subcategory}`}
           </span>
@@ -153,7 +158,7 @@ export default function ProductCard({
 
         {/* Product Name */}
         <h3
-          className="text-sm sm:text-base font-bold text-neutral-900 line-clamp-2 mb-1 sm:mb-2 group-hover:text-primary-600 transition-colors font-display"
+          className="text-xs lg:text-base font-bold text-neutral-900 line-clamp-2 mb-1 lg:mb-2 group-hover:text-primary-600 transition-colors font-display leading-tight"
           itemProp="name"
         >
           {product.name}
@@ -171,53 +176,59 @@ export default function ProductCard({
 
         {/* Price Section */}
         <div
-          className="mt-auto pt-3 border-t border-neutral-100"
+          className="mt-auto pt-2 lg:pt-3 border-t border-neutral-100/50 lg:border-neutral-100"
           itemProp="offers"
           itemScope
           itemType="https://schema.org/Offer"
         >
-          <div className="flex items-end justify-between gap-2">
+          <div className="flex items-end justify-between gap-1 lg:gap-2">
             <div>
-              {/* Original Price */}
-              {product.originalPrice && hasDiscount && (
-                <p className="text-xs sm:text-sm text-neutral-400 line-through decoration-2">{formatPrice(product.originalPrice)}</p>
+              {/* Original Price - Calculated if missing */}
+              {(product.originalPrice || (hasDiscount && product.discountPercentage)) && (
+                <p className="text-[10px] lg:text-sm text-neutral-400 line-through decoration-1 lg:decoration-2">
+                  {formatPrice(product.originalPrice || (product.price / (1 - (product.discountPercentage || 0) / 100)))}
+                </p>
               )}
-              {/* Current Price - Split display */}
+              {/* Current Price - Compact Mobile / Normal Desktop */}
               <div className="flex items-baseline gap-0.5" itemProp="price" content={product.price.toString()}>
-                <span className="text-2xl sm:text-3xl font-display font-bold text-primary-600">
+                <span className="text-lg lg:text-3xl font-display font-bold text-primary-600">
                   {product.price.toFixed(2).split('.')[0]}
                 </span>
-                <span className="text-base sm:text-lg font-display font-bold text-primary-600">
+                <span className="text-sm lg:text-lg font-display font-bold text-primary-600">
                   ,{product.price.toFixed(2).split('.')[1]}
                 </span>
-                <span className="text-xs sm:text-sm font-semibold text-primary-500 ml-1">lei</span>
+                <span className="text-[10px] lg:text-sm font-semibold text-primary-500 ml-0.5 lg:ml-1">lei</span>
               </div>
               <meta itemProp="priceCurrency" content="RON" />
             </div>
 
             {/* Unit */}
-            <span className="text-xs sm:text-sm font-semibold text-neutral-600 bg-neutral-100 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg">
+            <span className="text-[10px] lg:text-sm font-medium lg:font-semibold text-neutral-500 lg:text-neutral-600 bg-neutral-50 lg:bg-neutral-100 px-1.5 py-0.5 lg:px-2.5 lg:py-1.5 rounded lg:rounded-lg">
               / {product.unit}
             </span>
           </div>
 
-          {/* Validity */}
-          <div className="mt-3 space-y-2">
+          {/* Validity - Compact Mobile / Normal Desktop */}
+          <div className="mt-2 lg:mt-3 space-y-1.5 lg:space-y-2 hidden sm:block">
             {/* Date range */}
-            <div className="flex items-center gap-2 text-xs text-neutral-600 bg-neutral-50 px-3 py-2 rounded-xl">
-              <svg className="w-4 h-4 text-primary-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <div className="flex items-center gap-1.5 lg:gap-2 text-[10px] lg:text-xs text-neutral-500 lg:text-neutral-600 bg-neutral-50 px-2 py-1 lg:px-3 lg:py-2 rounded-lg lg:rounded-xl">
+              <svg className="w-3 h-3 lg:w-4 lg:h-4 text-primary-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span className="font-medium truncate">
+              <span className="truncate lg:font-medium">
                 {formatDate(product.validFrom)} - {formatDate(product.validUntil)}
               </span>
-              <meta itemProp="priceValidUntil" content={new Date(product.validUntil).toISOString().split('T')[0]} />
             </div>
 
             {/* Live Countdown */}
-            <div className="flex items-center justify-center bg-gradient-to-r from-primary-50 to-accent-50 px-3 py-2 rounded-xl border border-primary-100/50">
+            <div className="flex items-center justify-center bg-gradient-to-r from-primary-50 to-accent-50 px-2 py-1 lg:px-3 lg:py-2 rounded-lg lg:rounded-xl border border-primary-100/50">
               <Countdown validUntil={new Date(product.validUntil)} />
             </div>
+          </div>
+          {/* Mobile only date info - Very simplified */}
+          <div className="mt-1.5 sm:hidden flex items-center gap-1 text-[10px] text-neutral-400">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <Countdown validUntil={new Date(product.validUntil)} />
           </div>
 
           {/* Availability */}

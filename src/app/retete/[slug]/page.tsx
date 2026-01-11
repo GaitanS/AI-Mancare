@@ -1,3 +1,4 @@
+import React from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
@@ -35,6 +36,60 @@ interface Ingredient {
     store: string;
     unit: string;
     quantity: number;
+}
+
+// Component to parse tips and create product links
+function TipWithProductLinks({ tip, ingredients }: { tip: string; ingredients: Ingredient[] }) {
+    // Regex to find product IDs (UUID or alphanumeric)
+    const idRegex = /\b([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\b/gi;
+
+    // Find all product IDs in the tip
+    const productIds = tip.match(idRegex) || [];
+
+    // If no IDs found, just return the text
+    if (productIds.length === 0) {
+        return <span>{tip}</span>;
+    }
+
+    // Build parts array
+    const parts: (string | React.ReactElement)[] = [];
+    let lastIndex = 0;
+
+    productIds.forEach((productId, idx) => {
+        const ingredient = ingredients.find(ing => ing.id === productId);
+        const productIndex = tip.indexOf(productId, lastIndex);
+
+        if (productIndex === -1) return;
+
+        // Add text before the ID
+        if (productIndex > lastIndex) {
+            parts.push(tip.substring(lastIndex, productIndex));
+        }
+
+        // Add link to product or just the name if found
+        if (ingredient) {
+            parts.push(
+                <Link
+                    key={`product-${idx}`}
+                    href={`/oferte?search=${encodeURIComponent(ingredient.name)}`}
+                    className="text-amber-700 font-semibold underline hover:text-amber-900 transition-colors"
+                >
+                    {ingredient.name}
+                </Link>
+            );
+        } else {
+            parts.push(productId);
+        }
+
+        lastIndex = productIndex + productId.length;
+    });
+
+    // Add remaining text
+    if (lastIndex < tip.length) {
+        parts.push(tip.substring(lastIndex));
+    }
+
+    return <>{parts}</>;
 }
 
 async function getRecipe(slug: string) {
@@ -219,9 +274,9 @@ export default async function RecipePage(props: Props) {
                 {/* Title & Meta - Bottom of Hero */}
                 <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
                     <div className="container-custom max-w-6xl mx-auto">
-                        <div className="flex flex-wrap gap-2 mb-3">
+                        <div className="flex flex-wrap gap-1.5 mb-2">
                             {recipe.tags && recipe.tags.slice(0, 3).map((tag: string) => (
-                                <span key={tag} className="px-2.5 py-1 bg-primary-500/80 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider rounded-lg shadow-sm border border-primary-400/50">
+                                <span key={tag} className="px-2 py-0.5 bg-primary-500/80 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-wider rounded shadow-sm border border-primary-400/50">
                                     {tag}
                                 </span>
                             ))}
@@ -277,8 +332,8 @@ export default async function RecipePage(props: Props) {
                     <div className="space-y-8 md:space-y-10">
 
                         {/* Description */}
-                        <section className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-neutral-100">
-                            <p className="text-lg md:text-xl text-neutral-600 leading-relaxed font-serif">
+                        <section className="bg-white rounded-3xl p-5 md:p-6 shadow-sm border border-neutral-100">
+                            <p className="text-sm md:text-base text-neutral-600 leading-relaxed">
                                 {recipe.description}
                             </p>
                         </section>
@@ -290,28 +345,26 @@ export default async function RecipePage(props: Props) {
                                 <span className="text-neutral-400 text-sm font-medium uppercase tracking-widest">Reclamă</span>
                             </div>
 
-                            <div className="bg-white rounded-3xl shadow-card border border-neutral-100 p-6">
-                                <h3 className="font-display font-bold text-xl text-neutral-900 mb-6 flex items-center gap-2">
-                                    <svg className="w-6 h-6 text-secondary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="bg-white rounded-2xl shadow-card border border-neutral-100 p-4">
+                                <h3 className="font-display font-bold text-base text-neutral-900 mb-4 flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-secondary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                     </svg>
                                     Ingrediente
                                 </h3>
-                                <ul className="space-y-4">
+                                <ul className="space-y-2">
                                     {recipe.ingredients.map((ing) => (
-                                        <li key={ing.id} className="flex items-start justify-between gap-4 pb-4 border-b border-neutral-50 last:border-0 last:pb-0">
-                                            <div className="flex-1">
-                                                <div className="font-medium text-neutral-800 text-base">{ing.name}</div>
-                                                {ing.store && (
-                                                    <div className="text-xs text-neutral-400 mt-1 flex items-center gap-1">
-                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                        </svg>
-                                                        {ing.store}
-                                                    </div>
-                                                )}
+                                        <li key={ing.id} className="flex items-start justify-between gap-3 pb-2 border-b border-neutral-50 last:border-0 last:pb-0">
+                                            <div className="flex-1 flex items-center gap-1.5">
+                                                <span className="w-1 h-1 bg-primary-500 rounded-full flex-shrink-0"></span>
+                                                <div>
+                                                    <div className="font-medium text-neutral-800 text-sm">{ing.name}</div>
+                                                    {ing.store && (
+                                                        <div className="text-[10px] text-neutral-400 mt-0.5">({ing.store})</div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="font-bold text-neutral-700 whitespace-nowrap bg-neutral-50 px-2 py-1 rounded-lg text-sm">
+                                            <div className="font-bold text-neutral-700 whitespace-nowrap text-xs">
                                                 {formatPrice(ing.price)}
                                             </div>
                                         </li>
@@ -322,10 +375,10 @@ export default async function RecipePage(props: Props) {
 
                         {/* Instructions */}
                         <section>
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="font-display text-2xl font-bold text-neutral-900 flex items-center gap-3">
-                                    <span className="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center shadow-sm">
-                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="font-display text-lg font-bold text-neutral-900 flex items-center gap-2">
+                                    <span className="w-7 h-7 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                         </svg>
                                     </span>
@@ -333,14 +386,14 @@ export default async function RecipePage(props: Props) {
                                 </h2>
                             </div>
 
-                            <div className="space-y-6">
+                            <div className="space-y-3">
                                 {recipe.instructions.map((step, idx: number) => (
-                                    <div key={idx} className="bg-white rounded-2xl p-6 border border-neutral-100 shadow-sm flex gap-5 group hover:border-primary-100 transition-colors">
-                                        <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary-50 border-2 border-primary-100 text-primary-700 font-bold flex items-center justify-center shadow-inner mt-1">
+                                    <div key={idx} className="bg-white rounded-xl p-4 border border-neutral-100 shadow-sm flex gap-3 group hover:border-primary-100 transition-colors">
+                                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-neutral-900 text-white font-bold flex items-center justify-center text-xs">
                                             {step.step || idx + 1}
                                         </div>
-                                        <div className="pt-1">
-                                            <p className="text-neutral-700 leading-relaxed text-lg">
+                                        <div className="pt-0.5">
+                                            <p className="text-neutral-700 leading-relaxed text-sm">
                                                 {step.text}
                                             </p>
                                         </div>
@@ -356,19 +409,19 @@ export default async function RecipePage(props: Props) {
 
                         {/* Tips */}
                         {recipe.tips && recipe.tips.length > 0 && (
-                            <section className="bg-amber-50 rounded-3xl p-8 border border-amber-100 relative overflow-hidden">
+                            <section className="bg-amber-50 rounded-2xl p-5 border border-amber-100 relative overflow-hidden">
                                 <div className="absolute -right-6 -top-6 w-24 h-24 bg-amber-100 rounded-full opacity-50 blur-2xl"></div>
-                                <h3 className="font-display font-bold text-xl text-amber-900 mb-6 flex items-center gap-2 relative z-10">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <h3 className="font-display font-bold text-base text-amber-900 mb-4 flex items-center gap-2 relative z-10">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     Sfaturi utile
                                 </h3>
-                                <ul className="space-y-4 relative z-10">
+                                <ul className="space-y-2 relative z-10">
                                     {recipe.tips.map((tip: string, i: number) => (
-                                        <li key={i} className="flex gap-4 text-amber-900/80 bg-white/50 p-4 rounded-xl border border-amber-100/50">
-                                            <span className="text-amber-500 font-bold text-lg">•</span>
-                                            <span className="font-medium">{tip}</span>
+                                        <li key={i} className="flex gap-2 text-amber-800 text-xs">
+                                            <span className="text-amber-600 flex-shrink-0">•</span>
+                                            <TipWithProductLinks tip={tip} ingredients={recipe.ingredients} />
                                         </li>
                                     ))}
                                 </ul>
@@ -379,29 +432,27 @@ export default async function RecipePage(props: Props) {
                     {/* RIGHT COLUMN (Desktop Sticky) - Hidden on Mobile to avoid duplication */}
                     <div className="hidden lg:block space-y-8">
                         {/* Ingredients Card - Desktop */}
-                        <div className="bg-white rounded-3xl shadow-card-lg border border-neutral-100 p-8 sticky top-24">
-                            <h3 className="font-display font-bold text-2xl text-neutral-900 mb-8 flex items-center gap-3">
-                                <svg className="w-7 h-7 text-secondary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="bg-white rounded-2xl shadow-card-lg border border-neutral-100 p-5 sticky top-24">
+                            <h3 className="font-display font-bold text-base text-neutral-900 mb-4 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-secondary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
                                 Ingrediente
                             </h3>
-                            <ul className="space-y-5">
+                            <ul className="space-y-2">
                                 {recipe.ingredients.map((ing) => (
-                                    <li key={ing.id} className="flex items-center justify-between gap-4 pb-4 border-b border-neutral-50 last:border-0 last:pb-0">
-                                        <div className="flex-1">
-                                            <div className="font-bold text-neutral-800">{ing.name}</div>
-                                            {ing.store && (
-                                                <div className="text-xs text-neutral-400 mt-1 flex items-center gap-1">
-                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                    </svg>
-                                                    <span className="truncate max-w-[120px]">{ing.store}</span>
-                                                </div>
-                                            )}
+                                    <li key={ing.id} className="flex items-start justify-between gap-3 pb-2 border-b border-neutral-50 last:border-0 last:pb-0">
+                                        <div className="flex-1 flex items-center gap-1.5">
+                                            <span className="w-1 h-1 bg-primary-500 rounded-full flex-shrink-0"></span>
+                                            <div>
+                                                <div className="font-medium text-neutral-800 text-sm">{ing.name}</div>
+                                                {ing.store && (
+                                                    <div className="text-[10px] text-neutral-400 mt-0.5">({ing.store})</div>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="font-bold text-neutral-900 bg-neutral-100 px-3 py-1 rounded-lg">
+                                            <div className="font-bold text-neutral-700 text-xs">
                                                 {formatPrice(ing.price)}
                                             </div>
                                         </div>

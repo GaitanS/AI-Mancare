@@ -38,6 +38,7 @@ let status = {
     startedAt: new Date().toISOString(),
     completedAt: null,
     totalCatalogs: 0,
+    processedCatalogs: 0,
     totalPages: 0,
     totalProducts: 0,
     stores: {},
@@ -47,20 +48,14 @@ let status = {
 };
 
 // Logging
-let logBuffer = [];
-const logTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
+const logTimestamp = new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' }).replace(/[/:, ]/g, '-');
 const LOG_FILE = path.join(LOGS_DIR, `product-extractor-${logTimestamp}.log`);
 
 function log(message) {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' });
     const line = `[${timestamp}] ${message}`;
     console.log(line);
-    logBuffer.push(line);
-}
-
-function saveLog() {
-    ensureDir(LOGS_DIR);
-    fs.writeFileSync(LOG_FILE, logBuffer.join('\n'));
+    fs.appendFileSync(LOG_FILE, line + '\n');
 }
 
 function saveStatus() {
@@ -147,50 +142,56 @@ Dacă nu găsești produse cu prețuri clare, returnează: []`
 }
 
 // Save products to database
-async function saveProductsToDb(products, storeName, catalogId) {
+async function saveProductsToDb(products, storeName, catalogId, validFrom, validUntil, catalogPage) {
     let savedCount = 0;
 
     for (const product of products) {
         if (!product.name || !product.price) continue;
 
         try {
-            // Generate a unique identifier based on store + product name
-            const productSlug = `${storeName.toLowerCase()}-${product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-
-            await prisma.product.upsert({
-                where: { slug: productSlug },
-                update: {
-                    price: parseFloat(product.price) || 0,
-                    originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : null,
-                    discount: product.discount ? parseInt(product.discount) : null,
-                    unit: product.unit || 'buc',
-                    category: product.category || 'Alte',
-                    store: storeName,
-                    catalogId: catalogId,
-                    updatedAt: new Date()
-                },
-                create: {
+            // Check if product already exists by name + store
+            const existing = await prisma.product.findFirst({
+                where: {
                     name: product.name,
-                    slug: productSlug,
-                    price: parseFloat(product.price) || 0,
-                    originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : null,
-                    discount: product.discount ? parseInt(product.discount) : null,
-                    unit: product.unit || 'buc',
-                    category: product.category || 'Alte',
-                    store: storeName,
-                    catalogId: catalogId,
-                    inStock: true,
-                    isActive: true
+                    store: storeName
                 }
             });
+
+            const productData = {
+                name: product.name,
+                price: parseFloat(product.price) || 0,
+                originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : null,
+                discountPercentage: product.discount ? parseInt(product.discount) : null,
+                unit: product.unit || 'buc',
+                category: product.category || 'Alte',
+                store: storeName,
+                catalogId: catalogId,
+                catalogPage: catalogPage,
+                validFrom: validFrom,
+                validUntil: validUntil,
+            };
+
+            if (existing) {
+                // Update existing product
+                await prisma.product.update({
+                    where: { id: existing.id },
+                    data: productData
+                });
+            } else {
+                // Create new product
+                await prisma.product.create({
+                    data: productData
+                });
+            }
             savedCount++;
         } catch (error) {
-            // Skip duplicate or invalid products
+            log(`  ❌ Error saving product ${product.name}: ${error.message}`);
         }
     }
 
     return savedCount;
 }
+
 
 // Process a single catalog
 async function processCatalog(catalog) {
@@ -216,7 +217,8 @@ async function processCatalog(catalog) {
         const products = await extractProductsFromImage(imagePath, catalog.store);
 
         if (products.length > 0) {
-            const saved = await saveProductsToDb(products, catalog.store, catalog.id);
+            // Pass catalog validity dates and page number to the product
+            const saved = await saveProductsToDb(products, catalog.store, catalog.id, catalog.validFrom, catalog.validUntil, i + 1);
             totalProducts += saved;
             log(`    Page ${i + 1}/${images.length}: ${saved} products extracted`);
         }
@@ -297,6 +299,7 @@ async function main() {
 
             status.totalProducts += productCount;
             status.totalPages += catalog.totalPages || 0;
+            status.processedCatalogs++;
 
             if (!status.stores[catalog.store]) {
                 status.stores[catalog.store] = { success: false, catalogs: 0, products: 0, error: null };

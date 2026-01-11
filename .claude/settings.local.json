@@ -55,7 +55,13 @@
       "Bash(npx hostinger-api-mcp@latest:*)",
       "Bash(sshpass -p 'Frectie@2345' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@185.224.139.191 \"pm2 status\")",
       "Bash(rm:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(Test -f .env)",
+      "Skill(brainstorming)",
+      "Bash(npx next:*)",
+      "Skill(marketing-seo-technical)",
+      "Bash(timeout:*)",
+      "Bash(git restore:*)"
     ]
   }
 }

@@ -280,7 +280,7 @@ export default function BlogPage() {
                             Vezi Ofertele
                         </Link>
                         <Link
-                            href="/retete"
+                            href="/plan"
                             className="px-8 py-3 bg-white text-primary-600 font-semibold rounded-xl border-2 border-primary-200 hover:border-primary-400 transition-colors"
                         >
                             Descoperă Rețete

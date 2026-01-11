@@ -523,7 +523,7 @@ export default function FilterSidebar({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-5 py-5">
-              {type === 'products' ? renderProductFilters() : renderRecipeFilters()}
+              {type === 'recipes' ? renderRecipeFilters() : renderProductFilters()}
             </div>
 
             {/* Footer Actions */}
@@ -574,7 +574,7 @@ export default function FilterSidebar({
 
           {/* Content */}
           <div className="p-5 space-y-1">
-            {type === 'products' ? renderProductFilters() : renderRecipeFilters()}
+            {type === 'recipes' ? renderRecipeFilters() : renderProductFilters()}
           </div>
         </div>
       </aside>

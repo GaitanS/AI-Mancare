@@ -36,8 +36,9 @@ model Product {
   allergens       String? @db.Text
 
   // Source Tracking
-  sourceUrl String? @map("source_url") @db.Text
-  catalogId String? @map("catalog_id")
+  sourceUrl   String? @map("source_url") @db.Text
+  catalogId   String? @map("catalog_id")
+  catalogPage Int?    @map("catalog_page")  // What page in the catalog this product is on
 
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")

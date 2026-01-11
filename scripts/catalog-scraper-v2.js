@@ -19,7 +19,8 @@ const BASE_URL = 'https://cataloagedeoferte.ro';
 const IMAGE_CDN = 'https://app.cataloagedeoferte.ro';
 const CATALOGS_DIR = path.join(process.cwd(), 'public', 'catalogs');
 const LOGS_DIR = path.join(process.cwd(), 'logs');
-const STATUS_FILE = path.join(process.cwd(), 'logs', 'catalog-scraper-status.json');
+const STORAGE_DIR = process.env.STORAGE_PATH || path.join(process.cwd(), 'storage');
+const STATUS_FILE = path.join(LOGS_DIR, 'catalog-scraper-status.json');
 
 // Stores to scrape
 const STORES = [
@@ -41,8 +42,11 @@ let status = {
     completedAt: null,
     totalCatalogs: 0,
     totalPages: 0,
+    totalStores: STORES.length,
+    processedStores: 0,
     stores: {},
     currentStore: null,
+    currentCatalog: null,
     error: null
 };
 
@@ -52,20 +56,21 @@ STORES.forEach(store => {
 });
 
 // Logging
-let logBuffer = [];
-const logTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
+const logTimestamp = new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' }).replace(/[/:, ]/g, '-');
 const LOG_FILE = path.join(LOGS_DIR, `catalog-scraper-${logTimestamp}.log`);
 
 function log(message) {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' });
     const line = `[${timestamp}] ${message}`;
     console.log(line);
-    logBuffer.push(line);
+    fs.appendFileSync(LOG_FILE, line + '\n');
 }
 
 function saveLog() {
     ensureDir(LOGS_DIR);
-    fs.writeFileSync(LOG_FILE, logBuffer.join('\n'));
+    // logBuffer is no longer used for saving the log file, as logs are appended directly.
+    // This function can be removed or adapted if there's a need to consolidate logs from other sources.
+    // For now, it's kept but its original purpose is superseded.
 }
 
 function saveStatus() {
@@ -329,6 +334,8 @@ async function main() {
             let storePages = 0;
 
             for (const catalog of catalogs) {
+                status.currentCatalog = catalog.title;
+                saveStatus();
                 log(`📖 Processing: ${catalog.title}`);
 
                 const pageCount = await getCatalogPageCount(catalog.url);
@@ -347,6 +354,7 @@ async function main() {
 
             status.stores[store.name].pages = storePages;
             status.stores[store.name].success = catalogs.length > 0;
+            status.processedStores++;
             saveStatus();
 
         } catch (error) {

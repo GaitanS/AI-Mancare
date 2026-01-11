@@ -225,7 +225,21 @@ export default function CartPage() {
 
             if (response.ok) {
                 const text = await response.text();
-                // Create a blob and download
+
+                // Try native sharing first (Mobile/Tablet)
+                if (navigator.share && navigator.canShare && navigator.canShare({ text })) {
+                    try {
+                        await navigator.share({
+                            title: 'Lista de Cumpărături - CatalogSmart',
+                            text: text,
+                        });
+                        return;
+                    } catch (shareError) {
+                        console.warn('Share cancelled or failed, falling back to download:', shareError);
+                    }
+                }
+
+                // Fallback: Create a blob and download
                 const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -240,10 +254,48 @@ export default function CartPage() {
     };
 
     useEffect(() => {
-        // Initial load - cart starts empty, only fetch pantry
-        setLoading(false);
+        // Check if there are pending ingredients from meal plan
+        const pendingIngredients = localStorage.getItem('cart_pending_ingredients');
+
+        if (pendingIngredients) {
+            try {
+                const ingredients = JSON.parse(pendingIngredients);
+                // Clear the pending ingredients
+                localStorage.removeItem('cart_pending_ingredients');
+                // Fetch cart with these ingredients
+                fetchCartItems(undefined, ingredients);
+            } catch (e) {
+                console.error('Failed to parse pending ingredients:', e);
+                setLoading(false);
+            }
+        } else {
+            // Check local storage for existing cart items
+            const savedCart = localStorage.getItem('cart_items');
+            if (savedCart) {
+                try {
+                    const parsedCart = JSON.parse(savedCart);
+                    setCartItems(parsedCart);
+                } catch (e) {
+                    console.error('Failed to parse saved cart:', e);
+                }
+            }
+            setLoading(false);
+        }
+
         fetchPantryItems();
     }, []); // Only on mount
+
+    // Save cart to local storage whenever it changes
+    useEffect(() => {
+        if (cartItems.length > 0) {
+            localStorage.setItem('cart_items', JSON.stringify(cartItems));
+        } else {
+            // Optional: clear if empty, but maybe safer to keep until manually cleared?
+            // localStorage.removeItem('cart_items');
+            // For now, let's update it to empty array if we really mean empty
+            localStorage.setItem('cart_items', JSON.stringify(cartItems));
+        }
+    }, [cartItems]);
 
     // Lock body scroll when modal is open
     useEffect(() => {
@@ -264,13 +316,27 @@ export default function CartPage() {
 
     const actualTotal = cartItems.reduce((sum, item) => {
         if (lowerCaseOwned.has(item.ingredientName.toLowerCase())) return sum;
-        return sum + (item.matchedProduct?.price || 0);
+        return sum + (item.matchedProduct?.price || 0) * item.requiredQuantity;
     }, 0);
 
     const currentTotalSavings = cartItems.reduce((sum, item) => {
         if (lowerCaseOwned.has(item.ingredientName.toLowerCase())) return sum;
-        const savings = (item.matchedProduct?.originalPrice || 0) - (item.matchedProduct?.price || 0);
-        return sum + (savings > 0 ? savings : 0);
+
+        const mp = item.matchedProduct;
+        if (!mp) return sum;
+
+        let savings = 0;
+        // Case 1: We have explicit original price
+        if (mp.originalPrice && mp.originalPrice > mp.price) {
+            savings = mp.originalPrice - mp.price;
+        }
+        // Case 2: We have discount % but no original price (calculate backwards)
+        // savings = price * discount / (100 - discount)
+        else if (mp.discount && mp.discount > 0 && mp.discount < 100) {
+            savings = (mp.price * mp.discount) / (100 - mp.discount);
+        }
+
+        return sum + (savings * item.requiredQuantity);
     }, 0);
 
     const cheapestStore = storeComparison.length > 0
@@ -289,7 +355,7 @@ export default function CartPage() {
     }
 
     return (
-        <div className="min-h-screen bg-neutral-50 pb-20 lg:pb-12">
+        <div className="min-h-screen bg-neutral-50 pb-48 lg:pb-12">
             {/* Premium Header */}
             <div className="relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 text-white overflow-hidden mb-6">
                 <div className="absolute inset-0 overflow-hidden">
@@ -441,9 +507,19 @@ export default function CartPage() {
                                                             )}>
                                                                 {item.matchedProduct?.name || item.ingredientName}
                                                             </h3>
-                                                            <p className="text-xs text-neutral-400 mt-0.5">
-                                                                {item.matchedProduct?.store || 'Nedetectat'}
-                                                            </p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <p className="text-xs text-neutral-400">
+                                                                    {item.matchedProduct?.store || 'Nedetectat'}
+                                                                </p>
+                                                                {item.requiredQuantity > 0 && (
+                                                                    <>
+                                                                        <span className="text-xs text-neutral-300">•</span>
+                                                                        <p className="text-xs font-semibold text-primary-600">
+                                                                            {Number(item.requiredQuantity.toFixed(2))} {item.unit}
+                                                                        </p>
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         <button
                                                             onClick={() => removeCartItem(item.ingredientName)}
@@ -459,12 +535,23 @@ export default function CartPage() {
 
                                                 <div className="flex items-center justify-between mt-3">
                                                     {/* Price */}
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex flex-col items-start gap-0.5">
+                                                        {item.matchedProduct?.discount ? (
+                                                            <span className={cn(
+                                                                "text-xs line-through",
+                                                                isOwned ? "text-neutral-300" : "text-neutral-400"
+                                                            )}>
+                                                                {item.matchedProduct.originalPrice
+                                                                    ? `${(item.matchedProduct.originalPrice * item.requiredQuantity).toFixed(2)} lei`
+                                                                    : `${(((item.matchedProduct.price * 100) / (100 - item.matchedProduct.discount)) * item.requiredQuantity).toFixed(2)} lei`
+                                                                }
+                                                            </span>
+                                                        ) : null}
                                                         <span className={cn(
-                                                            "font-bold text-lg",
+                                                            "font-bold text-lg leading-none",
                                                             isOwned ? "text-neutral-300" : "text-neutral-900"
                                                         )}>
-                                                            {item.matchedProduct?.price ? `${item.matchedProduct.price.toFixed(2)} lei` : '—'}
+                                                            {item.matchedProduct?.price ? `${(item.matchedProduct.price * item.requiredQuantity).toFixed(2)} lei` : '—'}
                                                         </span>
                                                     </div>
 
@@ -733,7 +820,7 @@ export default function CartPage() {
             )}
 
             {/* Total & Checkout - Mobile Only Fixed Bottom */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 lg:hidden pb-safe">
+            <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-neutral-200 p-4 lg:hidden pb-4 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center justify-between mb-3">
                     <span className="text-neutral-600">Total de plată</span>
                     <span className="text-2xl font-display font-bold text-neutral-900">

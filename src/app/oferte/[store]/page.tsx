@@ -5,6 +5,7 @@ import prisma from '@/lib/db';
 
 import ProductCard, { ProductCardSkeleton } from '@/components/ProductCard';
 import FilterSidebar, { ProductFilterConfig } from '@/components/FilterSidebar';
+import SortSelect from '@/components/SortSelect';
 import type { Product, ProductFilters } from '@/types';
 import type { Metadata } from 'next';
 
@@ -16,6 +17,8 @@ const validStores: Record<string, string> = {
   carrefour: 'Carrefour',
   'mega-image': 'Mega Image',
   auchan: 'Auchan',
+  profi: 'Profi',
+  selgros: 'Selgros',
 };
 
 interface PageProps {
@@ -234,6 +237,14 @@ const storeInfo: Record<string, { color: string; description: string }> = {
     color: 'bg-red-600',
     description: 'Hypermarket cu selectie larga de produse si marci proprii.',
   },
+  Profi: {
+    color: 'bg-green-600',
+    description: 'Supermarket cu preturi accesibile si o retea extinsa de magazine.',
+  },
+  Selgros: {
+    color: 'bg-red-800',
+    description: 'Cash & Carry cu o gama variata de produse alimentare si nealimentare pentru profesionisti si pasionati.',
+  },
 };
 
 export default async function StorePage({ params, searchParams }: PageProps) {
@@ -354,6 +365,13 @@ export default async function StorePage({ params, searchParams }: PageProps) {
                     Sorteaza dupa:
                   </label>
                   <SortSelect
+                    options={[
+                      { value: 'created-desc', label: 'Cele mai noi' },
+                      { value: 'discount-desc', label: 'Reducere (mare -> mic)' },
+                      { value: 'price-asc', label: 'Pret (mic -> mare)' },
+                      { value: 'price-desc', label: 'Pret (mare -> mic)' },
+                      { value: 'name-asc', label: 'Nume (A-Z)' },
+                    ]}
                     currentSort={filters.sortBy}
                     currentOrder={filters.sortOrder}
                   />
@@ -419,44 +437,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
   );
 }
 
-// Sort Select Component
-function SortSelect({
-  currentSort,
-  currentOrder,
-}: {
-  currentSort?: string;
-  currentOrder?: string;
-}) {
-  const sortOptions = [
-    { value: 'created-desc', label: 'Cele mai noi' },
-    { value: 'discount-desc', label: 'Reducere (mare -> mic)' },
-    { value: 'price-asc', label: 'Pret (mic -> mare)' },
-    { value: 'price-desc', label: 'Pret (mare -> mic)' },
-    { value: 'name-asc', label: 'Nume (A-Z)' },
-  ];
 
-  const currentValue = `${currentSort || 'created'}-${currentOrder || 'desc'}`;
-
-  return (
-    <form method="get">
-      <select
-        name="sort"
-        id="sortBy"
-        defaultValue={currentValue}
-        className="input py-1.5 text-sm w-auto"
-      >
-        {sortOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <noscript>
-        <button type="submit" className="btn btn-sm ml-2">Aplica</button>
-      </noscript>
-    </form>
-  );
-}
 
 // Pagination Component
 function Pagination({

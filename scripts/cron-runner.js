@@ -32,7 +32,7 @@ const TASK_SCRIPTS = {
 };
 
 function log(message) {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' });
     console.log(`[${timestamp}] ${message}`);
 }
 
@@ -42,18 +42,29 @@ function ensureDir(dirPath) {
     }
 }
 
-// Get current time in Romania timezone
+// Get current time in Romania timezone (auto-detects summer/winter time)
 function getRomaniaTime() {
     const now = new Date();
-    // Romania is UTC+2 (or UTC+3 in summer)
-    const romaniaOffset = 2; // Adjust for daylight saving if needed
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const romaniaTime = new Date(utc + (3600000 * romaniaOffset));
-    return {
-        dayOfWeek: romaniaTime.getDay(), // 0 = Sunday, 1 = Monday, etc.
-        hour: romaniaTime.getHours(),
-        minute: romaniaTime.getMinutes()
-    };
+    // Use Intl to get Romania local time correctly (handles DST automatically)
+    const options = { timeZone: 'Europe/Bucharest', hour12: false };
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        ...options,
+        weekday: 'short',
+        hour: 'numeric',
+        minute: 'numeric'
+    });
+
+    const parts = formatter.formatToParts(now);
+    const weekdayMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+
+    let dayOfWeek = 0, hour = 0, minute = 0;
+    for (const part of parts) {
+        if (part.type === 'weekday') dayOfWeek = weekdayMap[part.value] || 0;
+        if (part.type === 'hour') hour = parseInt(part.value);
+        if (part.type === 'minute') minute = parseInt(part.value);
+    }
+
+    return { dayOfWeek, hour, minute };
 }
 
 // Run a task script

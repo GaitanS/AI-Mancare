@@ -1,11 +1,7 @@
-import { Suspense } from 'react';
 import prisma from '@/lib/db';
-
-import ProductCard, { ProductCardSkeleton } from '@/components/ProductCard';
-import FilterSidebar, { ProductFilterConfig } from '@/components/FilterSidebar';
-import SortSelect from '@/components/SortSelect';
-import type { Product, ProductFilters } from '@/types';
+import type { Product, ProductFilters, ProductFilterConfig } from '@/types';
 import type { Metadata } from 'next';
+import OffersClient from '@/components/OffersClient';
 
 // Sort options for products page
 const productSortOptions = [
@@ -16,19 +12,70 @@ const productSortOptions = [
   { value: 'name-asc', label: 'Nume (A-Z)' },
 ];
 
+// Dynamic date for SEO (current week/month)
+const now = new Date();
+const monthNames = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie',
+  'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'];
+const currentMonth = monthNames[now.getMonth()];
+const currentYear = now.getFullYear();
+
 export const metadata: Metadata = {
-  title: 'Oferte & Cataloage - Cele mai bune reduceri din supermarketuri',
-  description:
-    'Descopera cele mai bune oferte si reduceri din Kaufland, Lidl, Penny, Carrefour, Mega Image si Auchan. Actualizam zilnic cataloagele pentru tine!',
+  title: `Catalog Kaufland, Lidl, Profi Actual ${currentMonth} ${currentYear} | Oferte Săptămâna Aceasta`,
+  description: `📢 Catalog Kaufland actual ${currentMonth} ${currentYear} - vezi ofertele valabile săptămâna aceasta! Reduceri la produse din Lidl, Profi, Penny. Cataloage actualizate zilnic ✓`,
+  keywords: [
+    // Primary keywords (high volume from research)
+    'catalog kaufland actual',
+    'catalog lidl actual',
+    'catalog profi actual',
+    'catalog profi online',
+    'catalog profi loco',
+    'catalog kaufland nou',
+    'catalog lidl saptamana viitoare',
+    // Base keywords
+    'catalog kaufland',
+    'catalog lidl',
+    'catalog profi',
+    'oferte kaufland',
+    'oferte lidl',
+    'oferte profi',
+    // Long-tail (weekly/daily)
+    'catalog kaufland saptamana aceasta',
+    'catalog kaufland azi',
+    'catalog lidl saptamana aceasta',
+    'catalog lidl nou',
+    'oferte supermarket saptamana aceasta',
+    // Date-specific
+    `catalog kaufland ${currentMonth.toLowerCase()} ${currentYear}`,
+    `catalog lidl ${currentMonth.toLowerCase()} ${currentYear}`,
+    `catalog profi ${currentMonth.toLowerCase()} ${currentYear}`,
+    // Action-based
+    'catalog kaufland online',
+    'catalog lidl online',
+    'cataloage supermarket romania',
+    'reduceri supermarket azi',
+  ].join(', '),
   alternates: {
     canonical: '/oferte',
   },
   openGraph: {
-    title: 'Oferte & Cataloage - CatalogSmart',
-    description: 'Cele mai bune reduceri din supermarketuri, extrase din cataloagele actuale.',
-    url: '/cataloage',
+    title: `Catalog Kaufland, Lidl, Profi Actual - Oferte ${currentMonth} ${currentYear}`,
+    description: `Cele mai bune reduceri din supermarketuri săptămâna aceasta. Catalog Kaufland, Lidl, Profi actual actualizat zilnic. Economisește până la 50%!`,
+    url: '/oferte',
+    type: 'website',
+    locale: 'ro_RO',
+    siteName: 'CatalogSmart',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `Catalog Kaufland, Lidl, Profi Actual ${currentMonth} ${currentYear}`,
+    description: 'Vezi cataloagele și reducerile actual din Kaufland, Lidl, Profi. Actualizat zilnic!',
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
+
 
 interface PageProps {
   searchParams: Promise<{
@@ -222,315 +269,122 @@ export default async function OfertePage({ searchParams }: PageProps) {
     getFilterOptions(),
   ]);
 
-  // JSON-LD structured data
-  const jsonLd = {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro';
+
+  // Get store list from filter options for dynamic content
+  const storeNames = filterOptions.stores.map(s => s.label).join(', ') || 'Kaufland, Lidl, Penny, Carrefour';
+
+  // Enhanced JSON-LD structured data - WebPage with ItemList
+  const webPageSchema = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: 'Cataloage si Reduceri Supermarketuri',
-    description: 'Cele mai bune oferte din supermarketurile din Romania',
-    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/oferte`,
-    numberOfItems: total,
+    '@id': `${baseUrl}/oferte#webpage`,
+    name: `Catalog Kaufland, Lidl, Penny ${currentMonth} ${currentYear}`,
+    description: `Cele mai bune oferte și reduceri din supermarketuri - ${total} produse disponibile săptămâna aceasta`,
+    url: `${baseUrl}/oferte`,
+    isPartOf: {
+      '@type': 'WebSite',
+      '@id': `${baseUrl}#website`,
+      name: 'CatalogSmart',
+      url: baseUrl,
+    },
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Acasă', item: baseUrl },
+        { '@type': 'ListItem', position: 2, name: 'Oferte & Cataloage', item: `${baseUrl}/oferte` },
+      ],
+    },
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: total,
+      itemListElement: products.slice(0, 10).map((product, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'Product',
+          name: product.name,
+          description: `${product.name} la ${product.store}`,
+          brand: product.brand || product.store,
+          offers: {
+            '@type': 'Offer',
+            price: product.price,
+            priceCurrency: 'RON',
+            availability: 'https://schema.org/InStock',
+            seller: {
+              '@type': 'Organization',
+              name: product.store,
+            },
+            priceValidUntil: product.validUntil,
+          },
+        },
+      })),
+    },
   };
+
+  // FAQ Schema targeting common "catalog kaufland" searches
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'Unde găsesc catalogul Kaufland săptămâna aceasta?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: `Pe CatalogSmart găsești toate ofertele din catalogul Kaufland ${currentMonth} ${currentYear} actualizate zilnic. Avem peste ${total} produse disponibile din toate supermarketurile.`,
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Când se schimbă catalogul Kaufland?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Catalogul Kaufland se schimbă de obicei în fiecare joi. Pe CatalogSmart actualizăm automat toate ofertele imediat ce apar noile cataloage.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Cum pot vedea ofertele Lidl și Penny online?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: `Pe CatalogSmart poți vedea toate cataloagele online - Kaufland, Lidl, Penny, Carrefour și altele. Folosește filtrele pentru a selecta magazinul dorit și a vedea ofertele valabile.`,
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Care sunt cele mai bune reduceri din supermarketuri azi?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: `Verifică pagina noastră de oferte pentru cele mai mari reduceri din ${storeNames}. Sortează după "Reducere" pentru a vedea produsele cu cele mai mari discount-uri.`,
+        },
+      },
+    ],
+  };
+
+  const initialProducts = products;
 
   return (
     <>
+      {/* WebPage + ItemList Schema */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
       />
 
-      <div className="bg-neutral-50 min-h-screen">
-        {/* Page Header */}
-        <div className="relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 overflow-hidden mb-8">
-          {/* Animated gradient orbs */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-float" />
-            <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-accent-500 rounded-full mix-blend-screen filter blur-[100px] opacity-15 animate-float" style={{ animationDelay: '2s' }} />
-          </div>
+      {/* FAQ Schema for rich snippets */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
 
-          {/* Grid pattern */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px]" />
-
-          <div className="relative container-custom py-8 md:py-10 z-10">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-orange-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                    </svg>
-                  </div>
-                  <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Oferte & Reduceri</span>
-                </div>
-                <h1 className="font-display text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
-                  Oferte Speciale
-                </h1>
-                <p className="text-neutral-400 text-sm md:text-base max-w-lg">
-                  Cele mai bune oferte din supermarketurile din România, actualizate zilnic.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="container-custom pt-0 pb-4 sm:py-6 lg:py-8">
-          {/* Mobile Toolbar (LG Hidden) */}
-          <div className="lg:hidden mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-1/2">
-                {/* Mobile Filter Trigger */}
-                <Suspense fallback={<div className="h-10 bg-white rounded-xl border border-neutral-200 animate-pulse" />}>
-                  <FilterSidebar
-                    type="products"
-                    config={filterOptions}
-                    className="w-full"
-                  />
-                </Suspense>
-              </div>
-              <div className="w-1/2">
-                <SortSelect
-                  options={productSortOptions}
-                  currentSort={filters.sortBy}
-                  currentOrder={filters.sortOrder}
-                  className="w-full"
-                />
-              </div>
-            </div>
-            {/* Simple Results Text */}
-            <p className="text-center text-xs font-medium text-neutral-400 mt-3">
-              Arată {total.toLocaleString('ro-RO')} produse
-            </p>
-          </div>
-
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-            {/* Filter Sidebar */}
-            <div className="hidden lg:block">
-              <Suspense fallback={<FilterSidebarSkeleton />}>
-                <FilterSidebar
-                  type="products"
-                  config={filterOptions}
-                  className="w-72 flex-shrink-0"
-                />
-              </Suspense>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 min-w-0">
-              {/* Sorting Bar - Hidden on mobile, uses Mobile Toolbar instead */}
-              <div className="hidden lg:block bg-white rounded-2xl border border-neutral-200/80 shadow-card p-4 mb-6">
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-sm text-neutral-600">
-                    <span className="font-bold text-neutral-900">{products.length}</span> din{' '}
-                    <span className="font-bold text-neutral-900">{total.toLocaleString('ro-RO')}</span>
-                    <span className="hidden sm:inline"> rezultate</span>
-                  </p>
-
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-neutral-500 hidden sm:block">Sorteaza:</span>
-                    <SortSelect
-                      options={productSortOptions}
-                      currentSort={filters.sortBy}
-                      currentOrder={filters.sortOrder}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Products Grid */}
-              <Suspense fallback={<ProductsGridSkeleton />}>
-                {products.length > 0 ? (
-                  <div className="grid-products">
-                    {products.map((product: any, index: number) => (
-                      <div key={product.id} className="stagger-item" style={{ animationDelay: `${index * 30}ms` }}>
-                        <ProductCard product={product} />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="Niciun produs gasit"
-                    description="Incearca sa modifici filtrele sau cauta alt produs."
-                  />
-                )}
-              </Suspense>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  basePath="/oferte"
-                  searchParams={params}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <OffersClient
+        initialProducts={initialProducts}
+        initialTotal={total}
+        initialFilters={filters}
+        filterConfig={filterOptions}
+      />
     </>
   );
 }
 
-// Pagination Component
-function Pagination({
-  currentPage,
-  totalPages,
-  basePath,
-  searchParams,
-}: {
-  currentPage: number;
-  totalPages: number;
-  basePath: string;
-  searchParams: Record<string, string | undefined>;
-}) {
-  const getPageUrl = (page: number) => {
-    const params = new URLSearchParams();
-    Object.entries(searchParams).forEach(([key, value]) => {
-      if (value && key !== 'page') {
-        params.set(key, value);
-      }
-    });
-    params.set('page', page.toString());
-    return `${basePath}?${params.toString()}`;
-  };
-
-  const pages: (number | string)[] = [];
-  const showPages = 5;
-
-  if (totalPages <= showPages) {
-    for (let i = 1; i <= totalPages; i++) {
-      pages.push(i);
-    }
-  } else {
-    if (currentPage <= 3) {
-      pages.push(1, 2, 3, 4, '...', totalPages);
-    } else if (currentPage >= totalPages - 2) {
-      pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-    } else {
-      pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
-    }
-  }
-
-  return (
-    <nav className="mt-12 flex justify-center" aria-label="Paginare">
-      <ul className="flex items-center gap-1.5 bg-white rounded-2xl shadow-card border border-neutral-200/80 p-2">
-        {/* Previous */}
-        <li>
-          <a
-            href={currentPage > 1 ? getPageUrl(currentPage - 1) : undefined}
-            className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 ${currentPage > 1
-              ? 'text-neutral-700 hover:bg-primary-50 hover:text-primary-600'
-              : 'text-neutral-300 cursor-not-allowed'
-              }`}
-            aria-disabled={currentPage <= 1}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </a>
-        </li>
-
-        {/* Pages */}
-        {pages.map((page: any, index: number) => (
-          <li key={index}>
-            {page === '...' ? (
-              <span className="flex items-center justify-center w-10 h-10 text-neutral-400">
-                ...
-              </span>
-            ) : (
-              <a
-                href={getPageUrl(page as number)}
-                className={`flex items-center justify-center w-10 h-10 rounded-xl text-sm font-bold transition-all duration-200 ${page === currentPage
-                  ? 'bg-gradient-to-r from-primary-500 to-emerald-500 text-white shadow-lg shadow-primary-500/25'
-                  : 'text-neutral-700 hover:bg-neutral-100'
-                  }`}
-                aria-current={page === currentPage ? 'page' : undefined}
-              >
-                {page}
-              </a>
-            )}
-          </li>
-        ))}
-
-        {/* Next */}
-        <li>
-          <a
-            href={currentPage < totalPages ? getPageUrl(currentPage + 1) : undefined}
-            className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 ${currentPage < totalPages
-              ? 'text-neutral-700 hover:bg-primary-50 hover:text-primary-600'
-              : 'text-neutral-300 cursor-not-allowed'
-              }`}
-            aria-disabled={currentPage >= totalPages}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
-        </li>
-      </ul>
-    </nav>
-  );
-}
-
-// Skeleton components
-function FilterSidebarSkeleton() {
-  return (
-    <div className="hidden lg:block w-72 flex-shrink-0">
-      <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-card p-5">
-        <div className="h-6 skeleton-shimmer rounded-lg w-24 mb-6" />
-        <div className="space-y-6">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i}>
-              <div className="h-4 skeleton-shimmer rounded-lg w-20 mb-4" />
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, j) => (
-                  <div key={j} className="h-10 skeleton-shimmer rounded-xl w-full" />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProductsGridSkeleton() {
-  return (
-    <div className="grid-products">
-      {Array.from({ length: 24 }).map((_, i) => (
-        <ProductCardSkeleton key={i} />
-      ))}
-    </div>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="text-center py-20 bg-white rounded-2xl border border-neutral-200/80 shadow-card">
-      <div className="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-        <svg
-          className="w-10 h-10 text-primary-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      </div>
-      <h3 className="font-display text-xl font-bold text-neutral-900 mb-2">{title}</h3>
-      <p className="text-neutral-600">{description}</p>
-    </div>
-  );
-}

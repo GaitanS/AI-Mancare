@@ -1,0 +1,12 @@
+{
+  "running": false,
+  "startedAt": null,
+  "completedAt": "2026-01-10T22:29:58.318Z",
+  "current": 5,
+  "total": 5,
+  "message": "Generare completă! 5/5 imagini.",
+  "complete": true,
+  "generatedCount": 5,
+  "currentRecipe": null,
+  "error": null
+}

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Fraunces, DM_Sans, Geist_Mono } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -36,28 +37,31 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'),
   title: {
-    default: 'CatalogSmart - Oferte și Rețete Economice | 2026',
+    default: 'Catalog Kaufland, Lidl, Profi Online - Toate Ofertele Actuale 2026',
     template: '%s | CatalogSmart',
   },
   description:
-    'Descoperă rețete economice bazate pe reducerile din Kaufland, Lidl, Carrefour. Economisești 30% la cumpărături. Gratis!',
+    'Vezi online cataloagele Kaufland, Lidl si Profi. Oferte si promotii actualizate saptamanal. Retete ieftine cu produse la reducere. Economiseste la cumparaturi!',
   keywords: [
+    'catalog kaufland',
+    'catalog lidl',
+    'catalog profi',
+    'catalog kaufland actual',
+    'catalog lidl actual',
+    'catalog profi online',
+    'catalog kaufland nou',
+    'catalog lidl saptamana viitoare',
+    'oferte kaufland',
+    'oferte lidl',
+    'oferte profi',
+    'promotii kaufland',
+    'promotii lidl',
     'rețete ieftine',
-    'mâncare ieftină',
     'rețete economice',
     'meniu săptămânal',
     'gătit economic',
-    'oferte supermarket',
-    'rețete simple',
-    'meal planning',
-    'Kaufland',
-    'Lidl',
-    'Carrefour',
-    'Mega Image',
-    'Penny',
     'buget mic',
-    'economii mâncare',
-    'bucătărie românească',
+    'economii cumpărături',
   ],
   authors: [{ name: 'CatalogSmart' }],
   creator: 'CatalogSmart',
@@ -72,23 +76,23 @@ export const metadata: Metadata = {
     locale: 'ro_RO',
     url: '/',
     siteName: 'CatalogSmart',
-    title: 'CatalogSmart - Oferte și Rețete Economice',
+    title: 'Catalog Kaufland, Lidl, Profi Online - Toate Ofertele Actuale',
     description:
-      'Descoperă cele mai bune oferte din Lidl, Kaufland, Penny și rețete economice. Economisești 30% la cumpărături!',
+      'Vezi online cataloagele Kaufland, Lidl si Profi. Oferte si promotii actualizate saptamanal. Retete ieftine cu produse la reducere.',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'CatalogSmart - Oferte și Rețete Economice',
+        alt: 'CatalogSmart - Cataloage Online Kaufland, Lidl, Profi',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CatalogSmart - Oferte și Rețete Economice',
+    title: 'Catalog Kaufland, Lidl, Profi Online - Oferte Actuale',
     description:
-      'Descoperă cele mai bune oferte din Lidl, Kaufland, Penny și rețete economice. Economisești 30%!',
+      'Vezi online cataloagele Kaufland, Lidl si Profi. Oferte actualizate saptamanal. Retete ieftine cu produse la reducere.',
     images: ['/og-image.jpg'],
     creator: '@catalogsmart',
   },
@@ -128,12 +132,12 @@ const websiteJsonLd = {
   '@type': 'WebSite',
   name: 'CatalogSmart',
   url: process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro',
-  description: 'Platformă pentru oferte din supermarketuri si retete economice',
+  description: 'Cataloage online Kaufland, Lidl, Profi cu oferte si reduceri. Retete ieftine cu produse la promotie.',
   potentialAction: {
     '@type': 'SearchAction',
     target: {
       '@type': 'EntryPoint',
-      urlTemplate: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/search?q={search_term_string}`,
+      urlTemplate: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/oferte?search={search_term_string}`,
     },
     'query-input': 'required name=search_term_string',
   },
@@ -145,6 +149,7 @@ const organizationJsonLd = {
   name: 'CatalogSmart',
   url: process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro',
   logo: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/logo.png`,
+  description: 'Cataloage online Kaufland, Lidl, Profi - Toate ofertele si promotiile actualizate saptamanal',
   sameAs: [],
 };
 
@@ -154,7 +159,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ro" className={`${fraunces.variable} ${dmSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html
+      lang="ro"
+      className={`${fraunces.variable} ${dmSans.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
+      data-scroll-behavior="smooth"
+      style={{ scrollBehavior: 'smooth' }}
+    >
       <head>
         <link rel="icon" href="/icon.png" type="image/png" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -162,24 +173,30 @@ export default function RootLayout({
 
         {/* Google AdSense - Verification Meta Tag */}
         <meta name="google-adsense-account" content="ca-pub-4509784482094331" />
-
-        {/* Google AdSense - Auto Ads (using regular script to avoid data-nscript warning) */}
-        <script
+      </head>
+      <body className="min-h-screen flex flex-col bg-background font-body text-foreground">
+        {/* Google AdSense - Auto Ads */}
+        <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4509784482094331"
           crossOrigin="anonymous"
+          strategy="afterInteractive"
         />
 
-        <script
+        {/* JSON-LD Structured Data - Safe: using JSON.stringify on controlled objects */}
+        <Script
+          id="website-jsonld"
           type="application/ld+json"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
-        <script
+        <Script
+          id="organization-jsonld"
           type="application/ld+json"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-      </head>
-      <body className="min-h-screen flex flex-col bg-background font-body text-foreground">
+
         <GoogleAnalytics />
         <Header />
         <main className="flex-1 pb-20 lg:pb-0">{children}</main>

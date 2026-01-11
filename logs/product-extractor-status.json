@@ -1,0 +1,76 @@
+{
+  "running": false,
+  "startedAt": "2026-01-09T21:47:24.857Z",
+  "completedAt": null,
+  "totalCatalogs": 26,
+  "processedCatalogs": 8,
+  "totalPages": 238,
+  "totalProducts": 0,
+  "stores": {
+    "auchan": {
+      "success": false,
+      "catalogs": 0,
+      "products": 0,
+      "error": null
+    },
+    "carrefour": {
+      "success": false,
+      "catalogs": 0,
+      "products": 0,
+      "error": null
+    },
+    "kaufland": {
+      "success": false,
+      "catalogs": 0,
+      "products": 0,
+      "error": null
+    },
+    "lidl": {
+      "success": false,
+      "catalogs": 0,
+      "products": 0,
+      "error": null
+    },
+    "mega-image": {
+      "success": false,
+      "catalogs": 0,
+      "products": 0,
+      "error": null
+    },
+    "penny-market": {
+      "success": false,
+      "catalogs": 0,
+      "products": 0,
+      "error": null
+    },
+    "profi": {
+      "success": false,
+      "catalogs": 0,
+      "products": 0,
+      "error": null
+    },
+    "selgros": {
+      "success": false,
+      "catalogs": 0,
+      "products": 0,
+      "error": null
+    },
+    "supeco": {
+      "success": false,
+      "catalogs": 0,
+      "products": 0,
+      "error": null
+    },
+    "Carrefour": {
+      "success": true,
+      "catalogs": 8,
+      "products": 0,
+      "error": null
+    }
+  },
+  "currentStore": "Carrefour",
+  "currentCatalog": "carrefour-08-01-26-27-01-26-gfudy",
+  "error": null,
+  "stoppedAt": "2026-01-09T22:14:23.123Z",
+  "stoppedByUser": true
+}

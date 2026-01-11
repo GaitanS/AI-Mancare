@@ -161,7 +161,7 @@ export default async function DespreNoiPage() {
                             <Link href="/oferte" className="px-8 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors">
                                 Vezi Ofertele
                             </Link>
-                            <Link href="/retete" className="px-8 py-3 bg-white text-primary-600 font-semibold rounded-xl border-2 border-primary-200 hover:border-primary-400 transition-colors">
+                            <Link href="/plan" className="px-8 py-3 bg-white text-primary-600 font-semibold rounded-xl border-2 border-primary-200 hover:border-primary-400 transition-colors">
                                 Descoperă Rețete
                             </Link>
                         </div>

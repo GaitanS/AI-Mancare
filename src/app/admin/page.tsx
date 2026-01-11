@@ -28,71 +28,11 @@ export default function AdminPage() {
     const [actionStatus, setActionStatus] = useState<string | null>(null);
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [savingSchedule, setSavingSchedule] = useState<string | null>(null);
-    const [scraperStatus, setScraperStatus] = useState<{
-        running: boolean;
-        current?: number;
-        total?: number;
-        currentStore?: string | null;
-        message?: string;
-        complete?: boolean;
-    } | null>(null);
-    const [recipeStatus, setRecipeStatus] = useState<{
-        running: boolean;
-        current?: number;
-        total?: number;
-        message?: string;
-        complete?: boolean;
-        generatedCount?: number;
-    } | null>(null);
 
     useEffect(() => {
         fetchStats();
         fetchSchedules();
-        fetchScraperStatus();
-        fetchRecipeStatus();
     }, []);
-
-    // Poll statuses when running
-    useEffect(() => {
-        if (!scraperStatus?.running && !recipeStatus?.running) return;
-
-        const interval = setInterval(() => {
-            if (scraperStatus?.running) fetchScraperStatus();
-            if (recipeStatus?.running) fetchRecipeStatus();
-        }, 2000);
-
-        return () => clearInterval(interval);
-    }, [scraperStatus?.running, recipeStatus?.running]);
-
-    const fetchScraperStatus = async () => {
-        try {
-            const res = await fetch('/api/admin/scraper-status');
-            if (res.ok) {
-                const data = await res.json();
-                setScraperStatus(data);
-                if (data.complete && !data.running) {
-                    fetchStats(); // Refresh stats after completion
-                }
-            }
-        } catch (e) {
-            console.error('Failed to fetch scraper status', e);
-        }
-    };
-
-    const fetchRecipeStatus = async () => {
-        try {
-            const res = await fetch('/api/admin/recipe-status');
-            if (res.ok) {
-                const data = await res.json();
-                setRecipeStatus(data);
-                if (data.complete && !data.running) {
-                    fetchStats(); // Refresh stats after completion
-                }
-            }
-        } catch (e) {
-            console.error('Failed to fetch recipe status', e);
-        }
-    };
 
     const fetchStats = async () => {
         try {
@@ -218,7 +158,7 @@ export default function AdminPage() {
                     <StatCard title="Categories" value={stats?.categories ?? '...'} icon="🏷️" color="text-purple-400" />
                 </div>
 
-                {/* Action Panel */}
+                {/* Action Panel - 2x2 Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Catalog Scraper - Downloads catalog images */}
                     <CatalogScraperSection onRunScript={handleRunScript} />
@@ -227,50 +167,10 @@ export default function AdminPage() {
                     <ProductExtractorSection onRunScript={handleRunScript} />
 
                     {/* Recipe Generator */}
-                    <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-accent-500/30 transition-all">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-accent-500 select-none -translate-y-2 translate-x-2">AI</div>
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${recipeStatus?.running ? 'bg-amber-500' : 'bg-purple-500'} animate-pulse`}></span>
-                            Generator Rețete
-                        </h2>
-                        <p className="text-neutral-400 text-sm mb-4">
-                            Folosește AI (Gemini/OpenRouter) pentru a crea rețete economice bazate pe ofertele curente din cataloage.
-                        </p>
+                    <RecipeGeneratorSection onRunScript={handleRunScript} />
 
-                        {/* Progress Bar */}
-                        {recipeStatus?.running && (
-                            <div className="mb-4">
-                                <div className="flex justify-between text-xs text-neutral-400 mb-1">
-                                    <span>{recipeStatus.message || 'Generăm...'}</span>
-                                    <span>{recipeStatus.current || 0}/{recipeStatus.total || 0}</span>
-                                </div>
-                                <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-accent-500 to-accent-400 rounded-full transition-all duration-500 ease-out"
-                                        style={{ width: `${((recipeStatus.current || 0) / (recipeStatus.total || 10)) * 100}%` }}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Completion Message */}
-                        {recipeStatus?.complete && !recipeStatus?.running && (
-                            <div className="mb-4 p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-lg text-emerald-400 text-sm">
-                                ✅ {recipeStatus.message}
-                            </div>
-                        )}
-
-                        <button
-                            onClick={() => { handleRunScript('recipes'); fetchRecipeStatus(); }}
-                            disabled={recipeStatus?.running}
-                            className={`w-full py-3 bg-gradient-to-r from-accent-600 to-accent-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-accent-900/20 flex items-center justify-center gap-2 ${recipeStatus?.running
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:from-accent-500 hover:to-accent-600 active:scale-95'
-                                }`}
-                        >
-                            {recipeStatus?.running ? '✨ Se generează...' : '✨ Generează Rețete'}
-                        </button>
-                    </div>
+                    {/* Image Generator */}
+                    <ImageGeneratorSection onRunScript={handleRunScript} />
                 </div>
 
                 {/* Automated Schedules Section - INTERACTIVE */}
@@ -452,7 +352,10 @@ interface CatalogStatus {
     completedAt: string | null;
     totalCatalogs: number;
     totalPages: number;
+    totalStores: number;
+    processedStores: number;
     currentStore: string | null;
+    currentCatalog: string | null;
     error: string | null;
     stores: Record<string, { success: boolean; catalogs: number; pages: number; error: string | null }>;
 }
@@ -508,15 +411,28 @@ function CatalogScraperSection({ onRunScript }: CatalogScraperSectionProps) {
                 Descarcă cataloagele de pe cataloagedeoferte.ro și le salvează local. Nu mai face redirect!
             </p>
 
-            {/* Running Status */}
+            {/* Running Status with Progress Bar */}
             {status?.running && (
                 <div className="mb-4 p-3 bg-amber-950/30 border border-amber-500/20 rounded-lg">
-                    <div className="flex items-center gap-2 text-amber-400 text-sm">
-                        <span className="animate-spin">⏳</span>
-                        <span>Se procesează: <strong>{status.currentStore || '...'}</strong></span>
+                    <div className="flex justify-between text-xs text-neutral-400 mb-2">
+                        <span className="text-amber-400 truncate flex items-center gap-2">
+                            <span className="animate-spin">⏳</span>
+                            {status.currentCatalog || status.currentStore || 'Se descarcă cataloage...'}
+                        </span>
+                        <span>{status.processedStores || 0}/{status.totalStores || 9}</span>
                     </div>
-                    <div className="mt-2 text-xs text-neutral-400">
-                        Cataloage: {status.totalCatalogs} | Pagini: {status.totalPages}
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden mb-2">
+                        <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${status.totalStores > 0 ? ((status.processedStores || 0) / status.totalStores) * 100 : 0}%` }}
+                        />
+                    </div>
+
+                    <div className="flex justify-between text-xs text-neutral-500">
+                        <span>Cataloage: {status.totalCatalogs} | Pagini: {status.totalPages}</span>
+                        <span>Magazin: {status.currentStore || '-'}</span>
                     </div>
                 </div>
             )}
@@ -551,6 +467,25 @@ function CatalogScraperSection({ onRunScript }: CatalogScraperSectionProps) {
                 </div>
             )}
 
+            {status?.running && (
+                <button
+                    onClick={async () => {
+                        try {
+                            await fetch('/api/admin/stop-script', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ script: 'catalog-scraper' })
+                            });
+                            fetchStatus();
+                        } catch (e) {
+                            console.error('Failed to stop script', e);
+                        }
+                    }}
+                    className="w-full py-2 mb-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-lg transition-all hover:from-red-500 hover:to-red-600 active:scale-95 flex items-center justify-center gap-2"
+                >
+                    🛑 Oprește Scraping
+                </button>
+            )}
             <button
                 onClick={handleStart}
                 disabled={status?.running}
@@ -574,6 +509,7 @@ interface ProductExtractorStatus {
     startedAt: string | null;
     completedAt: string | null;
     totalCatalogs: number;
+    processedCatalogs: number;
     totalPages: number;
     totalProducts: number;
     currentStore: string | null;
@@ -636,12 +572,25 @@ function ProductExtractorSection({ onRunScript }: CatalogScraperSectionProps) {
             {/* Running Status */}
             {status?.running && (
                 <div className="mb-4 p-3 bg-amber-950/30 border border-amber-500/20 rounded-lg">
-                    <div className="flex items-center gap-2 text-amber-400 text-sm">
-                        <span className="animate-spin">⏳</span>
-                        <span>Se extrag produse: <strong>{status.currentCatalog || status.currentStore || '...'}</strong></span>
+                    <div className="flex justify-between text-xs text-neutral-400 mb-2">
+                        <span className="text-amber-400 truncate flex items-center gap-2">
+                            <span className="animate-spin">⏳</span>
+                            {status.currentCatalog || status.currentStore || 'Se extrag produse...'}
+                        </span>
+                        <span>{status.processedCatalogs || 0}/{status.totalCatalogs || 0}</span>
                     </div>
-                    <div className="mt-2 text-xs text-neutral-400">
-                        Cataloage: {status.totalCatalogs} | Produse: {status.totalProducts}
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden mb-2">
+                        <div
+                            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${status.totalCatalogs > 0 ? ((status.processedCatalogs || 0) / status.totalCatalogs) * 100 : 0}%` }}
+                        />
+                    </div>
+
+                    <div className="flex justify-between text-xs text-neutral-500">
+                        <span>Produse: {status.totalProducts}</span>
+                        <span>Magazin: {status.currentStore || '-'}</span>
                     </div>
                 </div>
             )}
@@ -680,6 +629,25 @@ function ProductExtractorSection({ onRunScript }: CatalogScraperSectionProps) {
                 </div>
             )}
 
+            {status?.running && (
+                <button
+                    onClick={async () => {
+                        try {
+                            await fetch('/api/admin/stop-script', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ script: 'product-extractor' })
+                            });
+                            fetchStatus();
+                        } catch (e) {
+                            console.error('Failed to stop script', e);
+                        }
+                    }}
+                    className="w-full py-2 mb-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-lg transition-all hover:from-red-500 hover:to-red-600 active:scale-95 flex items-center justify-center gap-2"
+                >
+                    🛑 Oprește Extragerea
+                </button>
+            )}
             <button
                 onClick={handleStart}
                 disabled={status?.running}
@@ -697,4 +665,248 @@ function ProductExtractorSection({ onRunScript }: CatalogScraperSectionProps) {
     );
 }
 
+// Recipe Generator Section with Status Display
+interface RecipeStatus {
+    running: boolean;
+    current: number;
+    total: number;
+    message: string;
+    complete: boolean;
+    generatedCount: number;
+    error: string | null;
+}
+
+function RecipeGeneratorSection({ onRunScript }: CatalogScraperSectionProps) {
+    const [status, setStatus] = useState<RecipeStatus | null>(null);
+    const [isPolling, setIsPolling] = useState(false);
+
+    const fetchStatus = async () => {
+        try {
+            const res = await fetch('/api/admin/recipe-status');
+            if (res.ok) {
+                const data = await res.json();
+                setStatus(data);
+                setIsPolling(data.running);
+            }
+        } catch (e) {
+            console.error('Failed to fetch recipe status', e);
+        }
+    };
+
+    useEffect(() => {
+        fetchStatus();
+    }, []);
+
+    useEffect(() => {
+        if (!isPolling) return;
+        const interval = setInterval(fetchStatus, 2000);
+        return () => clearInterval(interval);
+    }, [isPolling]);
+
+    const handleStart = () => {
+        onRunScript('recipes');
+        setIsPolling(true);
+        setTimeout(fetchStatus, 2000);
+    };
+
+    return (
+        <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-accent-500/30 transition-all">
+            <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-accent-500 select-none -translate-y-2 translate-x-2">🍳</div>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${status?.running ? 'bg-amber-500 animate-pulse' : 'bg-purple-500'}`}></span>
+                Generator Rețete (AI)
+            </h2>
+            <p className="text-neutral-400 text-sm mb-4">
+                Folosește AI (Gemini) pentru a crea rețete tehnice și detaliate bazate pe produsele cu reducere.
+            </p>
+
+            {/* Running Status with Progress */}
+            {status?.running && (
+                <div className="mb-4 p-3 bg-amber-950/30 border border-amber-500/20 rounded-lg">
+                    <div className="flex justify-between text-xs text-neutral-400 mb-2">
+                        <span className="text-amber-400 truncate flex items-center gap-2">
+                            <span className="animate-spin">⏳</span>
+                            {status.message || 'Se generează rețete...'}
+                        </span>
+                        <span>{status.current || 0}/{status.total || 10}</span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden mb-2">
+                        <div
+                            className="h-full bg-gradient-to-r from-accent-500 to-accent-400 rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${((status.current || 0) / (status.total || 10)) * 100}%` }}
+                        />
+                    </div>
+
+                    <div className="flex justify-between text-xs text-neutral-500">
+                        <span>Rețete generate: {status.generatedCount || 0}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Completed Status */}
+            {status && !status.running && status.complete && (
+                <div className="mb-4 p-4 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+                    <div className="flex items-center gap-2 text-emerald-400 font-semibold mb-2">
+                        <span>✅ Generare completă!</span>
+                    </div>
+                    <div className="text-sm text-neutral-400">
+                        {status.message}
+                    </div>
+                    {status.generatedCount > 0 && (
+                        <div className="mt-2 bg-neutral-900 rounded p-2 text-center">
+                            <div className="text-2xl font-bold text-accent-400">{status.generatedCount}</div>
+                            <div className="text-xs text-neutral-500">Rețete generate</div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Error */}
+            {status?.error && (
+                <div className="mb-4 p-3 bg-red-950/30 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                    ❌ {status.error}
+                </div>
+            )}
+
+            <button
+                onClick={handleStart}
+                disabled={status?.running}
+                className={`w-full py-3 bg-gradient-to-r from-accent-600 to-accent-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-accent-900/20 flex items-center justify-center gap-2 ${status?.running
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:from-accent-500 hover:to-accent-600 active:scale-95'
+                    }`}
+            >
+                {status?.running ? '✨ Se generează...' : '✨ Generează Rețete'}
+            </button>
+            <p className="text-neutral-500 text-xs mt-2 text-center">
+                ~2 minute pentru 10 rețete (API calls)
+            </p>
+        </div>
+    );
+}
+
+// Image Generator Section with Status Display
+interface ImageStatus {
+    running: boolean;
+    current: number;
+    total: number;
+    message: string;
+    complete: boolean;
+    generatedCount: number;
+    error: string | null;
+    currentRecipe: string | null;
+}
+
+function ImageGeneratorSection({ onRunScript }: CatalogScraperSectionProps) {
+    const [status, setStatus] = useState<ImageStatus | null>(null);
+    const [isPolling, setIsPolling] = useState(false);
+
+    const fetchStatus = async () => {
+        try {
+            const res = await fetch('/api/admin/image-status');
+            if (res.ok) {
+                const data = await res.json();
+                setStatus(data);
+                setIsPolling(data.running);
+            }
+        } catch (e) {
+            console.error('Failed to fetch image status', e);
+        }
+    };
+
+    useEffect(() => {
+        fetchStatus();
+    }, []);
+
+    useEffect(() => {
+        if (!isPolling) return;
+        const interval = setInterval(fetchStatus, 3000);
+        return () => clearInterval(interval);
+    }, [isPolling]);
+
+    const handleStart = () => {
+        onRunScript('images');
+        setIsPolling(true);
+        setTimeout(fetchStatus, 2000);
+    };
+
+    return (
+        <div className="bg-neutral-900 rounded-2xl border border-white/5 p-6 relative overflow-hidden group hover:border-pink-500/30 transition-all">
+            <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-pink-500 select-none -translate-y-2 translate-x-2">🖼️</div>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${status?.running ? 'bg-amber-500 animate-pulse' : 'bg-pink-500'}`}></span>
+                Generator Imagini (AI)
+            </h2>
+            <p className="text-neutral-400 text-sm mb-4">
+                Generează imagini food photography pentru rețetele care nu au poze folosind Gemini Image.
+            </p>
+
+            {/* Running Status with Progress */}
+            {status?.running && (
+                <div className="mb-4 p-3 bg-amber-950/30 border border-amber-500/20 rounded-lg">
+                    <div className="flex justify-between text-xs text-neutral-400 mb-2">
+                        <span className="text-amber-400 truncate flex items-center gap-2">
+                            <span className="animate-spin">⏳</span>
+                            {status.currentRecipe || status.message || 'Se generează imagini...'}
+                        </span>
+                        <span>{status.current || 0}/{status.total || 5}</span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden mb-2">
+                        <div
+                            className="h-full bg-gradient-to-r from-pink-500 to-pink-400 rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${((status.current || 0) / (status.total || 5)) * 100}%` }}
+                        />
+                    </div>
+
+                    <div className="flex justify-between text-xs text-neutral-500">
+                        <span>Imagini generate: {status.generatedCount || 0}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Completed Status */}
+            {status && !status.running && status.complete && (
+                <div className="mb-4 p-4 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+                    <div className="flex items-center gap-2 text-emerald-400 font-semibold mb-2">
+                        <span>✅ Generare completă!</span>
+                    </div>
+                    <div className="text-sm text-neutral-400">
+                        {status.message}
+                    </div>
+                    {status.generatedCount > 0 && (
+                        <div className="mt-2 bg-neutral-900 rounded p-2 text-center">
+                            <div className="text-2xl font-bold text-pink-400">{status.generatedCount}</div>
+                            <div className="text-xs text-neutral-500">Imagini generate</div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Error */}
+            {status?.error && (
+                <div className="mb-4 p-3 bg-red-950/30 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                    ❌ {status.error}
+                </div>
+            )}
+
+            <button
+                onClick={handleStart}
+                disabled={status?.running}
+                className={`w-full py-3 bg-gradient-to-r from-pink-600 to-pink-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-pink-900/20 flex items-center justify-center gap-2 ${status?.running
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:from-pink-500 hover:to-pink-600 active:scale-95'
+                    }`}
+            >
+                {status?.running ? '🖼️ Se generează...' : '🖼️ Generează Imagini'}
+            </button>
+            <p className="text-neutral-500 text-xs mt-2 text-center">
+                ~10 sec/imagine (API calls)
+            </p>
+        </div>
+    );
+}
 

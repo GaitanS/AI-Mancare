@@ -1,0 +1,68 @@
+{
+  "running": false,
+  "startedAt": "2026-01-09T23:58:56.725Z",
+  "completedAt": "2026-01-09T23:59:22.947Z",
+  "totalCatalogs": 27,
+  "totalPages": 669,
+  "totalStores": 9,
+  "processedStores": 9,
+  "stores": {
+    "Kaufland": {
+      "success": true,
+      "catalogs": 3,
+      "pages": 114,
+      "error": null
+    },
+    "Lidl": {
+      "success": true,
+      "catalogs": 1,
+      "pages": 62,
+      "error": null
+    },
+    "Carrefour": {
+      "success": true,
+      "catalogs": 10,
+      "pages": 270,
+      "error": null
+    },
+    "Mega Image": {
+      "success": true,
+      "catalogs": 1,
+      "pages": 24,
+      "error": null
+    },
+    "Penny": {
+      "success": true,
+      "catalogs": 1,
+      "pages": 20,
+      "error": null
+    },
+    "Profi": {
+      "success": true,
+      "catalogs": 4,
+      "pages": 41,
+      "error": null
+    },
+    "Selgros": {
+      "success": true,
+      "catalogs": 4,
+      "pages": 94,
+      "error": null
+    },
+    "Supeco": {
+      "success": true,
+      "catalogs": 2,
+      "pages": 24,
+      "error": null
+    },
+    "Auchan": {
+      "success": true,
+      "catalogs": 1,
+      "pages": 20,
+      "error": null
+    }
+  },
+  "currentStore": null,
+  "currentCatalog": "auchan-01-01-26-27-01-26-gqygb",
+  "error": null
+}

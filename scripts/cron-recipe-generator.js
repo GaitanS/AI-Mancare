@@ -8,15 +8,49 @@
 
 // Load .env.production only if env vars not already set (e.g., by GitHub Actions)
 require('dotenv').config({ path: '.env.production', override: false });
+require('dotenv').config({ path: '.env', override: false });
 const { PrismaClient } = require('@prisma/client');
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 const prisma = new PrismaClient();
+const STORAGE_PATH = process.env.STORAGE_PATH || path.join(process.cwd(), 'storage');
+const STATUS_FILE = path.join(STORAGE_PATH, 'recipes-status.json');
+const LOGS_DIR = path.join(process.cwd(), 'logs');
+const LOG_FILE = path.join(LOGS_DIR, `recipe-generator-${new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' }).replace(/[/:, ]/g, '-')}.log`);
 
+// Ensure logs directory exists
+if (!fs.existsSync(LOGS_DIR)) {
+  fs.mkdirSync(LOGS_DIR, { recursive: true });
+}
+
+// Write to log file
+function writeLog(message) {
+  try {
+    fs.appendFileSync(LOG_FILE, message + '\n');
+  } catch (e) {
+    // Ignore log write errors
+  }
+}
+
+// Write status to file for admin panel polling
+function writeStatus(status) {
+  try {
+    if (!fs.existsSync(STORAGE_PATH)) {
+      fs.mkdirSync(STORAGE_PATH, { recursive: true });
+    }
+    fs.writeFileSync(STATUS_FILE, JSON.stringify(status, null, 2));
+  } catch (e) {
+    log.error(`Failed to write status: ${e.message}`);
+  }
+}
+
+const getRoTime = () => new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' });
 const log = {
-  info: (msg) => console.log(`[RECIPE GENERATOR] [INFO] ${new Date().toISOString()} - ${msg}`),
-  error: (msg) => console.error(`[RECIPE GENERATOR] [ERROR] ${new Date().toISOString()} - ${msg}`),
-  success: (msg) => console.log(`[RECIPE GENERATOR] [SUCCESS] ${new Date().toISOString()} - ${msg}`),
+  info: (msg) => { const line = `[${getRoTime()}] ${msg}`; console.log(line); writeLog(line); },
+  error: (msg) => { const line = `[${getRoTime()}] ❌ ${msg}`; console.error(line); writeLog(line); },
+  success: (msg) => { const line = `[${getRoTime()}] ✅ ${msg}`; console.log(line); writeLog(line); },
 };
 
 // Configuration
@@ -112,9 +146,43 @@ async function getProductsOnSale() {
 async function generateRecipe(ingredients, existingTitles = []) {
   const ingredientList = ingredients.map(p => p.name).join(', ');
 
-  const prompt = `Generează o rețetă românească economică folosind OBLIGATORIU cel puțin 3 din aceste ingrediente la reducere: ${ingredientList}
+  const prompt = `Generează o rețetă REALĂ și APRECIATĂ folosind OBLIGATORIU cel puțin 3 din aceste ingrediente la reducere: ${ingredientList}
 
 Titluri DE EVITAT (deja există): ${existingTitles.slice(-10).join(', ') || 'niciuna'}
+
+REGULI STRICTE - Doar rețete REALE care există și sunt apreciate:
+- ✅ ACCEPTATE: Orice rețetă pe care oamenii chiar o fac și o mănâncă
+- ❌ INTERZISE: Combinații inventate sau ciudate care NU există în realitate (ex: "budincă de croissante cu bere")
+- Fiecare rețetă TREBUIE să fie recunoscută și gătită de oameni reali
+
+CATEGORII ACCEPTATE (orice rețetă REALĂ din aceste categorii):
+
+✓ Bucătărie românească tradițională:
+  - sarmale, mici, mămăligă, tocană, ciorbă, papricaș, gulaș, papanași, cozonac, plăcintă
+
+✓ Bucătărie mediteraneană:
+  - musaca, tzatziki, souvlaki, moussaka, falafel, hummus, bruschetta
+
+✓ Bucătărie turcească/balcanică:
+  - kebab, börek, dolma, baklava, pilaf, imam bayildi
+
+✓ Mâncăruri simple de zi cu zi (FOARTE IMPORTANTE):
+  - cartofi prăjiți cu ou, omletă cu brânză, paste cu unt și parmezan
+  - spaghete carbonara/bolognese/aglio e olio, pizza simplă
+  - orez fiert cu legume, piure de cartofi, salată de roșii cu brânză
+
+✓ Deserturi clasice și populare:
+  - tiramisu, panna cotta, salam de biscuiți, negresă, brownie
+  - orez cu lapte, griș cu lapte, budincă de vanilie, clătite
+  - prăjitură cu mere, cheesecake, pavlova
+
+✓ Brunch/Mic dejun modern:
+  - avocado toast cu ou, pancakes, french toast
+  - smoothie bowl, granola cu iaurt, ouă Benedict
+
+✓ Fast food/Comfort food:
+  - burger de casă, quesadilla, burrito simplu, sandwich-uri
+  - supă cremă de legume, wrap-uri, nachos cu brânză
 
 IMPORTANT - Instrucțiunile trebuie să fie TEHNICE și DETALIATE:
 - Specifică EXACT cantitățile în grame (ex: "200g piept de pui")
@@ -224,13 +292,37 @@ async function saveRecipe(recipeData) {
 async function generateWeeklyRecipes(count = 10) {
   log.info(`Starting generation of ${count} recipes`);
 
+  // Write initial status
+  writeStatus({
+    running: true,
+    startedAt: new Date().toISOString(),
+    completedAt: null,
+    current: 0,
+    total: count,
+    message: 'Se inițializează...',
+    complete: false,
+    generatedCount: 0,
+    error: null
+  });
+
   if (!OPENROUTER_API_KEY) {
+    writeStatus({ running: false, error: 'OPENROUTER_API_KEY is not set!', complete: false });
     throw new Error('OPENROUTER_API_KEY is not set!');
   }
 
   // Get products on sale
   const products = await getProductsOnSale();
   log.info(`Found ${products.length} products to use for recipes`);
+
+  writeStatus({
+    running: true,
+    current: 0,
+    total: count,
+    message: `Găsite ${products.length} produse cu reducere`,
+    complete: false,
+    generatedCount: 0,
+    error: null
+  });
 
   // Get existing recipe titles to avoid duplicates
   const existingRecipes = await prisma.recipe.findMany({
@@ -245,6 +337,16 @@ async function generateWeeklyRecipes(count = 10) {
   for (let i = 0; i < count; i++) {
     try {
       log.info(`Generating recipe ${i + 1}/${count}...`);
+
+      writeStatus({
+        running: true,
+        current: i,
+        total: count,
+        message: `Generăm rețeta ${i + 1}/${count}...`,
+        complete: false,
+        generatedCount: createdRecipes.length,
+        error: null
+      });
 
       // Shuffle products for variety
       const shuffled = [...products].sort(() => Math.random() - 0.5);
@@ -266,6 +368,19 @@ async function generateWeeklyRecipes(count = 10) {
       log.error(`Failed to generate recipe ${i + 1}: ${error.message}`);
     }
   }
+
+  // Write final status
+  writeStatus({
+    running: false,
+    startedAt: null,
+    completedAt: new Date().toISOString(),
+    current: count,
+    total: count,
+    message: `Generare completă! ${createdRecipes.length} rețete noi.`,
+    complete: true,
+    generatedCount: createdRecipes.length,
+    error: null
+  });
 
   return createdRecipes;
 }

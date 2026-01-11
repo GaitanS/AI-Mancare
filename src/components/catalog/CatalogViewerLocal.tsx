@@ -1,45 +1,55 @@
-/**
- * Catalog Viewer Component
- * Displays catalog pages from locally hosted images
- */
-
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import { X, ChevronLeft, ChevronRight, BookOpen, Calendar, Maximize2, Minimize2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Catalog {
     id: string;
-    store: string;
     title: string;
     slug: string;
+    store: string;
     validFrom: string;
     validUntil: string;
     totalPages: number;
     imageBasePath: string;
     localImages: string[];
+    thumbnail: string | null;
 }
 
 interface CatalogViewerProps {
     catalog: Catalog;
+    relatedCatalogs?: Catalog[];
     onClose?: () => void;
+    onSelectCatalog?: (catalog: Catalog) => void;
 }
 
-export default function CatalogViewerLocal({ catalog, onClose }: CatalogViewerProps) {
+export default function CatalogViewerLocal({
+    catalog,
+    relatedCatalogs = [],
+    onClose,
+    onSelectCatalog
+}: CatalogViewerProps) {
     const [currentPage, setCurrentPage] = useState(1);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const viewerRef = useRef<HTMLDivElement>(null);
+
+    // Reset page when catalog changes
+    useEffect(() => {
+        setCurrentPage(1);
+        setIsLoading(true);
+    }, [catalog.id]);
 
     const totalPages = catalog.localImages?.length || 0;
 
-    const getCurrentImageUrl = useCallback(() => {
-        if (!catalog.localImages || catalog.localImages.length === 0) {
-            return null;
-        }
-        const pageIndex = currentPage - 1;
-        const imageName = catalog.localImages[pageIndex];
+    const getImageUrl = useCallback((page: number) => {
+        if (!catalog.localImages || catalog.localImages.length === 0) return null;
+        if (page < 1 || page > totalPages) return null;
+        const imageName = catalog.localImages[page - 1];
         return `${catalog.imageBasePath}/${imageName}`;
-    }, [catalog, currentPage]);
+    }, [catalog, totalPages]);
 
     const goToPage = (page: number) => {
         if (page >= 1 && page <= totalPages) {
@@ -75,135 +85,235 @@ export default function CatalogViewerLocal({ catalog, onClose }: CatalogViewerPr
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [currentPage, totalPages, isFullscreen, onClose]);
 
-    const imageUrl = getCurrentImageUrl();
-
-    if (!imageUrl) {
-        return (
-            <div className="flex items-center justify-center h-96 bg-stone-100 dark:bg-stone-800 rounded-lg">
-                <p className="text-stone-500">Nu există imagini pentru acest catalog.</p>
-            </div>
-        );
+    function formatDate(dateString: string) {
+        return new Date(dateString).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short' });
     }
 
+    function cleanTitle(title: string, storeName: string): string {
+        const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+        const store = capitalize(storeName);
+
+        const lowerTitle = title.toLowerCase();
+        if (lowerTitle.includes('alimentar')) return `${store} - Alimentar`;
+        if (lowerTitle.includes('non-food') || lowerTitle.includes('nealimentar')) return `${store} - Non-Food`;
+        if (lowerTitle.includes('weekend')) return `${store} - Weekend`;
+        if (lowerTitle.includes('revista')) return `${store} - Revista`;
+
+        return store;
+    }
+
+    const currentImageUrl = getImageUrl(currentPage);
+
     return (
-        <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-black' : 'relative'}`}>
-            {/* Header */}
-            <div className={`flex items-center justify-between p-4 ${isFullscreen ? 'absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent z-10' : 'bg-stone-100 dark:bg-stone-800 rounded-t-lg'}`}>
-                <div>
-                    <h2 className={`font-semibold ${isFullscreen ? 'text-white' : 'text-stone-900 dark:text-white'}`}>
-                        {catalog.title}
-                    </h2>
-                    <p className={`text-sm ${isFullscreen ? 'text-stone-300' : 'text-stone-500'}`}>
-                        {catalog.store} • Valabil până la {new Date(catalog.validUntil).toLocaleDateString('ro-RO')}
-                    </p>
+        <div className="fixed inset-0 z-50 bg-neutral-900/95 flex flex-col md:flex-row overflow-hidden backdrop-blur-sm">
+
+            {/* LEFT SIDEBAR - Related Catalogs (Desktop: Left, Mobile: Bottom order) */}
+            <div className="order-2 md:order-1 w-full md:w-80 bg-white md:border-r border-neutral-200 flex flex-col md:h-full h-[30vh]">
+                <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+                    <h3 className="font-bold text-neutral-800">Alte Cataloage</h3>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setIsFullscreen(!isFullscreen)}
-                        className={`p-2 rounded-lg transition-colors ${isFullscreen ? 'text-white hover:bg-white/20' : 'hover:bg-stone-200 dark:hover:bg-stone-700'}`}
-                        title={isFullscreen ? 'Ieșire din ecran complet (F)' : 'Ecran complet (F)'}
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            {isFullscreen ? (
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            ) : (
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                            )}
-                        </svg>
-                    </button>
-                    {onClose && (
-                        <button
-                            onClick={onClose}
-                            className={`p-2 rounded-lg transition-colors ${isFullscreen ? 'text-white hover:bg-white/20' : 'hover:bg-stone-200 dark:hover:bg-stone-700'}`}
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                    {relatedCatalogs
+                        .filter(c => c.id !== catalog.id)
+                        .map((related) => (
+                            <button
+                                key={related.id}
+                                onClick={() => onSelectCatalog?.(related)}
+                                className="w-full flex gap-3 p-2 rounded-lg hover:bg-neutral-100 transition-colors text-left group border border-transparent hover:border-neutral-200"
+                            >
+                                <div className="relative w-16 h-20 bg-neutral-200 rounded overflow-hidden flex-shrink-0">
+                                    {related.thumbnail && (
+                                        <Image
+                                            src={related.thumbnail}
+                                            alt={related.title}
+                                            fill
+                                            sizes="64px"
+                                            className="object-cover group-hover:scale-105 transition-transform"
+                                        />
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0 py-1">
+                                    <h4 className="text-sm font-semibold text-neutral-800 line-clamp-2 leading-tight mb-1">
+                                        {cleanTitle(related.title, related.store)}
+                                    </h4>
+                                    <p className="text-xs text-neutral-500">
+                                        {formatDate(related.validFrom)} - {formatDate(related.validUntil)}
+                                    </p>
+                                </div>
+                            </button>
+                        ))}
+
+                    {relatedCatalogs.length <= 1 && (
+                        <div className="p-4 text-center text-neutral-500 text-sm">
+                            Nu există alte cataloage recente.
+                        </div>
                     )}
                 </div>
             </div>
 
-            {/* Image Container */}
-            <div className={`relative ${isFullscreen ? 'h-screen' : 'h-[600px]'} flex items-center justify-center bg-stone-200 dark:bg-stone-900`}>
-                {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-stone-100 dark:bg-stone-800">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+            {/* MAIN VIEWER AREA */}
+            <div className="order-1 md:order-2 flex-1 flex flex-col relative h-[70vh] md:h-full bg-neutral-900">
+
+                {/* Top Bar */}
+                <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-20 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
+                    <div className="text-white pointer-events-auto">
+                        <h2 className="text-lg md:text-xl font-bold leading-tight drop-shadow-md">
+                            {cleanTitle(catalog.title, catalog.store)}
+                        </h2>
+                        <p className="text-sm text-neutral-300 drop-shadow flex items-center gap-2">
+                            <Calendar size={14} />
+                            {formatDate(catalog.validFrom)} - {formatDate(catalog.validUntil)}
+                        </p>
                     </div>
-                )}
 
-                <Image
-                    src={imageUrl}
-                    alt={`${catalog.title} - Pagina ${currentPage}`}
-                    fill
-                    className="object-contain"
-                    onLoad={() => setIsLoading(false)}
-                    priority
-                />
-
-                {/* Navigation Arrows */}
-                {currentPage > 1 && (
+                    {/* Close Button - Prominent */}
                     <button
-                        onClick={prevPage}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                        onClick={onClose}
+                        className="pointer-events-auto bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-lg transition-transform hover:scale-110 flex items-center justify-center"
+                        title="Închide Catalogul"
                     >
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
+                        <X size={24} strokeWidth={3} />
                     </button>
-                )}
-
-                {currentPage < totalPages && (
-                    <button
-                        onClick={nextPage}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
-                    >
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
-                )}
-            </div>
-
-            {/* Footer - Page Navigation */}
-            <div className={`flex items-center justify-center gap-4 p-4 ${isFullscreen ? 'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent' : 'bg-stone-100 dark:bg-stone-800 rounded-b-lg'}`}>
-                <button
-                    onClick={() => goToPage(1)}
-                    disabled={currentPage === 1}
-                    className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${isFullscreen ? 'text-white hover:bg-white/20' : 'hover:bg-stone-200 dark:hover:bg-stone-700'}`}
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                    </svg>
-                </button>
-
-                <div className={`flex items-center gap-2 ${isFullscreen ? 'text-white' : ''}`}>
-                    <span className="text-sm">Pagina</span>
-                    <input
-                        type="number"
-                        min={1}
-                        max={totalPages}
-                        value={currentPage}
-                        onChange={(e) => goToPage(parseInt(e.target.value) || 1)}
-                        className="w-16 px-2 py-1 text-center rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-900 dark:text-white"
-                    />
-                    <span className="text-sm">din {totalPages}</span>
                 </div>
 
-                <button
-                    onClick={() => goToPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${isFullscreen ? 'text-white hover:bg-white/20' : 'hover:bg-stone-200 dark:hover:bg-stone-700'}`}
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                    </svg>
-                </button>
-            </div>
+                {/* Image Viewer */}
+                <div className="flex-1 relative flex items-center justify-center p-4">
+                    {/* Page Navigation Buttons - Desktop */}
+                    {totalPages > 1 && (
+                        <>
+                            <button
+                                onClick={prevPage}
+                                disabled={currentPage === 1}
+                                className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md disabled:opacity-30 transition-all hover:scale-110"
+                            >
+                                <ChevronLeft size={32} />
+                            </button>
+                            <button
+                                onClick={nextPage}
+                                disabled={currentPage === totalPages}
+                                className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md disabled:opacity-30 transition-all hover:scale-110"
+                            >
+                                <ChevronRight size={32} />
+                            </button>
+                        </>
+                    )}
 
-            {/* Keyboard Hints */}
-            <div className={`text-center py-2 text-xs ${isFullscreen ? 'absolute bottom-20 left-0 right-0 text-stone-400' : 'text-stone-500'}`}>
-                ← → pentru navigare • F pentru ecran complet • Esc pentru închidere
+                    {/* Image */}
+                    <div className="relative w-full h-full max-w-4xl max-h-full flex items-center justify-center">
+                        {isLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
+                            </div>
+                        )}
+
+                        {currentImageUrl ? (
+                            <div className="relative w-full h-full">
+                                <Image
+                                    src={currentImageUrl}
+                                    alt={`Pagina ${currentPage}`}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                                    className={cn(
+                                        "object-contain transition-opacity duration-150",
+                                        isLoading ? "opacity-0" : "opacity-100"
+                                    )}
+                                    // FORCE PRIORITY and BYPASS OPTIMIZATION (serve raw file)
+                                    priority={true}
+                                    unoptimized={true}
+                                    loading="eager"
+                                    onLoad={() => setIsLoading(false)}
+                                    // Make image touchable on mobile for navigation
+                                    onClick={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        const clickX = e.clientX - rect.left;
+                                        if (clickX > rect.width / 2) nextPage();
+                                        else prevPage();
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <div className="text-white text-center">
+                                <BookOpen size={48} className="mx-auto opacity-50 mb-2" />
+                                <p>Imagine indisponibilă</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* HIDDEN PRELOADER for next 5 pages */}
+                    <div className="hidden" aria-hidden="true">
+                        {[1, 2, 3, 4, 5].map((offset) => {
+                            const nextP = currentPage + offset;
+                            if (nextP <= totalPages) {
+                                const url = getImageUrl(nextP);
+                                if (url) {
+                                    return (
+                                        <Image
+                                            key={nextP}
+                                            src={url}
+                                            alt=""
+                                            width={10}
+                                            height={10}
+                                            priority={true}
+                                            loading="eager"
+                                            unoptimized={true}
+                                        />
+                                    );
+                                }
+                            }
+                            return null;
+                        })}
+                    </div>
+
+                    {/* Mobile Tap Areas Hints */}
+                    <div className="md:hidden absolute inset-x-0 bottom-4 flex justify-between px-8 text-white/50 text-xs pointer-events-none">
+                        <span>← Anterior</span>
+                        <span>Următor →</span>
+                    </div>
+                </div>
+
+                {/* Bottom Control Bar */}
+                <div className="h-16 bg-neutral-900 border-t border-neutral-800 flex items-center justify-between px-4 md:px-8">
+                    <span className="text-neutral-400 text-sm font-medium">
+                        {currentPage} / {totalPages}
+                    </span>
+
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={prevPage}
+                            disabled={currentPage === 1}
+                            className="md:hidden p-2 text-white disabled:opacity-30"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+
+                        {/* Slider for quick navigation */}
+                        <input
+                            type="range"
+                            min="1"
+                            max={totalPages}
+                            value={currentPage}
+                            onChange={(e) => goToPage(parseInt(e.target.value))}
+                            className="w-32 md:w-64 accent-primary-500 h-1.5 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
+                        />
+
+                        <button
+                            onClick={nextPage}
+                            disabled={currentPage === totalPages}
+                            className="md:hidden p-2 text-white disabled:opacity-30"
+                        >
+                            <ChevronRight size={24} />
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={() => setIsFullscreen(!isFullscreen)}
+                        className="text-neutral-400 hover:text-white transition-colors"
+                        title="Toggle Fullscreen"
+                    >
+                        {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -229,7 +229,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 Vezi cataloagele
               </Link>
               <Link
-                href="/retete"
+                href="/plan"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-neutral-200 text-neutral-700 font-semibold rounded-xl hover:bg-neutral-50 hover:border-neutral-300 transition-all"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -340,7 +340,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                 Toate cataloagele
               </Link>
               <Link
-                href="/retete"
+                href="/plan"
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

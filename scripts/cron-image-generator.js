@@ -1,58 +1,83 @@
 #!/usr/bin/env node
 
 /**
- * Cron Image Generator - Gemini Pro Image via OpenRouter
- * Generates images for recipes that don't have one
+ * Cron Image Generator - Gemini 3 Pro (Nano Banana Pro)
+ * Settings: ZERO TEXT, HD Resolution (1280x720 / 16:9)
  */
 
-// Load .env.production only if env vars not already set (e.g., by GitHub Actions)
 require('dotenv').config({ path: '.env.production', override: false });
+require('dotenv').config({ path: '.env', override: false });
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 
 const prisma = new PrismaClient();
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
-// Use the dedicated image generation model (cheaper than pro)
-const IMAGE_MODEL = 'google/gemini-2.5-flash-image';
-const STORAGE_PATH = process.env.STORAGE_PATH || path.join(__dirname, '../storage');
+const IMAGE_MODEL = 'google/gemini-3-pro-image-preview';
 
-// Logging utilities
+const STORAGE_PATH = process.env.STORAGE_PATH || path.join(__dirname, '../storage');
+const STATUS_FILE = path.join(STORAGE_PATH, 'images-status.json');
+const LOGS_DIR = path.join(__dirname, '../logs');
+const LOG_FILE = path.join(LOGS_DIR, `image-generator-${new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' }).replace(/[/:, ]/g, '-')}.log`);
+
+if (!fsSync.existsSync(LOGS_DIR)) {
+    fsSync.mkdirSync(LOGS_DIR, { recursive: true });
+}
+
+function writeLog(message) {
+    try {
+        fsSync.appendFileSync(LOG_FILE, message + '\n');
+    } catch (e) {}
+}
+
+const getRoTime = () => new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' });
 const log = {
-    info: (msg) => console.log(`[IMAGE-GEN] [INFO] ${new Date().toISOString()} - ${msg}`),
-    error: (msg) => console.error(`[IMAGE-GEN] [ERROR] ${new Date().toISOString()} - ${msg}`),
-    success: (msg) => console.log(`[IMAGE-GEN] [SUCCESS] ${new Date().toISOString()} - ${msg}`),
+    info: (msg) => { const line = `[${getRoTime()}] ${msg}`; console.log(line); writeLog(line); },
+    error: (msg) => { const line = `[${getRoTime()}] ❌ ${msg}`; console.error(line); writeLog(line); },
+    success: (msg) => { const line = `[${getRoTime()}] ✅ ${msg}`; console.log(line); writeLog(line); },
 };
 
-/**
- * Generate an image description prompt for a recipe
- */
-function createImagePrompt(recipe) {
-    return `Generate a photorealistic, appetizing food photography image of: "${recipe.title}".
-
-The dish should look:
-- Professional food photography style
-- Warm, inviting lighting
-- Garnished beautifully
-- Served on an elegant plate or bowl
-- Top-down or 45-degree angle view
-- Soft background blur
-
-Style: Modern food blog photography, high-end restaurant presentation.
-Mood: Warm, cozy, delicious, home-cooked but elegant.
-
-Do NOT include any text, watermarks, or labels in the image.`;
+function writeStatus(status) {
+    try {
+        if (!fsSync.existsSync(STORAGE_PATH)) {
+            fsSync.mkdirSync(STORAGE_PATH, { recursive: true });
+        }
+        fsSync.writeFileSync(STATUS_FILE, JSON.stringify(status, null, 2));
+    } catch (e) {
+        log.error(`Failed to write status: ${e.message}`);
+    }
 }
 
 /**
- * Call OpenRouter/Gemini Pro Image to generate an image
+ * UPDATED PROMPT:
+ * - Enforces 16:9 Aspect Ratio (1280x720)
+ * - Enforces Zero Text
+ */
+function createImagePrompt(recipe) {
+    return `CRITICAL INSTRUCTION: Generate a pure, photorealistic food photograph.
+STRICT CONSTRAINTS:
+1. NO TEXT: The image must contain ABSOLUTELY NO TEXT, NO LABELS, NO WATERMARKS, and NO OVERLAYS.
+2. FORMAT: Landscape orientation, 16:9 Aspect Ratio (HD 1280x720).
+
+Subject: A delicious, high-end presentation of "${recipe.title}".
+
+Visual details:
+- Camera: Professional DSLR, macro lens.
+- Lighting: Warm, natural sunlight, appetizing shadows.
+- View: 45-degree angle or top-down.
+- Background: Soft bokeh (blurred) restaurant setting.
+
+Generate ONLY the visual scene.`;
+}
+
+/**
+ * Call OpenRouter with Gemini 3
  */
 async function generateImage(prompt) {
-    if (!OPENROUTER_API_KEY) {
-        throw new Error('OPENROUTER_API_KEY not configured');
-    }
+    if (!OPENROUTER_API_KEY) throw new Error('OPENROUTER_API_KEY not configured');
 
     log.info(`Generating image with model: ${IMAGE_MODEL}`);
 
@@ -66,20 +91,15 @@ async function generateImage(prompt) {
         },
         body: JSON.stringify({
             model: IMAGE_MODEL,
-            messages: [
-                {
-                    role: 'user',
-                    content: prompt,
-                }
-            ],
-            // CRITICAL: Force image generation mode
-            modalities: ["image", "text"],
-            // Use 1K resolution to save costs (~$0.039/image vs $0.24 for 4K)
-            image_config: {
-                aspect_ratio: "16:9",
-                image_size: "1K"
-            },
-            max_tokens: 4096,
+            messages: [{
+                role: 'user',
+                content: prompt
+            }],
+            // PARAMETRII CRITICI:
+            modalities: ['image', 'text'], // Obligatoriu pentru generare
+            // Deși 'size' nu e întotdeauna respectat de Gemini prin API-ul chat, 
+            // prompt-ul de mai sus cu "16:9" face greutatea principală.
+            // Putem încerca să sugerăm preferința, dar promptul e baza.
         }),
     });
 
@@ -89,64 +109,69 @@ async function generateImage(prompt) {
     }
 
     const data = await response.json();
+    log.info(`Response received from ${IMAGE_MODEL}`);
 
-    // Log the response structure to debug
-    log.info(`Response structure: ${JSON.stringify(data.choices?.[0]?.message?.content?.substring?.(0, 200) || 'structured')}`);
+    const message = data.choices?.[0]?.message;
 
-    // Extract image from response
-    const content = data.choices?.[0]?.message?.content;
-
-    // Check if content is an array (multi-modal response)
-    if (Array.isArray(content)) {
-        for (const part of content) {
-            if (part.type === 'image' || part.type === 'image_url') {
-                return part.image_url?.url || part.data || part.url;
-            }
-            if (part.image) {
-                return part.image;
-            }
-        }
+    // 1. Check for images array (Gemini format)
+    if (message?.images && Array.isArray(message.images) && message.images.length > 0) {
+        return message.images[0].image_url?.url;
     }
 
-    // Check if there's inline_data in the response (Gemini format)
-    if (data.choices?.[0]?.message?.content_parts) {
-        for (const part of data.choices[0].message.content_parts) {
-            if (part.inline_data?.data) {
-                return `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`;
-            }
-        }
+    // 2. Fallback check
+    const content = message?.content;
+    if (typeof content === 'string') {
+        if (content.startsWith('data:image')) return content;
+        const urlMatch = content.match(/(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|webp))/i);
+        if (urlMatch) return urlMatch[1];
     }
 
-    // If no image found
-    log.error('No image in response. Content type: ' + typeof content);
+    log.error('No image found. Full response: ' + JSON.stringify(data).substring(0, 1000));
     return null;
 }
 
 /**
- * Save base64 image to file
+ * Save image to file
  */
-async function saveImage(base64Data, filename) {
-    const imagePath = path.join(STORAGE_PATH, 'recipe-images', filename);
+async function saveImage(imageData, filename) {
+    const imagePath = path.join(__dirname, '../public/images/recipes', filename);
     await fs.mkdir(path.dirname(imagePath), { recursive: true });
 
-    // Remove data URL prefix if present
-    const base64Clean = base64Data.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64Clean, 'base64');
+    let buffer;
+    if (imageData.startsWith('data:image')) {
+        const base64Clean = imageData.replace(/^data:image\/\w+;base64,/, '');
+        buffer = Buffer.from(base64Clean, 'base64');
+    } else if (imageData.startsWith('http')) {
+        const resp = await fetch(imageData);
+        const arrayBuffer = await resp.arrayBuffer();
+        buffer = Buffer.from(arrayBuffer);
+    } else {
+        buffer = Buffer.from(imageData, 'base64');
+    }
 
     await fs.writeFile(imagePath, buffer);
     log.success(`Saved image: ${filename}`);
-
-    return `/storage/recipe-images/${filename}`;
+    return `/images/recipes/${filename}`;
 }
 
 /**
- * Main function - generate images for recipes without them
+ * Main function
  */
 async function generateRecipeImages(limit = 5) {
     log.info(`Starting image generation (limit: ${limit})`);
 
+    writeStatus({
+        running: true,
+        current: 0,
+        total: limit,
+        message: 'Se inițializează Gemini 3 HD (1280x720)...',
+        complete: false,
+        generatedCount: 0,
+        currentRecipe: null,
+        error: null
+    });
+
     try {
-        // Find recipes without images
         const recipesWithoutImages = await prisma.recipe.findMany({
             where: {
                 OR: [
@@ -160,67 +185,70 @@ async function generateRecipeImages(limit = 5) {
         });
 
         log.info(`Found ${recipesWithoutImages.length} recipes needing images`);
-
+        const total = recipesWithoutImages.length;
         let successCount = 0;
 
-        for (const recipe of recipesWithoutImages) {
+        for (let i = 0; i < recipesWithoutImages.length; i++) {
+            const recipe = recipesWithoutImages[i];
             try {
                 log.info(`Processing: ${recipe.title}`);
+                writeStatus({
+                    running: true,
+                    current: i,
+                    total: total,
+                    message: `Procesăm ${i + 1}/${total}`,
+                    complete: false,
+                    generatedCount: successCount,
+                    currentRecipe: recipe.title,
+                    error: null
+                });
 
                 const prompt = createImagePrompt(recipe);
                 const imageData = await generateImage(prompt);
 
                 if (imageData) {
-                    // If it's a URL, use it directly; if base64, save to file
-                    let imageUrl;
-                    if (imageData.startsWith('http')) {
-                        imageUrl = imageData;
-                    } else {
-                        const filename = `recipe-${recipe.id}-${Date.now()}.png`;
-                        imageUrl = await saveImage(imageData, filename);
-                    }
+                    const filename = `recipe-${recipe.id}-${Date.now()}.png`;
+                    const imageUrl = await saveImage(imageData, filename);
 
-                    // Update recipe in database
                     await prisma.recipe.update({
                         where: { id: recipe.id },
                         data: { imageUrl },
                     });
 
-                    log.success(`Updated recipe "${recipe.title}" with image`);
+                    log.success(`Updated recipe "${recipe.title}"`);
                     successCount++;
                 }
-
-                // Rate limiting
                 await new Promise(resolve => setTimeout(resolve, 2000));
             } catch (error) {
-                log.error(`Failed to generate image for "${recipe.title}": ${error.message}`);
+                log.error(`Failed: ${error.message}`);
             }
         }
 
-        log.success(`Image generation completed. ${successCount}/${recipesWithoutImages.length} images created.`);
+        writeStatus({
+            running: false,
+            startedAt: null,
+            completedAt: new Date().toISOString(),
+            current: total,
+            total: total,
+            message: `Generare completă! ${successCount}/${total} imagini HD.`,
+            complete: true,
+            generatedCount: successCount,
+            currentRecipe: null,
+            error: null
+        });
+
         return successCount;
     } catch (error) {
-        log.error(`Fatal error: ${error.message}`);
+        writeStatus({ running: false, complete: false, error: error.message, generatedCount: 0 });
         throw error;
     } finally {
         await prisma.$disconnect();
     }
 }
 
-// Main execution
 if (require.main === module) {
     const limit = parseInt(process.argv[2]) || 5;
-
-    generateRecipeImages(limit)
-        .then((count) => {
-            log.success(`Job finished. Generated ${count} images.`);
-            process.exit(0);
-        })
-        .catch((error) => {
-            log.error(`Job failed: ${error.message}`);
-            console.error(error);
-            process.exit(1);
-        });
+    generateRecipeImages(limit).then(() => process.exit(0)).catch(() => process.exit(1));
 }
 
 module.exports = { generateRecipeImages };

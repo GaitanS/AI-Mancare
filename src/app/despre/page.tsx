@@ -142,7 +142,7 @@ export default function DesprePage() {
                         Vezi Ofertele →
                     </Link>
                     <Link
-                        href="/retete"
+                        href="/plan"
                         className="border-2 border-white text-white px-6 py-3 rounded-full font-semibold hover:bg-white/10 transition"
                     >
                         Explorează Rețete
