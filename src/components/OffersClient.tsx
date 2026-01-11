@@ -33,7 +33,10 @@ export default function OffersClient({
 }: OffersClientProps) {
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [catalogData, setCatalogData] = useState<any>(null);
-    const [navigation, setNavigation] = useState({ prev: null, next: null });
+    const [navigation, setNavigation] = useState<{
+        prev: { id: string; name: string; catalogPage?: number } | null;
+        next: { id: string; name: string; catalogPage?: number } | null;
+    }>({ prev: null, next: null });
     const [isViewerOpen, setIsViewerOpen] = useState(false);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
