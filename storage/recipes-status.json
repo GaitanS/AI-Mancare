@@ -1,9 +1,11 @@
 {
   "running": false,
-  "current": 5,
-  "total": 5,
-  "message": "Complete! Generated 5 new recipes.",
+  "startedAt": null,
+  "completedAt": "2026-01-11T15:54:09.663Z",
+  "current": 10,
+  "total": 10,
+  "message": "Generare completă! 10 rețete noi.",
   "complete": true,
-  "generatedCount": 5,
-  "updatedAt": "2026-01-10T09:28:35.996Z"
+  "generatedCount": 10,
+  "error": null
 }
