@@ -95,7 +95,11 @@ export async function GET(request: NextRequest) {
     // Extract all ingredient IDs to fetch store info
     const allIngredientIds = new Set<string>();
     recipesRaw.forEach((r: any) => {
-      const ids = typeof r.ingredientIds === 'string' ? JSON.parse(r.ingredientIds) : r.ingredientIds;
+      let ids: string[] = [];
+      try {
+        ids = typeof r.ingredientIds === 'string' ? JSON.parse(r.ingredientIds) : r.ingredientIds || [];
+      } catch (e) { ids = []; }
+
       if (Array.isArray(ids)) {
         ids.forEach((id: string) => allIngredientIds.add(id));
       }
