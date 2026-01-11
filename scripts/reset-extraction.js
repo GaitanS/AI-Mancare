@@ -4,28 +4,24 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('🔄 Resetting catalog extraction status...');
 
-    // Option 1: Reset ALL catalogs
-    // const result = await prisma.catalog.updateMany({
-    //     data: { productsExtractedAt: null }
-    // });
-
-    // Option 2: Reset only catalogs that have 0 products extracted (safer)
-    // First, find catalogs that have been marked as processed
+    // Find catalogs that have been marked as processed
     const catalogs = await prisma.catalog.findMany({
         where: {
             productsExtractedAt: { not: null }
-        },
-        include: {
-            _count: {
-                select: { products: true }
-            }
         }
     });
 
     let resetCount = 0;
     for (const catalog of catalogs) {
-        // If a catalog has 0 products or very few (failed run), reset it
-        if (catalog._count.products === 0) {
+        // Count products for this catalog manually since there is no relation defined
+        const productCount = await prisma.product.count({
+            where: {
+                catalogId: catalog.id
+            }
+        });
+
+        // If a catalog has 0 products (failed run), reset it
+        if (productCount === 0) {
             await prisma.catalog.update({
                 where: { id: catalog.id },
                 data: { productsExtractedAt: null }
