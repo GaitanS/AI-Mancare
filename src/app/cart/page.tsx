@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { saveCartItems } from '@/lib/cart-utils';
 
 interface MatchedProduct {
     id: string;
@@ -51,11 +52,40 @@ interface AlternativeProduct {
 // Empty ingredients - cart starts empty
 
 export default function CartPage() {
-    const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    // Read cart from localStorage DURING RENDER (synchronous, before any effects).
+    // This ensures state is initialized with correct data and prevents race conditions.
+    const initialCartRef = useRef<CartItem[] | null>(null);
+    const hasPendingIngredients = useRef(false);
+    // Track if we've completed initialization (set synchronously during render)
+    const hasLoadedFromStorage = useRef(false);
+
+    if (initialCartRef.current === null && typeof window !== 'undefined') {
+        const pending = localStorage.getItem('cart_pending_ingredients');
+        if (pending) {
+            hasPendingIngredients.current = true;
+            initialCartRef.current = [];
+        } else {
+            const saved = localStorage.getItem('cart_items');
+            if (saved) {
+                try {
+                    initialCartRef.current = JSON.parse(saved);
+                } catch {
+                    initialCartRef.current = [];
+                }
+            } else {
+                initialCartRef.current = [];
+            }
+        }
+        // Mark as loaded SYNCHRONOUSLY during first render
+        hasLoadedFromStorage.current = true;
+    }
+
+    const [cartItems, setCartItems] = useState<CartItem[]>(() => initialCartRef.current || []);
     const [storeComparison, setStoreComparison] = useState<StoreComparison[]>([]);
     const [selectedStore, setSelectedStore] = useState<string>('');
     const [showStoreComparison, setShowStoreComparison] = useState(false);
-    const [loading, setLoading] = useState(true);
+    // Only show loading if we have pending ingredients to fetch
+    const [loading, setLoading] = useState(() => hasPendingIngredients.current);
     const [totalCost, setTotalCost] = useState(0);
     const [ownedItems, setOwnedItems] = useState<Set<string>>(new Set());
 
@@ -64,6 +94,10 @@ export default function CartPage() {
     const [swapIngredient, setSwapIngredient] = useState<string>('');
     const [alternatives, setAlternatives] = useState<AlternativeProduct[]>([]);
     const [loadingAlternatives, setLoadingAlternatives] = useState(false);
+
+    // Flag to skip our own cart-updated events (prevent infinite loop)
+    const isInternalUpdate = useRef(false);
+
 
     // Session ID for anonymous users
     const [sessionId] = useState(() => {
@@ -77,6 +111,24 @@ export default function CartPage() {
         }
         return '';
     });
+
+    // Persist cart changes and notify other components (header badge, etc.)
+    // Uses saveCartItems from cart-utils for consistent storage handling
+    const persistCart = useCallback((items: CartItem[]) => {
+        // Guard: never write to localStorage before we've loaded from it
+        if (!hasLoadedFromStorage.current) {
+            return;
+        }
+        // Additional guard: never write empty array if cart had items
+        // This protects against React StrictMode phantom writes
+        if (items.length === 0 && initialCartRef.current && initialCartRef.current.length > 0) {
+            return;
+        }
+        saveCartItems(items);
+        isInternalUpdate.current = true;
+        window.dispatchEvent(new CustomEvent('cart-updated', { detail: { items } }));
+        Promise.resolve().then(() => { isInternalUpdate.current = false; });
+    }, []);
 
     // Fetch cart items on load
     const fetchCartItems = useCallback(async (storeOverride?: string, ingredientsOverride?: string[]) => {
@@ -104,7 +156,9 @@ export default function CartPage() {
 
             if (response.ok) {
                 const data = await response.json();
-                setCartItems(data.items || []);
+                const items = data.items || [];
+                setCartItems(items);
+                persistCart(items);
                 setTotalCost(data.totalCost || 0);
             }
         } catch (error) {
@@ -112,7 +166,7 @@ export default function CartPage() {
         } finally {
             setLoading(false);
         }
-    }, [selectedStore, cartItems]);
+    }, [selectedStore, cartItems, persistCart]);
 
     // Fetch store comparison
     const fetchStoreComparison = async () => {
@@ -187,8 +241,7 @@ export default function CartPage() {
     const removeCartItem = (ingredientName: string) => {
         setCartItems(prev => {
             const next = prev.filter(item => item.ingredientName !== ingredientName);
-            // Re-calculate store comparison if needed or just clear it to force refresh
-            if (showStoreComparison) fetchStoreComparison();
+            persistCart(next);
             return next;
         });
     };
@@ -253,49 +306,59 @@ export default function CartPage() {
         }
     };
 
-    useEffect(() => {
-        // Check if there are pending ingredients from meal plan
-        const pendingIngredients = localStorage.getItem('cart_pending_ingredients');
-
-        if (pendingIngredients) {
+    // Function to reload cart from localStorage
+    const reloadCartFromStorage = useCallback(() => {
+        const savedCart = localStorage.getItem('cart_items');
+        if (savedCart) {
             try {
-                const ingredients = JSON.parse(pendingIngredients);
-                // Clear the pending ingredients
-                localStorage.removeItem('cart_pending_ingredients');
-                // Fetch cart with these ingredients
-                fetchCartItems(undefined, ingredients);
+                const parsedCart = JSON.parse(savedCart);
+                setCartItems(parsedCart);
             } catch (e) {
-                console.error('Failed to parse pending ingredients:', e);
-                setLoading(false);
+                console.error('Failed to parse saved cart:', e);
             }
-        } else {
-            // Check local storage for existing cart items
-            const savedCart = localStorage.getItem('cart_items');
-            if (savedCart) {
+        }
+    }, []);
+
+    useEffect(() => {
+        // Cart items are already initialized from localStorage during render.
+        // Only handle pending ingredients from meal plan here.
+        if (hasPendingIngredients.current) {
+            const pendingIngredients = localStorage.getItem('cart_pending_ingredients');
+            if (pendingIngredients) {
                 try {
-                    const parsedCart = JSON.parse(savedCart);
-                    setCartItems(parsedCart);
+                    const ingredients = JSON.parse(pendingIngredients);
+                    localStorage.removeItem('cart_pending_ingredients');
+                    fetchCartItems(undefined, ingredients);
                 } catch (e) {
-                    console.error('Failed to parse saved cart:', e);
+                    console.error('Failed to parse pending ingredients:', e);
+                    setLoading(false);
                 }
             }
-            setLoading(false);
         }
 
         fetchPantryItems();
-    }, []); // Only on mount
 
-    // Save cart to local storage whenever it changes
-    useEffect(() => {
-        if (cartItems.length > 0) {
-            localStorage.setItem('cart_items', JSON.stringify(cartItems));
-        } else {
-            // Optional: clear if empty, but maybe safer to keep until manually cleared?
-            // localStorage.removeItem('cart_items');
-            // For now, let's update it to empty array if we really mean empty
-            localStorage.setItem('cart_items', JSON.stringify(cartItems));
-        }
-    }, [cartItems]);
+        // Listen for cart updates from other components (e.g., ProductCard)
+        const handleCartUpdate = () => {
+            if (isInternalUpdate.current) return;
+            reloadCartFromStorage();
+        };
+
+        window.addEventListener('cart-updated', handleCartUpdate);
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'cart_items') {
+                reloadCartFromStorage();
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+
+        return () => {
+            window.removeEventListener('cart-updated', handleCartUpdate);
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only on mount - reloadCartFromStorage is stable ([] deps) and used in handlers only
 
     // Lock body scroll when modal is open
     useEffect(() => {
@@ -356,30 +419,30 @@ export default function CartPage() {
 
     return (
         <div className="min-h-screen bg-neutral-50 pb-48 lg:pb-12">
-            {/* Premium Header */}
-            <div className="relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 text-white overflow-hidden mb-6">
+            {/* Premium Header - Compact on Mobile */}
+            <div className="relative bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 text-white overflow-hidden mb-4 md:mb-6">
                 <div className="absolute inset-0 overflow-hidden">
                     <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-float" />
                     <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-accent-500 rounded-full mix-blend-screen filter blur-[100px] opacity-15 animate-float" style={{ animationDelay: '2s' }} />
                 </div>
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px]" />
 
-                <div className="relative container-custom py-8 md:py-10 z-10">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="relative container-custom py-4 md:py-10 z-10">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-6">
                         <div>
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-orange-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
-                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <div className="flex items-center gap-2 md:gap-3 mb-1.5 md:mb-3">
+                                <div className="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-primary-500 to-orange-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
+                                    <svg className="w-3 h-3 md:w-4 md:h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
                                 </div>
-                                <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Coșul Tău</span>
+                                <span className="text-white/80 text-[10px] md:text-xs font-semibold tracking-wide uppercase">Coșul Tău</span>
                             </div>
-                            <h1 className="font-display text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
+                            <h1 className="font-display text-xl md:text-4xl font-bold text-white mb-1 md:mb-2 leading-tight">
                                 Lista de Cumpărături
                             </h1>
-                            <p className="text-neutral-400 text-sm md:text-base max-w-lg">
-                                Gestionează produsele și găsește cele mai bune oferte pentru lista ta.
+                            <p className="text-neutral-400 text-xs md:text-base max-w-lg">
+                                Gestionează produsele și găsește cele mai bune oferte.
                             </p>
                         </div>
                     </div>
@@ -523,7 +586,7 @@ export default function CartPage() {
                                                         </div>
                                                         <button
                                                             onClick={() => removeCartItem(item.ingredientName)}
-                                                            className="p-1.5 -mr-1.5 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                            className="p-1.5 -mr-1.5 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
                                                             title="Șterge din listă"
                                                         >
                                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -571,7 +634,7 @@ export default function CartPage() {
                                                             className={cn(
                                                                 "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
                                                                 isOwned
-                                                                    ? "bg-success-100 text-success-700 border-success-200"
+                                                                    ? "bg-primary-100 text-primary-700 border-primary-200"
                                                                     : "bg-white text-neutral-500 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50"
                                                             )}
                                                         >
