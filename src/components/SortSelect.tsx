@@ -67,6 +67,7 @@ export default function SortSelect({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const touchHandledRef = useRef(false);
 
   const currentValue = `${currentSort || options[0]?.value.split('-')[0] || 'created'}-${currentOrder || 'desc'}`;
   const currentOption = options.find(opt => opt.value === currentValue) || options[0];
@@ -85,20 +86,32 @@ export default function SortSelect({
 
   // Close dropdown on click outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
+        !dropdownRef.current.contains(target) &&
         buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
+        !buttonRef.current.contains(target)
       ) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    // Use a small timeout to prevent immediate close after opening
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside, { passive: true });
+      document.addEventListener('touchend', handleClickOutside, { passive: true });
+    }, 10);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('touchend', handleClickOutside);
+    };
+  }, [isOpen]);
 
   // Close on escape key
   useEffect(() => {
@@ -118,21 +131,39 @@ export default function SortSelect({
   return (
     <div className={cn('relative', className)}>
       {/* Trigger Button */}
-      {/* Trigger Button */}
       <button
         ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // Skip if touchend already handled this
+          if (touchHandledRef.current) {
+            touchHandledRef.current = false;
+            return;
+          }
+          setIsOpen(!isOpen);
+        }}
+        onTouchEnd={(e) => {
+          // Mark as handled to prevent click from double-firing
+          e.preventDefault();
+          touchHandledRef.current = true;
+          setIsOpen(!isOpen);
+          // Reset flag after a short delay
+          setTimeout(() => { touchHandledRef.current = false; }, 300);
+        }}
         className={cn(
-          'w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
+          'w-full flex items-center justify-between gap-1.5 lg:gap-2 px-2.5 py-2 lg:px-4 lg:py-2.5 rounded-lg lg:rounded-xl text-xs lg:text-sm font-semibold transition-all duration-200',
           'bg-white border border-neutral-200 text-neutral-700',
           'hover:border-primary-300 hover:shadow-sm',
           'focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400',
+          'touch-manipulation', // Optimize for touch
           isOpen && 'border-primary-400 shadow-sm ring-2 ring-primary-500/20'
         )}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <div className="flex items-center gap-2 overflow-hidden">
+        <div className="flex items-center gap-1.5 lg:gap-2 overflow-hidden">
           {/* Icon */}
           <span className={cn(
             'transition-colors flex-shrink-0',
@@ -152,7 +183,7 @@ export default function SortSelect({
         {/* Chevron */}
         <svg
           className={cn(
-            'w-4 h-4 text-neutral-400 transition-transform duration-200',
+            'w-3.5 h-3.5 lg:w-4 lg:h-4 text-neutral-400 transition-transform duration-200',
             isOpen && 'rotate-180 text-primary-500'
           )}
           fill="none"
@@ -177,9 +208,24 @@ export default function SortSelect({
               return (
                 <button
                   key={option.value}
-                  onClick={() => handleSelect(option.value)}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (touchHandledRef.current) {
+                      touchHandledRef.current = false;
+                      return;
+                    }
+                    handleSelect(option.value);
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    touchHandledRef.current = true;
+                    handleSelect(option.value);
+                    setTimeout(() => { touchHandledRef.current = false; }, 300);
+                  }}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+                    'touch-manipulation',
                     isSelected
                       ? 'bg-primary-50 text-primary-700'
                       : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'

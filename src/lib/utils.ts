@@ -9,6 +9,34 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // ==========================================
+// DIFFICULTY NORMALIZATION
+// ==========================================
+
+// Normalize recipe difficulty from DB values (lowercase, with diacritics)
+// to the app's expected uppercase format: USOR, MEDIU, DIFICIL
+export function normalizeDifficulty(difficulty: string): string {
+  const stripped = difficulty?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  switch (stripped) {
+    case 'usor': return 'USOR';
+    case 'mediu': return 'MEDIU';
+    case 'dificil': return 'DIFICIL';
+    default: return difficulty?.toUpperCase() || 'MEDIU';
+  }
+}
+
+// ==========================================
+// DIACRITICS UTILITY
+// ==========================================
+
+/**
+ * Strip Romanian diacritics and combining marks from text.
+ * Useful for fuzzy search matching.
+ */
+export function stripDiacritics(text: string): string {
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// ==========================================
 // STRING UTILITIES
 // ==========================================
 
@@ -38,7 +66,11 @@ export function truncate(text: string, maxLength: number): string {
 // ==========================================
 
 // Format price in RON
-export function formatPrice(price: number): string {
+export function formatPrice(price: number | null | undefined): string {
+  // Handle undefined, null, NaN, or non-numeric values
+  if (price === undefined || price === null || isNaN(price)) {
+    return '—';
+  }
   return new Intl.NumberFormat('ro-RO', {
     style: 'currency',
     currency: 'RON',

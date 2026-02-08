@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { generateSlug } from '@/lib/utils';
+import { generateSlug, normalizeDifficulty } from '@/lib/utils';
 import { calculateDietaryFlags } from '@/lib/dietary';
+import { withRateLimit } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 import type { Recipe, RecipeFilters, PaginatedResponse, ApiResponse } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
+const recipesRateLimit = withRateLimit({ limit: 100, windowMs: 60 * 1000, keyPrefix: 'api-recipes' });
+
 // GET /api/recipes - Get recipes with filters and pagination
 export async function GET(request: NextRequest) {
   try {
+    const rateLimitResponse = await recipesRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
     const { searchParams } = new URL(request.url);
 
     // Parse query parameters
@@ -34,9 +40,14 @@ export async function GET(request: NextRequest) {
     const where: any = {};
 
     if (difficulty) {
-      where.difficulty = {
-        in: difficulty.split(',') as ('USOR' | 'MEDIU' | 'DIFICIL')[],
+      // Map uppercase filter values to actual DB values (lowercase with diacritics)
+      const difficultyMap: Record<string, string[]> = {
+        'USOR': ['ușor', 'usor', 'USOR'],
+        'MEDIU': ['mediu', 'MEDIU'],
+        'DIFICIL': ['dificil', 'DIFICIL'],
       };
+      const dbValues = difficulty.split(',').flatMap(d => difficultyMap[d.trim()] || [d.trim()]);
+      where.difficulty = { in: dbValues };
     }
 
     if (maxCost) {
@@ -75,6 +86,9 @@ export async function GET(request: NextRequest) {
         break;
       case 'calories':
         orderBy.calories = sortOrder;
+        break;
+      case 'views':
+        orderBy.viewCount = sortOrder;
         break;
       case 'created':
       default:
@@ -152,7 +166,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...r,
-        difficulty: r.difficulty as 'USOR' | 'MEDIU' | 'DIFICIL',
+        difficulty: normalizeDifficulty(r.difficulty) as 'USOR' | 'MEDIU' | 'DIFICIL',
         estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
         instructions: safeJsonParse(r.instructions, []),
         tips: safeJsonParse(r.tips, null),
@@ -191,12 +205,11 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching recipes:', error);
+    logger.error('Error fetching recipes', { error }, 'RecipesAPI');
 
     return NextResponse.json({
       success: false,
-      error: `Failed to fetch recipes: ${error instanceof Error ? error.message : String(error)}`,
-      stack: error instanceof Error ? error.stack : undefined
+      error: 'Failed to fetch recipes'
     }, { status: 500 });
   }
 }
@@ -291,7 +304,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
-    console.error('Error creating recipe:', error);
+    logger.error('Error creating recipe', { error }, 'RecipesAPI');
 
     return NextResponse.json(
       { success: false, error: 'Failed to create recipe' },

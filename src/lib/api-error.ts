@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 /**
  * Custom API error class for consistent error handling
@@ -40,7 +41,7 @@ export const InternalServerError = (message = 'Internal server error') =>
  * Converts errors to consistent JSON responses
  */
 export function handleApiError(error: unknown): Response {
-    console.error('API Error:', error)
+    logger.error('API Error', { error }, 'APIError')
 
     // Handle custom API errors
     if (error instanceof ApiError) {

@@ -238,34 +238,19 @@ export function PlanFilters({
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
                         {[15, 25, 40, 60].map(basePrice => {
-                            // Scale price by portions
-                            const scaledPrice = Math.round((basePrice / 4) * portions); // Base prices assumed for 4 portions? 
-                            // Actually, in the UI logic before, it seemed hardcoded. 
-                            // Let's assume the filter is per TOTAL cost for the selected portions.
-                            // Or is it per serving? 
-                            // In PlanPage: const scaledCost = (recipe.estimatedCost / recipe.servings) * portions;
-                            // And filter checks if scaledCost > filterMaxCost.
-                            // So filterMaxCost acts as a total budget limit.
-                            // The buttons displayed "≤ 15 lei" etc.
-                            // Let's keep the hardcoded values but display them dynamically if needed.
-                            // The previous code had: [15, 25, 40, 60]. 
-                            // Let's assume these are just thresholds the user picks.
-
-                            // Wait, if I change portions, 15 lei might be impossible for 10 people.
-                            // Better to scale the options based on portions? 
-                            // Let's stick to the previous implementation: just buttons.
+                            const scaledPrice = Math.round((basePrice / 4) * portions);
                             return (
                                 <button
                                     key={basePrice}
-                                    onClick={() => setFilterMaxCost(filterMaxCost === basePrice ? null : basePrice)}
+                                    onClick={() => setFilterMaxCost(filterMaxCost === scaledPrice ? null : scaledPrice)}
                                     className={cn(
                                         "px-3 py-2 rounded-xl text-sm font-medium border transition-all text-center",
-                                        filterMaxCost === basePrice
+                                        filterMaxCost === scaledPrice
                                             ? "bg-primary-50 border-primary-500 text-primary-700 font-bold"
                                             : "bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300"
                                     )}
                                 >
-                                    ≤ {Math.round((basePrice / 4) * portions)} lei
+                                    ≤ {scaledPrice} lei
                                 </button>
                             );
                         })}

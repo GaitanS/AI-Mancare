@@ -5,6 +5,7 @@
 
 import crypto from 'crypto';
 import prisma from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 /**
  * Generate a hash from an array of ingredients
@@ -71,12 +72,12 @@ export async function getOrCreateRecipe(
     // Check cache first
     const existingRecipe = await findRecipeByIngredients(ingredients);
     if (existingRecipe) {
-        console.log(`[RecipeMatcher] Found cached recipe: ${existingRecipe.title}`);
+        logger.info(`Found cached recipe: ${existingRecipe.title}`, { recipeId: existingRecipe.id }, 'RecipeMatcher');
         return existingRecipe;
     }
 
     // Generate new recipe
-    console.log('[RecipeMatcher] No cached recipe found, generating new one...');
+    logger.info('No cached recipe found, generating new one...', {}, 'RecipeMatcher');
     const recipeData = await generateRecipe();
 
     // Create slug from title
@@ -110,6 +111,6 @@ export async function getOrCreateRecipe(
         },
     });
 
-    console.log(`[RecipeMatcher] Created new recipe: ${newRecipe.title}`);
+    logger.info(`Created new recipe: ${newRecipe.title}`, { recipeId: newRecipe.id }, 'RecipeMatcher');
     return newRecipe;
 }

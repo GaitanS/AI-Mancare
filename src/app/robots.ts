@@ -5,7 +5,7 @@
 
 import { MetadataRoute } from 'next';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://retete-ieftine.ro';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://catalogsmart.ro';
 
 export default function robots(): MetadataRoute.Robots {
   return {

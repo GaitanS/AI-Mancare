@@ -182,13 +182,6 @@ export function generateRecipeSchema(recipe: {
             }
         }),
 
-        // Aggregated rating placeholder
-        aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: '4.5',
-            reviewCount: '100'
-        },
-
         // Author
         author: {
             '@type': 'Organization',

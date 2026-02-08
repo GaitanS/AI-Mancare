@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { cn, formatPrice, formatDate, isOfferValid } from '@/lib/utils';
+import { addProductToCart, removeProductFromCart, isProductInCart } from '@/lib/cart-utils';
 import type { Product } from '@/types';
 
 // Calculate remaining days until offer expires
@@ -16,14 +18,30 @@ function getRemainingDays(validUntil: Date | string): number {
 
 // Countdown component that updates live
 function Countdown({ validUntil }: { validUntil: Date | string }) {
-  const [remainingDays, setRemainingDays] = useState(() => getRemainingDays(validUntil));
+  // Initialize with null to avoid hydration mismatch, then calculate on client
+  const [remainingDays, setRemainingDays] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    setRemainingDays(getRemainingDays(validUntil));
     const timer = setInterval(() => {
       setRemainingDays(getRemainingDays(validUntil));
     }, 60000);
     return () => clearInterval(timer);
   }, [validUntil]);
+
+  // Show loading state during SSR to avoid hydration mismatch
+  if (!mounted || remainingDays === null) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-primary-600 font-semibold text-xs sm:text-sm">
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        ...
+      </span>
+    );
+  }
 
   if (remainingDays <= 0) {
     return (
@@ -94,17 +112,68 @@ export default function ProductCard({
   priority = false,
   onClick
 }: ProductCardProps) {
+  const [isInCart, setIsInCart] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
   const isValid = isOfferValid(new Date(product.validFrom), new Date(product.validUntil));
   const hasDiscount = product.discountPercentage && product.discountPercentage > 0;
   const storeKey = product.store.toLowerCase().replace(' ', '-');
   const storeStyle = storeColors[storeKey] || { gradient: 'from-neutral-500 to-neutral-600', solid: 'bg-neutral-500', text: 'text-neutral-500' };
 
+  // Reset image error when product changes
+  useEffect(() => {
+    setImageError(false);
+  }, [product.catalogPageImage]);
+
+  // Check if product is in cart on mount and listen for updates
+  useEffect(() => {
+    setIsInCart(isProductInCart(product.name));
+
+    const handleCartUpdate = () => {
+      setIsInCart(isProductInCart(product.name));
+    };
+
+    window.addEventListener('cart-updated', handleCartUpdate);
+    return () => window.removeEventListener('cart-updated', handleCartUpdate);
+  }, [product.name]);
+
+  const handleAddToCartClick = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    doToggleCart();
+  };
+
+  const doToggleCart = () => {
+    if (isInCart) {
+      // Remove from cart
+      removeProductFromCart(product.name);
+      setIsInCart(false);
+    } else {
+      // Add to cart
+      addProductToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        discountPercentage: product.discountPercentage,
+        store: product.store,
+        unit: product.unit,
+        imageUrl: product.catalogPageImage,
+      });
+      setIsInCart(true);
+      setJustAdded(true);
+      // Reset the animation after a delay
+      setTimeout(() => setJustAdded(false), 1500);
+    }
+  };
+
   return (
     <article
       onClick={onClick}
       className={cn(
-        'group relative flex flex-col h-full bg-white rounded-xl lg:rounded-2xl border border-neutral-200/60',
-        'shadow-sm lg:shadow-soft transition-all duration-300',
+        'group relative flex flex-col h-full bg-white rounded-xl lg:rounded-2xl transition-all duration-300',
+        isInCart ? 'border-2 border-foreground shadow-sm lg:shadow-soft' : 'border border-neutral-200/60 shadow-sm lg:shadow-soft',
         'hover:shadow-md lg:hover:shadow-hard hover:border-primary-200 hover:-translate-y-1 lg:hover:-translate-y-1.5 cursor-pointer',
         !isValid && 'opacity-60',
         className
@@ -143,8 +212,63 @@ export default function ProductCard({
         </div>
       )}
 
-      {/* Compact Header - reduced height mobile, larger on desktop */}
-      <div className="h-10 lg:h-14 bg-gradient-to-br from-neutral-50 to-white rounded-t-xl lg:rounded-t-2xl" />
+      {/* Add to Cart Button */}
+      <button
+        type="button"
+        onClick={handleAddToCartClick}
+        className={cn(
+          'absolute bottom-2 right-2 lg:bottom-3 lg:right-3 z-20',
+          'w-8 h-8 lg:w-9 lg:h-9 rounded-full',
+          'flex items-center justify-center',
+          'shadow-md transition-all duration-300',
+          'focus:outline-none focus:ring-2 focus:ring-offset-1',
+          'touch-manipulation',
+          isInCart
+            ? 'bg-foreground text-white focus:ring-foreground/50'
+            : 'bg-primary-500 hover:bg-primary-600 text-white focus:ring-primary-500 hover:scale-110',
+          justAdded && 'animate-bounce'
+        )}
+        title={isInCart ? 'Elimină din listă' : 'Adaugă în listă'}
+      >
+        {isInCart ? (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        ) : (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        )}
+      </button>
+
+      {/* Catalog Page Image Preview */}
+      <div className="relative h-24 lg:h-32 bg-gradient-to-br from-neutral-100 to-neutral-50 rounded-t-xl lg:rounded-t-2xl overflow-hidden">
+        {product.catalogPageImage && !imageError ? (
+          <>
+            <Image
+              src={product.catalogPageImage}
+              alt={`${product.name} - pagina catalog`}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              priority={priority}
+              onError={() => setImageError(true)}
+            />
+            {/* Page number badge */}
+            {product.catalogPageNumber && (
+              <div className="absolute bottom-1 left-1 lg:bottom-2 lg:left-2 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm rounded text-[9px] lg:text-[10px] text-white font-medium">
+                Pag. {product.catalogPageNumber}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg className="w-8 h-8 lg:w-10 lg:h-10 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        )}
+      </div>
 
       {/* Product Info */}
       <div className="flex flex-col flex-1 p-2 lg:p-4">
@@ -158,7 +282,7 @@ export default function ProductCard({
 
         {/* Product Name */}
         <h3
-          className="text-xs lg:text-base font-bold text-neutral-900 line-clamp-2 mb-1 lg:mb-2 group-hover:text-primary-600 transition-colors font-display leading-tight"
+          className="text-sm lg:text-base font-bold text-neutral-900 line-clamp-2 mb-1 lg:mb-2 group-hover:text-primary-600 transition-colors font-display leading-tight"
           itemProp="name"
         >
           {product.name}
@@ -202,33 +326,17 @@ export default function ProductCard({
               <meta itemProp="priceCurrency" content="RON" />
             </div>
 
-            {/* Unit */}
-            <span className="text-[10px] lg:text-sm font-medium lg:font-semibold text-neutral-500 lg:text-neutral-600 bg-neutral-50 lg:bg-neutral-100 px-1.5 py-0.5 lg:px-2.5 lg:py-1.5 rounded lg:rounded-lg">
+            {/* Unit - adjusted to leave room for + button */}
+            <span className="text-[10px] lg:text-sm font-medium lg:font-semibold text-neutral-500 lg:text-neutral-600 bg-neutral-50 lg:bg-neutral-100 px-1.5 py-0.5 lg:px-2.5 lg:py-1.5 rounded lg:rounded-lg mr-8 lg:mr-9">
               / {product.unit}
             </span>
           </div>
 
-          {/* Validity - Compact Mobile / Normal Desktop */}
-          <div className="mt-2 lg:mt-3 space-y-1.5 lg:space-y-2 hidden sm:block">
-            {/* Date range */}
-            <div className="flex items-center gap-1.5 lg:gap-2 text-[10px] lg:text-xs text-neutral-500 lg:text-neutral-600 bg-neutral-50 px-2 py-1 lg:px-3 lg:py-2 rounded-lg lg:rounded-xl">
-              <svg className="w-3 h-3 lg:w-4 lg:h-4 text-primary-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span className="truncate lg:font-medium">
-                {formatDate(product.validFrom)} - {formatDate(product.validUntil)}
-              </span>
-            </div>
-
-            {/* Live Countdown */}
-            <div className="flex items-center justify-center bg-gradient-to-r from-primary-50 to-accent-50 px-2 py-1 lg:px-3 lg:py-2 rounded-lg lg:rounded-xl border border-primary-100/50">
+          {/* Validity Countdown */}
+          <div className="mt-2 lg:mt-3">
+            <div className="flex items-center justify-center bg-gradient-to-r from-primary-50 to-accent-50 px-2 py-1.5 lg:px-3 lg:py-2 rounded-lg lg:rounded-xl border border-primary-100/50">
               <Countdown validUntil={new Date(product.validUntil)} />
             </div>
-          </div>
-          {/* Mobile only date info - Very simplified */}
-          <div className="mt-1.5 sm:hidden flex items-center gap-1 text-[10px] text-neutral-400">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <Countdown validUntil={new Date(product.validUntil)} />
           </div>
 
           {/* Availability */}
@@ -238,7 +346,7 @@ export default function ProductCard({
 
       {/* Expired Overlay */}
       {!isValid && (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl flex items-center justify-center">
           <span className="inline-flex items-center px-4 py-2 rounded-xl bg-neutral-700 text-white text-sm font-bold shadow-lg">Oferta expirata</span>
         </div>
       )}
@@ -249,18 +357,17 @@ export default function ProductCard({
 // Skeleton Loading Component
 export function ProductCardSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-neutral-200/60 shadow-soft overflow-hidden">
-      <div className="h-12 sm:h-14 skeleton-shimmer rounded-t-2xl" />
-      <div className="p-4 space-y-3">
-        <div className="h-5 skeleton-shimmer rounded-lg w-1/3" />
-        <div className="h-5 skeleton-shimmer rounded-lg w-full" />
-        <div className="h-4 skeleton-shimmer rounded-lg w-2/3" />
-        <div className="pt-3 border-t border-neutral-100 mt-auto">
-          <div className="h-8 skeleton-shimmer rounded-lg w-1/2" />
-          <div className="h-10 skeleton-shimmer rounded-xl w-full mt-3" />
+    <div className="bg-white rounded-xl lg:rounded-2xl border border-neutral-200/60 shadow-soft overflow-hidden">
+      <div className="h-24 lg:h-32 skeleton-shimmer rounded-t-xl lg:rounded-t-2xl" />
+      <div className="p-2 lg:p-4 space-y-2 lg:space-y-3">
+        <div className="h-4 lg:h-5 skeleton-shimmer rounded-lg w-1/3 hidden lg:block" />
+        <div className="h-4 lg:h-5 skeleton-shimmer rounded-lg w-full" />
+        <div className="h-3 lg:h-4 skeleton-shimmer rounded-lg w-2/3" />
+        <div className="pt-2 lg:pt-3 border-t border-neutral-100 mt-auto">
+          <div className="h-6 lg:h-8 skeleton-shimmer rounded-lg w-1/2" />
+          <div className="h-8 lg:h-10 skeleton-shimmer rounded-xl w-full mt-2 lg:mt-3" />
         </div>
       </div>
     </div>
   );
 }
-

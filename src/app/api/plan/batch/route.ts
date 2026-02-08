@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 
 export async function POST(request: NextRequest) {
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Batch API Error:', error);
+        logger.error('Batch API error', { error }, 'PlanBatchAPI');
         return NextResponse.json(
             { success: false, error: 'Failed to generate batch plan' },
             { status: 500 }

@@ -5,6 +5,7 @@
 
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://catalogsmart.ro';
 
@@ -116,7 +117,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       });
     });
   } catch (error) {
-    console.error('Error generating sitemap:', error);
+    logger.error('Error generating sitemap', { error }, 'Sitemap');
   }
 
   return routes;

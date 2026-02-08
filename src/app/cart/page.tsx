@@ -491,7 +491,7 @@ export default function CartPage() {
                                                 fetchStoreComparison();
                                                 setShowStoreComparison(!showStoreComparison);
                                             }}
-                                            className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors mb-1"
+                                            className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors mb-1 touch-manipulation"
                                         >
                                             Compară
                                         </button>
@@ -586,10 +586,10 @@ export default function CartPage() {
                                                         </div>
                                                         <button
                                                             onClick={() => removeCartItem(item.ingredientName)}
-                                                            className="p-1.5 -mr-1.5 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100"
+                                                            className="p-2 -mr-2 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100 touch-manipulation"
                                                             title="Șterge din listă"
                                                         >
-                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                             </svg>
                                                         </button>
@@ -623,7 +623,7 @@ export default function CartPage() {
                                                         {!isOwned && item.matchedProduct && (
                                                             <button
                                                                 onClick={() => fetchAlternatives(item.ingredientName, item.matchedProduct?.price || 0)}
-                                                                className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 px-2 py-1.5 rounded-lg transition-colors"
+                                                                className="text-xs font-semibold text-primary-600 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 px-3 py-2 rounded-lg transition-colors touch-manipulation"
                                                             >
                                                                 Alternative
                                                             </button>
@@ -632,7 +632,7 @@ export default function CartPage() {
                                                         <button
                                                             onClick={() => toggleOwned(item.ingredientName)}
                                                             className={cn(
-                                                                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                                                                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all border touch-manipulation",
                                                                 isOwned
                                                                     ? "bg-primary-100 text-primary-700 border-primary-200"
                                                                     : "bg-white text-neutral-500 border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50"
@@ -660,7 +660,7 @@ export default function CartPage() {
                     </div>
 
                     {/* RIGHT COLUMN - Summary Sidebar (Desktop Stick) */}
-                    <div className="hidden lg:block lg:col-span-4 sticky top-6 space-y-4">
+                    <div className="hidden lg:block lg:col-span-4 sticky top-20 space-y-4">
 
                         {/* Summary Card */}
                         <div className="bg-white rounded-2xl p-6 border border-neutral-100 shadow-card">
@@ -756,7 +756,7 @@ export default function CartPage() {
                             </div>
                             <button
                                 onClick={() => setShowStoreComparison(false)}
-                                className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
+                                className="w-10 h-10 flex items-center justify-center hover:bg-neutral-100 rounded-full transition-colors touch-manipulation"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -836,7 +836,7 @@ export default function CartPage() {
                             </div>
                             <button
                                 onClick={() => setSwapModalOpen(false)}
-                                className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
+                                className="w-10 h-10 flex items-center justify-center hover:bg-neutral-100 rounded-full transition-colors touch-manipulation"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -854,7 +854,32 @@ export default function CartPage() {
                                     {alternatives.map((alt) => (
                                         <button
                                             key={alt.id}
-                                            onClick={() => setSwapModalOpen(false)}
+                                            onClick={() => {
+                                                // Actually swap the matched product in the cart
+                                                setCartItems(prev => {
+                                                    const next = prev.map(item => {
+                                                        if (item.ingredientName === swapIngredient) {
+                                                            return {
+                                                                ...item,
+                                                                matchedProduct: {
+                                                                    id: alt.id,
+                                                                    name: alt.name,
+                                                                    price: alt.price,
+                                                                    originalPrice: alt.originalPrice,
+                                                                    discount: alt.discount,
+                                                                    store: alt.store,
+                                                                    unit: alt.unit,
+                                                                    catalogPageImage: null,
+                                                                },
+                                                            };
+                                                        }
+                                                        return item;
+                                                    });
+                                                    persistCart(next);
+                                                    return next;
+                                                });
+                                                setSwapModalOpen(false);
+                                            }}
                                             className="w-full p-4 bg-neutral-50 hover:bg-primary-50 rounded-xl text-left transition-colors border border-transparent hover:border-primary-100"
                                         >
                                             <div className="flex items-center justify-between">

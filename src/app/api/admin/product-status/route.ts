@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export async function GET() {
         });
 
     } catch (error) {
-        console.error('Error reading product extractor status:', error);
+        logger.error('Error reading product extractor status', { error }, 'AdminStatus');
         return NextResponse.json(
             { success: false, error: 'Failed to read status' },
             { status: 500 }

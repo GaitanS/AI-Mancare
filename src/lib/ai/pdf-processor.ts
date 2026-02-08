@@ -9,6 +9,7 @@ import path from 'path';
 import type { ExtractedProduct } from '@/types';
 import { retry, sleep } from '@/lib/utils';
 import puppeteer from 'puppeteer';
+import { logger } from '@/lib/logger';
 
 // OpenRouter client (OpenAI-compatible API)
 const openrouter = new OpenAI({
@@ -186,8 +187,7 @@ export async function processCatalog(catalogId: string): Promise<{
   productsExtracted: number;
   errors: string[];
 }> {
-  const { PrismaClient } = await import('@prisma/client');
-  const prisma = new PrismaClient();
+  const { default: prisma } = await import('@/lib/db');
   let browser = null;
 
   const errors: string[] = [];
@@ -273,11 +273,62 @@ export async function processCatalog(catalogId: string): Promise<{
 
         console.log(`[PROCESSOR] Extracted ${products.length} products from page ${i + 1}`);
 
-        // Insert products to database
-        for (const product of products) {
+        // Validate and filter products
+        const validProducts = products.filter((p) => {
+          if (!p.name || p.name.trim().length < 2) {
+            console.warn(`[PROCESSOR] Skipping product with invalid name: "${p.name}"`);
+            return false;
+          }
+          if (typeof p.price !== 'number' || p.price <= 0.1 || p.price > 5000) {
+            console.warn(`[PROCESSOR] Skipping "${p.name}" with invalid price: ${p.price}`);
+            return false;
+          }
+          if (p.original_price != null && (p.original_price <= 0 || p.original_price > 10000)) {
+            p.original_price = null;
+            p.discount_percentage = null;
+          }
+          if (p.discount_percentage != null && (p.discount_percentage < 1 || p.discount_percentage > 95)) {
+            p.discount_percentage = null;
+          }
+          if (!p.category || p.category.trim().length === 0) {
+            p.category = 'Altele';
+          }
+          if (!p.unit || p.unit.trim().length === 0) {
+            p.unit = 'buc';
+          }
+          return true;
+        });
+
+        if (validProducts.length < products.length) {
+          console.log(`[PROCESSOR] Filtered out ${products.length - validProducts.length} invalid products`);
+        }
+
+        // Dedup: check which products already exist for this catalog
+        const existingProducts = await prisma.product.findMany({
+          where: {
+            catalogId: catalogId,
+            catalogPage: i + 1,
+          },
+          select: { name: true, price: true },
+        });
+        const existingSet = new Set(
+          existingProducts.map((p: { name: string; price: any }) => `${p.name.toLowerCase()}|${Number(p.price)}`)
+        );
+
+        const newProducts = validProducts.filter((p) => {
+          const key = `${p.name.toLowerCase()}|${p.price}`;
+          return !existingSet.has(key);
+        });
+
+        if (newProducts.length < validProducts.length) {
+          console.log(`[PROCESSOR] Skipped ${validProducts.length - newProducts.length} duplicate products`);
+        }
+
+        // Batch insert products with catalog linkage
+        if (newProducts.length > 0) {
           try {
-            await prisma.product.create({
-              data: {
+            const result = await prisma.product.createMany({
+              data: newProducts.map((product) => ({
                 name: product.name,
                 brand: product.brand || null,
                 category: product.category,
@@ -290,13 +341,18 @@ export async function processCatalog(catalogId: string): Promise<{
                 validFrom: catalog.validFrom,
                 validUntil: catalog.validUntil,
                 sourceUrl: catalog.pdfUrl,
+                catalogId: catalogId,
+                catalogPage: i + 1,
                 nutritionalInfo: product.nutritionalInfo ? JSON.stringify(product.nutritionalInfo) : null,
                 allergens: product.allergens ? JSON.stringify(product.allergens) : null,
-              },
+              })),
+              skipDuplicates: true,
             });
-            productsExtracted++;
+            productsExtracted += result.count;
+            console.log(`[PROCESSOR] Inserted ${result.count} products from page ${i + 1}`);
           } catch (dbError) {
-            console.error(`[PROCESSOR] Failed to insert product: ${(dbError as any).message}`);
+            console.error(`[PROCESSOR] Batch insert failed for page ${i + 1}: ${(dbError as any).message}`);
+            errors.push(`DB insert failed on page ${i + 1}: ${(dbError as any).message}`);
           }
         }
 
@@ -316,13 +372,23 @@ export async function processCatalog(catalogId: string): Promise<{
       }
     }
 
-    // Mark as completed
+    // Build localImages list from saved files
+    const savedImages: string[] = [];
+    for (let i = 0; i < totalPages; i++) {
+      const pageNum = String(i + 1).padStart(2, '0');
+      savedImages.push(`page-${pageNum}.jpg`);
+    }
+
+    // Mark as completed and update image paths
     await prisma.catalog.update({
       where: { id: catalogId },
       data: {
         status: 'COMPLETED',
         processingCompletedAt: new Date(),
+        productsExtractedAt: new Date(),
         processingErrors: errors.length > 0 ? JSON.stringify({ errors }) : null,
+        imageBasePath: `/catalog-images/${catalog.store}`,
+        localImages: JSON.stringify(savedImages),
       },
     });
 
@@ -349,7 +415,6 @@ export async function processCatalog(catalogId: string): Promise<{
     };
   } finally {
     if (browser) await browser.close();
-    await prisma.$disconnect();
   }
 }
 

@@ -2,11 +2,11 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-    title: 'Despre Noi - Echipa CatalogSmart | Povestea Noastră',
+    title: 'Despre Noi - Povestea Noastră',
     description: 'Află povestea CatalogSmart - platforma care te ajută să economisești la cumpărături. Suntem o echipă pasionată de tehnologie și gătit economic.',
     keywords: 'despre catalogsmart, echipa, cine suntem, misiune, poveste',
     openGraph: {
-        title: 'Despre Noi - Echipa CatalogSmart',
+        title: 'Despre Noi',
         description: 'Află povestea CatalogSmart - platforma care te ajută să economisești la cumpărături.',
         type: 'website'
     }

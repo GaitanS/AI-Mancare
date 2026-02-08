@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Politica de Confidentialitate - Retete Ieftine',
-  description: 'Politica de confidentialitate a platformei Retete Ieftine. Aflati cum colectam, utilizam si protejam datele dumneavoastra personale.',
+  title: 'Politica de Confidentialitate',
+  description: 'Politica de confidentialitate a platformei CatalogSmart. Aflati cum colectam, utilizam si protejam datele dumneavoastra personale.',
+  alternates: {
+    canonical: '/confidentialitate',
+  },
   robots: {
     index: true,
     follow: true,
@@ -37,7 +40,7 @@ export default function ConfidentialitatePage() {
               <section className="mb-8">
                 <h2 className="text-xl font-bold text-foreground mb-4 font-heading">1. Introducere</h2>
                 <p className="text-foreground/80 font-body leading-relaxed mb-4">
-                  Retete Ieftine (&quot;noi&quot;, &quot;al nostru&quot; sau &quot;Platforma&quot;) respecta confidentialitatea utilizatorilor sai.
+                  CatalogSmart (&quot;noi&quot;, &quot;al nostru&quot; sau &quot;Platforma&quot;) respecta confidentialitatea utilizatorilor sai.
                   Aceasta Politica de Confidentialitate explica modul in care colectam, utilizam, stocam si protejam
                   datele dumneavoastra personale atunci cand utilizati platforma noastra.
                 </p>
@@ -151,7 +154,7 @@ export default function ConfidentialitatePage() {
                   <li><strong>Dreptul de retragere a consimtamantului:</strong> in orice moment, fara a afecta legalitatea prelucrarii anterioare</li>
                 </ul>
                 <p className="text-foreground/80 font-body leading-relaxed mt-4">
-                  Pentru a va exercita drepturile, contactati-ne la: <strong>privacy@reteteieftine.ro</strong>
+                  Pentru a va exercita drepturile, contactati-ne la: <strong>privacy@catalogsmart.ro</strong>
                 </p>
               </section>
 
@@ -190,7 +193,7 @@ export default function ConfidentialitatePage() {
                   Pentru orice intrebari legate de protectia datelor personale:
                 </p>
                 <ul className="list-none mt-4 space-y-2 text-foreground/80 font-body">
-                  <li><strong>Email:</strong> privacy@reteteieftine.ro</li>
+                  <li><strong>Email:</strong> privacy@catalogsmart.ro</li>
                   <li><strong>Pagina de contact:</strong> <a href="/contact" className="text-primary-600 hover:text-primary-700">/contact</a></li>
                 </ul>
               </section>

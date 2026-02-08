@@ -2,11 +2,14 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-    title: 'Întrebări Frecvente (FAQ) | CatalogSmart - Ajutor și Suport',
+    title: 'Întrebări Frecvente (FAQ) - Ajutor și Suport',
     description: 'Răspunsuri la cele mai frecvente întrebări despre CatalogSmart. Află cum să folosești platforma, cum economisești și cum funcționează compararea prețurilor.',
     keywords: 'faq catalogsmart, întrebări frecvente, ajutor, suport, cum funcționează',
+    alternates: {
+        canonical: '/faq',
+    },
     openGraph: {
-        title: 'FAQ - Întrebări Frecvente | CatalogSmart',
+        title: 'FAQ - Întrebări Frecvente',
         description: 'Găsește răspunsuri la cele mai frecvente întrebări despre CatalogSmart.',
         type: 'website'
     }
@@ -106,13 +109,13 @@ const faqs = [
 
 export default function FAQPage() {
     return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-            {/* Hero */}
-            <section className="text-center mb-12">
-                <h1 className="text-4xl font-bold mb-4 text-stone-800">
+        <div className="container mx-auto px-4 py-4 md:py-8 max-w-4xl">
+            {/* Hero - Compact on Mobile */}
+            <section className="text-center mb-6 md:mb-12">
+                <h1 className="text-xl md:text-4xl font-bold mb-2 md:mb-4 text-stone-800">
                     Întrebări Frecvente
                 </h1>
-                <p className="text-xl text-stone-600">
+                <p className="text-sm md:text-xl text-stone-600">
                     Găsește răspunsuri rapide la cele mai comune întrebări
                 </p>
             </section>

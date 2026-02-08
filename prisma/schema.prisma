@@ -48,6 +48,8 @@ model Product {
   @@index([category])
   @@index([validFrom, validUntil])
   @@index([catalogId])
+  @@index([store, validFrom, validUntil])
+  @@index([category, validFrom, validUntil])
 
   @@map("products")
 }
@@ -88,6 +90,9 @@ model Recipe {
   metaDescription String? @map("meta_description") @db.Text
   tags            String? @db.Text
 
+  // Popularity
+  viewCount   Int     @default(0) @map("view_count")
+
   // Status
   isPublished Boolean @default(false) @map("is_published")
   isFeatured  Boolean @default(false) @map("is_featured")
@@ -110,6 +115,10 @@ model Recipe {
   @@index([isDairyFree])
   @@index([isVegan])
   @@index([isVegetarian])
+  @@index([viewCount])
+  @@index([totalTime])
+  @@index([estimatedCost])
+  @@index([isPublished, createdAt])
 
   @@map("recipes")
 }
@@ -420,5 +429,215 @@ model ScheduleConfig {
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   @@map("schedule_configs")
+}
+
+// ==========================================
+// SCRAPING PROCESS TABLE (Process Definitions)
+// ==========================================
+model ScrapingProcess {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  type        String   // catalog, product, recipe, image, custom
+
+  // Script/Command to run
+  script      String   // e.g., "cron-scraper.js", "cron-recipe-generator.js"
+
+  // Configuration (JSON)
+  config      String?  @db.Text // stores to scrape, AI prompts, etc.
+
+  // Scheduling
+  cronSchedule String? @map("cron_schedule")
+  enabled     Boolean  @default(true)
+
+  // Display order in admin
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  // Icon/color for UI
+  icon        String   @default("📦")
+  color       String   @default("blue")
+
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  runs        ProcessRun[]
+
+  @@index([type])
+  @@index([enabled])
+  @@index([sortOrder])
+
+  @@map("scraping_processes")
+}
+
+// ==========================================
+// PROCESS RUN TABLE (Execution Queue & History)
+// ==========================================
+model ProcessRun {
+  id          String   @id @default(uuid())
+  processId   String   @map("process_id")
+
+  // Status
+  status      String   @default("queued") // queued, running, completed, failed, cancelled
+
+  // Timing
+  queuedAt    DateTime @default(now()) @map("queued_at")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  // Progress (JSON)
+  progress    String?  @db.Text // {current: 5, total: 10, message: "Processing..."}
+
+  // Result (JSON)
+  result      String?  @db.Text // {productsFound: 150, catalogsProcessed: 5, ...}
+
+  // Logs
+  logs        String?  @db.LongText
+
+  // Error info
+  error       String?  @db.Text
+
+  // Process PID for killing
+  pid         Int?
+
+  // Who triggered it
+  triggeredBy String?  @default("manual") @map("triggered_by") // manual, schedule, api
+
+  // Relations
+  process     ScrapingProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@index([processId])
+  @@index([status])
+  @@index([queuedAt])
+  @@index([startedAt])
+  // Compound indexes for common query patterns
+  @@index([status, queuedAt])           // Queue worker: findFirst status='queued' ORDER BY queuedAt
+  @@index([processId, status, completedAt]) // Last run queries per process
+
+  @@map("process_runs")
+}
+
+// ==========================================
+// STORE TABLE (Store Configuration)
+// ==========================================
+model Store {
+  id            String   @id @default(uuid())
+  name          String   // Display name: "Kaufland"
+  slug          String   @unique // URL-friendly: "kaufland"
+
+  // Scraping configuration
+  scraperUrl    String?  @map("scraper_url") @db.Text // Base URL for scraping
+  logoUrl       String?  @map("logo_url") @db.Text
+
+  // Configuration (JSON) - selectors, custom settings
+  config        String?  @db.Text
+
+  // Status
+  enabled       Boolean  @default(true)
+
+  // Last scrape info
+  lastScrapedAt DateTime? @map("last_scraped_at")
+  lastProductCount Int?   @map("last_product_count")
+
+  // Display order
+  sortOrder     Int      @default(0) @map("sort_order")
+
+  // Timestamps
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([enabled])
+  @@index([sortOrder])
+
+  @@map("stores")
+}
+
+// ==========================================
+// ADMIN SESSION TABLE (JWT Session Tracking)
+// ==========================================
+model AdminSession {
+  id          String   @id @default(uuid())
+  token       String   @unique @db.VarChar(500)
+
+  // Session info
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent") @db.Text
+
+  // Timing
+  createdAt   DateTime @default(now()) @map("created_at")
+  expiresAt   DateTime @map("expires_at")
+  lastUsedAt  DateTime @default(now()) @map("last_used_at")
+
+  // Revocation
+  isRevoked   Boolean  @default(false) @map("is_revoked")
+
+  @@index([token])
+  @@index([expiresAt])
+  @@index([isRevoked])
+
+  @@map("admin_sessions")
+}
+
+// ==========================================
+// USER INTERACTION TABLE (for recommendations)
+// ==========================================
+model UserInteraction {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  recipeId  String?  @map("recipe_id")
+  productId String?  @map("product_id")
+  type      String   // 'view', 'cart_add', 'cook', 'search'
+  metadata  String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([sessionId, type])
+  @@index([recipeId])
+  @@index([productId])
+  @@index([createdAt])
+  @@index([sessionId, recipeId])
+
+  @@map("user_interactions")
+}
+
+// ==========================================
+// AUDIT LOG TABLE (Admin Action Tracking)
+// ==========================================
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String   // CREATE, UPDATE, DELETE, TOGGLE, BULK_DELETE
+  entity    String   // product, recipe, catalog, store, process, schedule
+  entityId  String   @map("entity_id")
+  changes   String?  @db.Text  // JSON: {"field": {"old": x, "new": y}}
+  details   String?  @db.Text
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ==========================================
+// AI BUDGET TABLE (Cost Tracking)
+// ==========================================
+model AiBudget {
+  id                 String   @id @default(uuid())
+  operation          String   // recipe_generation, image_generation, semantic_search
+  model              String
+  inputTokens        Int      @map("input_tokens")
+  outputTokens       Int      @map("output_tokens")
+  totalTokens        Int      @map("total_tokens")
+  estimatedCostCents Int      @map("estimated_cost_cents")
+  duration           Int      // ms
+  recipeId           String?  @map("recipe_id")
+  processRunId       String?  @map("process_run_id")
+  metadata           String?  @db.Text
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([operation, createdAt])
+  @@index([createdAt])
+  @@map("ai_budget")
 }
 

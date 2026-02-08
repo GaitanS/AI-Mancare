@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
     try {
@@ -24,7 +25,7 @@ export async function GET() {
             });
         }
     } catch (error) {
-        console.error('Failed to get scraper status:', error);
+        logger.error('Failed to get scraper status', { error }, 'AdminStatus');
         return NextResponse.json({
             running: false,
             error: error instanceof Error ? error.message : 'Unknown error'

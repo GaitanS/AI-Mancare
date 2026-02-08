@@ -147,11 +147,6 @@ function generateRecipeSchema(recipe: RecipeSEOInput) {
         author: {
             '@type': 'Organization',
             name: 'CatalogSmart'
-        },
-        aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: '4.5',
-            reviewCount: '50'
         }
     }
 }

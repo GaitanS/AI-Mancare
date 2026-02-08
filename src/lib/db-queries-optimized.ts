@@ -65,13 +65,12 @@ export async function getBestOffersByCategory(category: string, limit = 20) {
 }
 
 /**
- * Full-text search products (MySQL compatible)
+ * Full-text search products (PostgreSQL)
  */
 export async function searchProducts(query: string, limit = 30) {
   return trackQuery('searchProducts', async () => {
     const now = new Date();
 
-    // MySQL full-text search using contains (case-insensitive)
     return prisma.product.findMany({
       where: {
         AND: [
@@ -141,7 +140,7 @@ export async function getBudgetRecipes(maxCost: number, limit = 20) {
 }
 
 /**
- * Search recipes (MySQL compatible)
+ * Search recipes (PostgreSQL)
  */
 export async function searchRecipes(query: string, limit = 20) {
   return trackQuery('searchRecipes', async () => {
@@ -280,18 +279,17 @@ export async function getCategoryStats() {
   return trackQuery('getCategoryStats', async () => {
     const now = new Date();
 
-    // Folosește raw query pentru agregări complexe
     return prisma.$queryRaw<any[]>`
       SELECT
         category,
-        COUNT(*) as productCount,
+        CAST(COUNT(*) AS SIGNED) as productCount,
         AVG(price) as avgPrice,
         MIN(price) as minPrice,
         MAX(price) as maxPrice,
-        AVG(discountPercentage) as avgDiscount
+        AVG(discount_percentage) as avgDiscount
       FROM products
-      WHERE validFrom <= ${now}
-      AND validUntil >= ${now}
+      WHERE valid_from <= ${now}
+      AND valid_until >= ${now}
       GROUP BY category
       ORDER BY productCount DESC
     `;
@@ -308,12 +306,12 @@ export async function getStoreComparison() {
     return prisma.$queryRaw<any[]>`
       SELECT
         store,
-        COUNT(*) as activeOffers,
-        AVG(discountPercentage) as avgDiscount,
-        COUNT(CASE WHEN discountPercentage >= 30 THEN 1 END) as hotDeals
+        CAST(COUNT(*) AS SIGNED) as activeOffers,
+        AVG(discount_percentage) as avgDiscount,
+        CAST(COUNT(CASE WHEN discount_percentage >= 30 THEN 1 END) AS SIGNED) as hotDeals
       FROM products
-      WHERE validFrom <= ${now}
-      AND validUntil >= ${now}
+      WHERE valid_from <= ${now}
+      AND valid_until >= ${now}
       GROUP BY store
       ORDER BY activeOffers DESC
     `;

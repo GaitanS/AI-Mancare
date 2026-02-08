@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Termeni si Conditii - Retete Ieftine',
-  description: 'Termenii si conditiile de utilizare a platformei Retete Ieftine. Cititi cu atentie inainte de a utiliza serviciile noastre.',
+  title: 'Termeni si Conditii',
+  description: 'Termenii si conditiile de utilizare a platformei CatalogSmart. Cititi cu atentie inainte de a utiliza serviciile noastre.',
+  alternates: {
+    canonical: '/termeni',
+  },
   robots: {
     index: true,
     follow: true,
@@ -37,7 +40,7 @@ export default function TermeniPage() {
               <section className="mb-8">
                 <h2 className="text-xl font-bold text-foreground mb-4 font-heading">1. Acceptarea Termenilor</h2>
                 <p className="text-foreground/80 font-body leading-relaxed mb-4">
-                  Prin accesarea si utilizarea platformei Retete Ieftine (denumita in continuare &quot;Platforma&quot;), disponibila la adresa reteteieftine.ro,
+                  Prin accesarea si utilizarea platformei CatalogSmart (denumita in continuare &quot;Platforma&quot;), disponibila la adresa catalogsmart.ro,
                   acceptati in totalitate si fara rezerve acesti Termeni si Conditii. Daca nu sunteti de acord cu oricare dintre acesti termeni,
                   va rugam sa nu utilizati Platforma.
                 </p>
@@ -49,7 +52,7 @@ export default function TermeniPage() {
               <section className="mb-8">
                 <h2 className="text-xl font-bold text-foreground mb-4 font-heading">2. Descrierea Serviciilor</h2>
                 <p className="text-foreground/80 font-body leading-relaxed mb-4">
-                  Retete Ieftine este o platforma online care:
+                  CatalogSmart este o platforma online care:
                 </p>
                 <ul className="list-disc pl-6 space-y-2 text-foreground/80 font-body">
                   <li>Agrega si afiseaza oferte si promotii din supermarketuri din Romania (Kaufland, Lidl, Penny, Carrefour, Mega Image, Auchan si altele)</li>
@@ -97,7 +100,7 @@ export default function TermeniPage() {
                 <h2 className="text-xl font-bold text-foreground mb-4 font-heading">5. Proprietate Intelectuala</h2>
                 <p className="text-foreground/80 font-body leading-relaxed mb-4">
                   Tot continutul Platformei, inclusiv dar fara a se limita la texte, grafice, logo-uri, imagini,
-                  design, cod sursa si baze de date, este proprietatea Retete Ieftine sau a licentiatorilor sai
+                  design, cod sursa si baze de date, este proprietatea CatalogSmart sau a licentiatorilor sai
                   si este protejat de legile privind drepturile de autor si proprietatea intelectuala.
                 </p>
                 <p className="text-foreground/80 font-body leading-relaxed">
@@ -108,7 +111,7 @@ export default function TermeniPage() {
               <section className="mb-8">
                 <h2 className="text-xl font-bold text-foreground mb-4 font-heading">6. Limitarea Raspunderii</h2>
                 <p className="text-foreground/80 font-body leading-relaxed mb-4">
-                  In masura maxima permisa de lege, Retete Ieftine nu va fi responsabila pentru:
+                  In masura maxima permisa de lege, CatalogSmart nu va fi responsabila pentru:
                 </p>
                 <ul className="list-disc pl-6 space-y-2 text-foreground/80 font-body">
                   <li>Pierderile sau daunele directe, indirecte sau incidentale rezultate din utilizarea sau imposibilitatea utilizarii Platformei</li>
@@ -160,7 +163,7 @@ export default function TermeniPage() {
                   Pentru intrebari sau clarificari privind acesti Termeni si Conditii, ne puteti contacta la:
                 </p>
                 <ul className="list-none mt-4 space-y-2 text-foreground/80 font-body">
-                  <li><strong>Email:</strong> contact@reteteieftine.ro</li>
+                  <li><strong>Email:</strong> contact@catalogsmart.ro</li>
                   <li><strong>Pagina de contact:</strong> <a href="/contact" className="text-primary-600 hover:text-primary-700">/contact</a></li>
                 </ul>
               </section>

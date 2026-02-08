@@ -1,15 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
+import prisma from '@/lib/db'
 import { logger } from '../logger'
-
-// Late binding to avoid circular dependency
-let prismaInstance: PrismaClient | null = null
-
-function getPrisma(): PrismaClient {
-    if (!prismaInstance) {
-        prismaInstance = new PrismaClient()
-    }
-    return prismaInstance
-}
 
 /**
  * Base repository with common CRUD operations and logging
@@ -19,7 +10,7 @@ export abstract class BaseRepository<T, CreateInput, UpdateInput> {
     protected abstract modelName: string
 
     constructor(db?: PrismaClient) {
-        this.db = db || getPrisma()
+        this.db = db || prisma
     }
 
     /**

@@ -1,8 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(
     request: NextRequest,
@@ -22,100 +21,63 @@ export async function GET(
             );
         }
 
-        // Get catalog details if exists
-        let catalog = null;
-        if (product.catalogId) {
-            catalog = await prisma.catalog.findUnique({
-                where: { id: product.catalogId }
-            });
-        }
+        // Fetch catalog + navigation in parallel (fixes N+1)
+        const [catalog, prevNext] = await Promise.all([
+            product.catalogId
+                ? prisma.catalog.findUnique({ where: { id: product.catalogId } })
+                : null,
+            product.catalogId
+                ? prisma.product.findMany({
+                    where: { catalogId: product.catalogId, id: { not: product.id } },
+                    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+                    select: { id: true, name: true, catalogPage: true, createdAt: true }
+                })
+                : null,
+        ]);
 
-        // Get Previous and Next products from the same catalog (for navigation)
+        // Build navigation from the single sorted query
         let navigation: {
             prev: { id: string; name: string; catalogPage: number | null } | null;
             next: { id: string; name: string; catalogPage: number | null } | null;
         } = { prev: null, next: null };
 
-        if (product.catalogId) {
-            // Find previous product (robust logic: older created OR same created but smaller ID)
-            let prev = await prisma.product.findFirst({
-                where: {
-                    catalogId: product.catalogId,
-                    OR: [
-                        { createdAt: { lt: product.createdAt } },
-                        {
-                            createdAt: product.createdAt,
-                            id: { lt: product.id }
-                        }
-                    ]
-                },
-                orderBy: [
-                    { createdAt: 'desc' },
-                    { id: 'desc' }
-                ],
-                select: { id: true, name: true, catalogPage: true }
-            });
+        if (prevNext && prevNext.length > 0) {
+            // Find insertion point of current product in the sorted list
+            let prevItem: typeof prevNext[0] | null = null;
+            let nextItem: typeof prevNext[0] | null = null;
 
-            // Circular Navigation: If no previous, wrap to the last product
-            if (!prev) {
-                prev = await prisma.product.findFirst({
-                    where: { catalogId: product.catalogId, id: { not: product.id } },
-                    orderBy: [
-                        { createdAt: 'desc' },
-                        { id: 'desc' }
-                    ],
-                    select: { id: true, name: true, catalogPage: true }
-                });
+            for (const item of prevNext) {
+                if (
+                    item.createdAt < product.createdAt ||
+                    (item.createdAt.getTime() === product.createdAt.getTime() && item.id < product.id)
+                ) {
+                    prevItem = item; // Keep updating - last one before current = direct prev
+                } else if (!nextItem) {
+                    nextItem = item; // First one after current = direct next
+                }
             }
 
-            // Find next product (robust logic: newer created OR same created but larger ID)
-            let next = await prisma.product.findFirst({
-                where: {
-                    catalogId: product.catalogId,
-                    OR: [
-                        { createdAt: { gt: product.createdAt } },
-                        {
-                            createdAt: product.createdAt,
-                            id: { gt: product.id }
-                        }
-                    ]
-                },
-                orderBy: [
-                    { createdAt: 'asc' },
-                    { id: 'asc' }
-                ],
-                select: { id: true, name: true, catalogPage: true }
-            });
-
-            // Circular Navigation: If no next, wrap to the first product
-            if (!next) {
-                next = await prisma.product.findFirst({
-                    where: { catalogId: product.catalogId, id: { not: product.id } },
-                    orderBy: [
-                        { createdAt: 'asc' },
-                        { id: 'asc' }
-                    ],
-                    select: { id: true, name: true, catalogPage: true }
-                });
-            }
-
-            navigation = { prev, next };
+            // Circular navigation: wrap around
+            navigation = {
+                prev: prevItem
+                    ? { id: prevItem.id, name: prevItem.name, catalogPage: prevItem.catalogPage }
+                    : { id: prevNext[prevNext.length - 1].id, name: prevNext[prevNext.length - 1].name, catalogPage: prevNext[prevNext.length - 1].catalogPage },
+                next: nextItem
+                    ? { id: nextItem.id, name: nextItem.name, catalogPage: nextItem.catalogPage }
+                    : { id: prevNext[0].id, name: prevNext[0].name, catalogPage: prevNext[0].catalogPage },
+            };
         }
 
-        // Parse localImages from catalog to get the full list of pages
+        // Parse localImages from catalog
         let catalogImages: string[] = [];
         if (catalog && catalog.localImages) {
             try {
-                // localImages is stored as a JSON string of filenames
                 const images = JSON.parse(catalog.localImages);
-                // Create full paths based on imageBasePath
-                // The images are typically just filenames like "page-001.jpg"
-                // imageBasePath is like "/catalogs/store/id-"
                 if (Array.isArray(images) && catalog.imageBasePath) {
                     catalogImages = images.map(img => `${catalog.imageBasePath}/${img}`);
                 }
-            } catch (e) {
-                console.error('Failed to parse localImages', e);
+            } catch {
+                // Silently ignore malformed JSON
             }
         }
 
@@ -134,7 +96,7 @@ export async function GET(
         });
 
     } catch (error) {
-        console.error('Error fetching product:', error);
+        logger.error('Error fetching product', { error }, 'ProductsAPI');
         return NextResponse.json(
             { error: 'Internal Server Error' },
             { status: 500 }

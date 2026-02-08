@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     canonical: '/cataloage',
   },
   openGraph: {
-    title: 'Oferte & Cataloage - CatalogSmart',
+    title: 'Oferte & Cataloage - Cele mai bune reduceri',
     description: 'Cele mai bune reduceri din supermarketuri, extrase din cataloagele actuale.',
     url: '/cataloage',
   },
@@ -113,18 +113,34 @@ async function getProducts(filters: ProductFilters, page: number, pageSize: numb
       prisma.product.count({ where }),
     ]);
 
+    // Fetch catalog data for catalog page images
+    const catalogIds = [...new Set(products.map((p: any) => p.catalogId).filter(Boolean))];
+    const catalogs = catalogIds.length > 0 ? await prisma.catalog.findMany({
+      where: { id: { in: catalogIds } },
+      select: { id: true, imageBasePath: true },
+    }) : [];
+    const catalogMap = new Map(catalogs.map((c: any) => [c.id, c.imageBasePath]));
+
     return {
-      products: products.map((p: any) => ({
-        ...p,
-        price: Number(p.price),
-        originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-        validFrom: p.validFrom.toISOString(),
-        validUntil: p.validUntil.toISOString(),
-        createdAt: p.createdAt.toISOString(),
-        updatedAt: p.updatedAt.toISOString(),
-        nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-        allergens: p.allergens as string[] | null,
-      })),
+      products: products.map((p: any) => {
+        const imageBasePath = p.catalogId ? catalogMap.get(p.catalogId) : null;
+        const catalogPageImage = imageBasePath && p.catalogPage
+          ? `${imageBasePath}/page-${String(p.catalogPage).padStart(2, '0')}.webp`
+          : null;
+        return {
+          ...p,
+          price: Number(p.price),
+          originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+          validFrom: p.validFrom.toISOString(),
+          validUntil: p.validUntil.toISOString(),
+          createdAt: p.createdAt.toISOString(),
+          updatedAt: p.updatedAt.toISOString(),
+          nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
+          allergens: p.allergens as string[] | null,
+          catalogPageImage,
+          catalogPageNumber: p.catalogPage,
+        };
+      }),
       total,
       totalPages: Math.ceil(total / pageSize),
     };
@@ -251,22 +267,22 @@ export default async function OfertePage({ searchParams }: PageProps) {
           {/* Grid pattern */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px]" />
 
-          <div className="relative container-custom py-8 md:py-10 z-10">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="relative container-custom py-4 md:py-10 z-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-6">
               <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-orange-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="flex items-center gap-2 md:gap-3 mb-1.5 md:mb-3">
+                  <div className="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-primary-500 to-orange-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
+                    <svg className="w-3 h-3 md:w-4 md:h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                     </svg>
                   </div>
-                  <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Oferte & Reduceri</span>
+                  <span className="text-white/80 text-[10px] md:text-xs font-semibold tracking-wide uppercase">Oferte & Reduceri</span>
                 </div>
-                <h1 className="font-display text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
+                <h1 className="font-display text-xl md:text-4xl font-bold text-white mb-1 md:mb-2 leading-tight">
                   Oferte Speciale
                 </h1>
-                <p className="text-neutral-400 text-sm md:text-base max-w-lg">
-                  Cele mai bune oferte din supermarketurile din România, actualizate zilnic.
+                <p className="text-neutral-400 text-xs md:text-base max-w-lg">
+                  Cele mai bune oferte din supermarketurile din România.
                 </p>
               </div>
             </div>

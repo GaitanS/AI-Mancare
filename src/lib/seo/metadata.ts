@@ -240,12 +240,6 @@ export function generateRecipeStructuredData(recipe: {
       text: step.text || step,
     })),
 
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.5',
-      ratingCount: '0',
-    },
-
     author: {
       '@type': 'Organization',
       name: SITE_CONFIG.name,

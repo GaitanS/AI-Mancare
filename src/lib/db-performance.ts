@@ -3,6 +3,7 @@
  */
 
 import { prisma } from './db-config';
+import { logger } from '@/lib/logger';
 
 /**
  * Monitorizare query performance
@@ -81,7 +82,7 @@ export async function trackQuery<T>(
     performanceMonitor.logQuery(queryName, duration);
 
     if (duration > 1000) {
-      console.warn(`Slow query detected: ${queryName} took ${duration}ms`);
+      logger.warn(`Slow query detected: ${queryName} took ${duration}ms`, { queryName, duration }, 'DBPerformance');
     }
 
     return result;
@@ -93,110 +94,109 @@ export async function trackQuery<T>(
 }
 
 /**
- * Analyze database table sizes
+ * Analyze database table sizes (PostgreSQL)
  */
 export async function analyzeTableSizes() {
   try {
     const result = await prisma.$queryRaw<any[]>`
       SELECT
-        table_name AS tableName,
-        ROUND(((data_length + index_length) / 1024 / 1024), 2) AS sizeMB,
-        table_rows AS rowCount,
-        ROUND((index_length / 1024 / 1024), 2) AS indexSizeMB
-      FROM information_schema.TABLES
-      WHERE table_schema = DATABASE()
-      ORDER BY (data_length + index_length) DESC
+        relname AS "tableName",
+        ROUND(pg_total_relation_size(C.oid) / 1024.0 / 1024.0, 2) AS "sizeMB",
+        C.reltuples::bigint AS "rowCount",
+        ROUND(pg_indexes_size(C.oid) / 1024.0 / 1024.0, 2) AS "indexSizeMB"
+      FROM pg_class C
+      LEFT JOIN pg_namespace N ON N.oid = C.relnamespace
+      WHERE nspname = 'public'
+      AND C.relkind = 'r'
+      ORDER BY pg_total_relation_size(C.oid) DESC
     `;
 
     return result;
   } catch (error) {
-    console.error('Failed to analyze table sizes:', error);
+    logger.error('Failed to analyze table sizes', { error }, 'DBPerformance');
     return [];
   }
 }
 
 /**
- * Analyze slow queries from MySQL slow query log
+ * Analyze slow queries from PostgreSQL pg_stat_statements
  */
 export async function getSlowQueriesFromDB() {
   try {
     const result = await prisma.$queryRaw<any[]>`
       SELECT
-        query_time,
-        lock_time,
-        rows_sent,
-        rows_examined,
-        sql_text
-      FROM mysql.slow_log
-      ORDER BY query_time DESC
+        total_exec_time AS query_time,
+        rows AS rows_sent,
+        calls,
+        query AS sql_text
+      FROM pg_stat_statements
+      ORDER BY total_exec_time DESC
       LIMIT 20
     `;
 
     return result;
   } catch (error) {
-    // Slow query log might not be enabled
+    // pg_stat_statements extension might not be enabled
     return [];
   }
 }
 
 /**
- * Check for missing indexes
+ * Check for missing indexes (tables with seq scans but no index scans)
  */
 export async function checkMissingIndexes() {
   try {
     const result = await prisma.$queryRaw<any[]>`
       SELECT
-        object_schema as dbName,
-        object_name as tableName,
-        index_name as indexName
-      FROM performance_schema.table_io_waits_summary_by_index_usage
-      WHERE index_name IS NULL
-      AND count_star > 0
-      AND object_schema = DATABASE()
-      ORDER BY count_star DESC
+        schemaname AS "dbName",
+        relname AS "tableName",
+        seq_scan,
+        idx_scan
+      FROM pg_stat_user_tables
+      WHERE seq_scan > 0
+      AND (idx_scan IS NULL OR idx_scan = 0)
+      ORDER BY seq_scan DESC
       LIMIT 10
     `;
 
     return result;
   } catch (error) {
-    console.error('Failed to check missing indexes:', error);
+    logger.error('Failed to check missing indexes', { error }, 'DBPerformance');
     return [];
   }
 }
 
 /**
- * Get database cache hit ratio
+ * Get database cache hit ratio (PostgreSQL)
  */
 export async function getCacheHitRatio() {
   try {
     const result = await prisma.$queryRaw<any[]>`
-      SHOW GLOBAL STATUS WHERE
-        Variable_name IN (
-          'Innodb_buffer_pool_read_requests',
-          'Innodb_buffer_pool_reads'
-        )
+      SELECT
+        SUM(heap_blks_read) AS disk_reads,
+        SUM(heap_blks_hit) AS cache_hits,
+        CASE WHEN SUM(heap_blks_hit) + SUM(heap_blks_read) > 0
+          THEN ROUND(SUM(heap_blks_hit)::numeric / (SUM(heap_blks_hit) + SUM(heap_blks_read)) * 100, 2)
+          ELSE 0
+        END AS hit_ratio
+      FROM pg_statio_user_tables
     `;
 
-    const readRequests = result.find((r: any) => r.Variable_name === 'Innodb_buffer_pool_read_requests')?.Value || 0;
-    const reads = result.find((r: any) => r.Variable_name === 'Innodb_buffer_pool_reads')?.Value || 0;
-
-    const hitRatio = readRequests > 0
-      ? ((readRequests - reads) / readRequests) * 100
-      : 0;
+    const row = result[0];
 
     return {
-      hitRatio: hitRatio.toFixed(2) + '%',
-      readRequests: Number(readRequests),
-      diskReads: Number(reads),
+      hitRatio: (row?.hit_ratio || 0) + '%',
+      readRequests: Number(row?.cache_hits || 0) + Number(row?.disk_reads || 0),
+      diskReads: Number(row?.disk_reads || 0),
     };
   } catch (error) {
-    console.error('Failed to get cache hit ratio:', error);
+    logger.error('Failed to get cache hit ratio', { error }, 'DBPerformance');
     return null;
   }
 }
 
 /**
- * Optimize tables (ANALYZE TABLE)
+ * Optimize tables (PostgreSQL ANALYZE)
  */
 export async function optimizeTables() {
   const tables = ['products', 'catalogs', 'recipes', 'weekly_menus', 'cache'];
@@ -205,7 +205,7 @@ export async function optimizeTables() {
 
   for (const table of tables) {
     try {
-      await prisma.$executeRawUnsafe(`ANALYZE TABLE ${table}`);
+      await prisma.$executeRawUnsafe(`ANALYZE "${table}"`);
       results.push({ table, status: 'optimized' });
     } catch (error) {
       results.push({
@@ -220,25 +220,25 @@ export async function optimizeTables() {
 }
 
 /**
- * Get index usage statistics
+ * Get index usage statistics (PostgreSQL)
  */
 export async function getIndexUsageStats(tableName: string) {
   try {
     const result = await prisma.$queryRaw<any[]>`
       SELECT
-        INDEX_NAME as indexName,
-        CARDINALITY as cardinality,
-        SEQ_IN_INDEX as seqInIndex,
-        COLUMN_NAME as columnName
-      FROM information_schema.STATISTICS
-      WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = ${tableName}
-      ORDER BY INDEX_NAME, SEQ_IN_INDEX
+        indexrelname AS "indexName",
+        idx_scan AS "scanCount",
+        idx_tup_read AS "tuplesRead",
+        idx_tup_fetch AS "tuplesFetched",
+        pg_size_pretty(pg_relation_size(indexrelid)) AS "indexSize"
+      FROM pg_stat_user_indexes
+      WHERE relname = ${tableName}
+      ORDER BY idx_scan DESC
     `;
 
     return result;
   } catch (error) {
-    console.error(`Failed to get index stats for ${tableName}:`, error);
+    logger.error(`Failed to get index stats for ${tableName}`, { error, tableName }, 'DBPerformance');
     return [];
   }
 }

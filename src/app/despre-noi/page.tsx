@@ -5,7 +5,7 @@ import path from 'path';
 import { generateOrganizationSchema, generateBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
-    title: 'Despre Noi | CatalogSmart',
+    title: 'Despre Noi',
     description: 'Află povestea CatalogSmart - platforma care te ajută să economisești bani la cumpărături prin compararea prețurilor din toate supermarketurile din România.',
     alternates: {
         canonical: '/despre-noi',
@@ -73,12 +73,12 @@ export default async function DespreNoiPage() {
             />
 
             <div className="min-h-screen bg-white">
-                {/* Hero */}
-                <section className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white py-20">
+                {/* Hero - Compact on Mobile */}
+                <section className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white py-6 md:py-20">
                     <div className="container-custom">
                         <div className="max-w-3xl mx-auto text-center">
-                            {/* Breadcrumb */}
-                            <nav className="mb-6 text-sm">
+                            {/* Breadcrumb - Hidden on mobile */}
+                            <nav className="hidden md:block mb-6 text-sm">
                                 <ol className="flex items-center justify-center gap-2 text-neutral-400">
                                     <li><Link href="/" className="hover:text-white">Acasă</Link></li>
                                     <li>/</li>
@@ -86,28 +86,28 @@ export default async function DespreNoiPage() {
                                 </ol>
                             </nav>
 
-                            <p className="text-primary-400 font-semibold mb-2">{subtitle}</p>
-                            <h1 className="font-display text-4xl md:text-5xl font-bold mb-6">{title}</h1>
-                            <p className="text-lg text-neutral-300">{description}</p>
+                            <p className="text-primary-400 font-semibold text-xs md:text-base mb-1 md:mb-2">{subtitle}</p>
+                            <h1 className="font-display text-xl md:text-5xl font-bold mb-2 md:mb-6">{title}</h1>
+                            <p className="text-sm md:text-lg text-neutral-300">{description}</p>
                         </div>
                     </div>
                 </section>
 
-                {/* Stats */}
-                <section className="py-12 bg-primary-50">
+                {/* Stats - Compact on Mobile */}
+                <section className="py-6 md:py-12 bg-primary-50">
                     <div className="container-custom">
-                        <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto text-center">
+                        <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto text-center">
                             <div>
-                                <p className="text-3xl font-bold text-primary-600">{stats.magazines}</p>
-                                <p className="text-neutral-600">Magazine</p>
+                                <p className="text-xl md:text-3xl font-bold text-primary-600">{stats.magazines}</p>
+                                <p className="text-xs md:text-base text-neutral-600">Magazine</p>
                             </div>
                             <div>
-                                <p className="text-3xl font-bold text-primary-600">{stats.products}</p>
-                                <p className="text-neutral-600">Produse</p>
+                                <p className="text-xl md:text-3xl font-bold text-primary-600">{stats.products}</p>
+                                <p className="text-xs md:text-base text-neutral-600">Produse</p>
                             </div>
                             <div>
-                                <p className="text-3xl font-bold text-primary-600">{stats.recipes}</p>
-                                <p className="text-neutral-600">Rețete</p>
+                                <p className="text-xl md:text-3xl font-bold text-primary-600">{stats.recipes}</p>
+                                <p className="text-xs md:text-base text-neutral-600">Rețete</p>
                             </div>
                         </div>
                     </div>

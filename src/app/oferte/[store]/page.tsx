@@ -133,18 +133,42 @@ async function getStoreProducts(
       prisma.product.count({ where }),
     ]);
 
+    // Collect unique catalogIds to fetch catalog info
+    const catalogIds = [...new Set(products.map((p: any) => p.catalogId).filter(Boolean))];
+
+    // Fetch catalog info for image paths
+    const catalogs = catalogIds.length > 0 ? await prisma.catalog.findMany({
+      where: { id: { in: catalogIds } },
+      select: { id: true, imageBasePath: true }
+    }) : [];
+
+    const catalogMap = new Map(catalogs.map((c: any) => [c.id, c.imageBasePath]));
+
     return {
-      products: products.map((p: any) => ({
-        ...p,
-        price: Number(p.price),
-        originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-        validFrom: p.validFrom.toISOString(),
-        validUntil: p.validUntil.toISOString(),
-        createdAt: p.createdAt.toISOString(),
-        updatedAt: p.updatedAt.toISOString(),
-        nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-        allergens: p.allergens as string[] | null,
-      })),
+      products: products.map((p: any) => {
+        let catalogPageImage: string | null = null;
+        if (p.catalogId && p.catalogPage) {
+          const imageBasePath = catalogMap.get(p.catalogId);
+          if (imageBasePath) {
+            const pageNum = String(p.catalogPage).padStart(2, '0');
+            catalogPageImage = `${imageBasePath}/page-${pageNum}.webp`;
+          }
+        }
+
+        return {
+          ...p,
+          price: Number(p.price),
+          originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+          validFrom: p.validFrom.toISOString(),
+          validUntil: p.validUntil.toISOString(),
+          createdAt: p.createdAt.toISOString(),
+          updatedAt: p.updatedAt.toISOString(),
+          nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
+          allergens: p.allergens as string[] | null,
+          catalogPageImage,
+          catalogPageNumber: p.catalogPage,
+        };
+      }),
       total,
       totalPages: Math.ceil(total / pageSize),
     };
@@ -324,20 +348,23 @@ export default async function StorePage({ params, searchParams }: PageProps) {
         </div>
 
         <div className="container-custom py-8">
-          {/* Mobile Filter & Sort (Simplified) */}
-          <div className="lg:hidden mb-6 flex flex-col gap-4">
-            <div className="bg-white p-4 rounded-xl border border-neutral-200">
-              <p className="text-sm font-semibold mb-2">Filtre & Sortare</p>
-              {/* Re-using FilterSidebar might be complex if it doesnt support mobile mode natively. 
-                        For now, we just stack them or show a message. 
-                        In a real scenario, we'd replicate the Retete page pattern perfectly. 
-                        Here we'll ensure at least the layout isn't broken. */}
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {/* Placeholder for mobile filters if needed, or we just rely on the user scrolling down if we keep it visible? 
-                            Actually, best to hide the huge sidebar and maybe show a summary or just the sort.
-                        */}
-              </div>
-            </div>
+          {/* Mobile Filter & Sort Bar */}
+          <div className="lg:hidden mb-4 flex items-center justify-between gap-2">
+            <FilterSidebar
+              type="products"
+              config={filterOptions}
+            />
+            <SortSelect
+              options={[
+                { value: 'created-desc', label: 'Cele mai noi' },
+                { value: 'discount-desc', label: 'Reducere (mare -> mic)' },
+                { value: 'price-asc', label: 'Pret (mic -> mare)' },
+                { value: 'price-desc', label: 'Pret (mare -> mic)' },
+                { value: 'name-asc', label: 'Nume (A-Z)' },
+              ]}
+              currentSort={filters.sortBy}
+              currentOrder={filters.sortOrder}
+            />
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8">

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { cn, normalizeDifficulty } from '@/lib/utils';
 import AddToPlanModal from '@/components/plan/AddToPlanModal';
 import RecipeDetailModal from '@/components/plan/RecipeDetailModal';
 import { PlanFilters } from '@/components/plan/PlanFilters';
@@ -180,7 +180,7 @@ export default function PlanPage() {
         const scaledIngredients = fullRecipe.ingredients.map(ing => ({
             id: ing.id,
             name: ing.name,
-            price: ing.price * scaleFactor,
+            price: (ing.price || 0) * scaleFactor,
             quantity: ing.quantity,
             unit: ing.unit,
             scaledQuantity: (ing.quantity || 1) * scaleFactor,
@@ -211,6 +211,11 @@ export default function PlanPage() {
         saveMealPlan(newPlan);
     };
 
+    // Clear entire plan
+    const clearPlan = () => {
+        saveMealPlan({ recipes: [], updatedAt: '' });
+    };
+
     // Send ingredients to cart
     const sendToCart = () => {
         // Extract ingredients with their quantities
@@ -229,7 +234,7 @@ export default function PlanPage() {
 
     // Get difficulty label
     const getDifficultyLabel = (d: string) => {
-        switch (d) {
+        switch (normalizeDifficulty(d)) {
             case 'USOR': return 'Ușor';
             case 'MEDIU': return 'Mediu';
             case 'DIFICIL': return 'Dificil';
@@ -264,7 +269,7 @@ export default function PlanPage() {
     // Filter recipes
     const filteredRecipes = recipes.filter(recipe => {
         if (filterTag && !recipe.tags.includes(filterTag)) return false;
-        if (filterDifficulty.length > 0 && !filterDifficulty.includes(recipe.difficulty)) return false;
+        if (filterDifficulty.length > 0 && !filterDifficulty.includes(normalizeDifficulty(recipe.difficulty))) return false;
         if (filterMaxTime && recipe.totalTime && recipe.totalTime > filterMaxTime) return false;
         if (filterMaxCost && recipe.estimatedCost && recipe.estimatedCost > filterMaxCost) return false;
         if (searchQuery && !recipe.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -313,22 +318,31 @@ export default function PlanPage() {
 
     return (
         <div className="bg-neutral-50 min-h-screen pb-20">
-            {/* Mobile Header */}
-            <header className="lg:hidden bg-white sticky top-0 z-40 border-b border-neutral-200">
-                <div className="container mx-auto px-3 h-12 flex items-center justify-between">
-                    <h1 className="text-lg font-bold text-neutral-900">Planifică Mesele</h1>
+            {/* Mobile Header - Compact */}
+            <header className="lg:hidden bg-white sticky top-16 z-40 border-b border-neutral-200">
+                <div className="container mx-auto px-3 h-10 flex items-center justify-between">
+                    <h1 className="text-base font-bold text-neutral-900">Planifică Mesele</h1>
                     {mealPlan.recipes.length > 0 && (
-                        <div className="relative flex items-center gap-2">
-                            <span className="text-sm font-semibold text-emerald-600">{totalCost.toFixed(0)} RON</span>
+                        <div className="relative flex items-center gap-1">
+                            <span className="text-xs font-semibold text-emerald-600">{totalCost.toFixed(0)} RON</span>
+                            <button
+                                onClick={clearPlan}
+                                className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-red-500 rounded-lg active:bg-neutral-100 touch-manipulation"
+                                title="Șterge planul"
+                            >
+                                <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
                             <button
                                 onClick={sendToCart}
-                                className="relative w-8 h-8 flex items-center justify-center text-primary-600"
+                                className="relative w-10 h-10 flex items-center justify-center text-primary-600 rounded-lg active:bg-neutral-100 touch-manipulation"
                                 title="Trimite la coș"
                             >
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
-                                <span className="absolute top-0.5 right-0 w-2.5 h-2.5 bg-emerald-500 border border-white rounded-full"></span>
+                                <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 border border-white rounded-full"></span>
                             </button>
                         </div>
                     )}
@@ -369,32 +383,42 @@ export default function PlanPage() {
                         {mealPlan.recipes.length > 0 && (
                             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
                                 <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-center">
-                                            <div className="text-2xl font-bold text-white">{mealPlan.recipes.length}</div>
-                                            <div className="text-xs text-white/60">Rețete</div>
-                                        </div>
-                                        <div className="w-px h-10 bg-white/20" />
-                                        <div className="text-center">
-                                            <div className="text-2xl font-bold text-emerald-400">{totalCost.toFixed(0)}</div>
-                                            <div className="text-xs text-white/60">RON</div>
-                                        </div>
-                                        <div className="w-px h-10 bg-white/20" />
-                                        <div className="text-center">
-                                            <div className="text-2xl font-bold text-white">{totalIngredients.length}</div>
-                                            <div className="text-xs text-white/60">Ingrediente</div>
-                                        </div>
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-white">{mealPlan.recipes.length}</div>
+                                        <div className="text-xs text-white/60">Rețete</div>
                                     </div>
-                                    <div className="w-px h-10 bg-white/20" />
-                                    <button
-                                        onClick={sendToCart}
-                                        className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                        Vezi Lista
-                                    </button>
+                                    <div className="w-px self-stretch bg-white/20" />
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-emerald-400">{totalCost.toFixed(0)}</div>
+                                        <div className="text-xs text-white/60">RON</div>
+                                    </div>
+                                    <div className="w-px self-stretch bg-white/20" />
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-white">{totalIngredients.length}</div>
+                                        <div className="text-xs text-white/60">Ingrediente</div>
+                                    </div>
+                                    <div className="w-px self-stretch bg-white/20" />
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={sendToCart}
+                                            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            Vezi Lista
+                                        </button>
+                                        <button
+                                            onClick={clearPlan}
+                                            className="px-3 py-2 bg-white/10 hover:bg-red-500/80 text-white/70 hover:text-white rounded-lg text-sm transition-colors flex items-center gap-1.5"
+                                            title="Șterge planul"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Șterge
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -403,11 +427,11 @@ export default function PlanPage() {
             </div>
 
             {/* Mobile Filter Bar */}
-            <div className="lg:hidden bg-white sticky top-12 z-30 shadow-sm px-3 py-2 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
+            <div className="lg:hidden bg-white sticky top-[104px] z-30 shadow-sm px-3 py-2 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
                 <button
                     onClick={() => setShowFilters(true)}
                     className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap active:bg-neutral-200",
+                        "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap active:bg-neutral-200 touch-manipulation",
                         activeFilterCount > 0 ? "bg-primary-600 text-white" : "bg-neutral-100 text-neutral-700"
                     )}
                 >
@@ -434,7 +458,7 @@ export default function PlanPage() {
                 <div className="flex flex-col lg:flex-row gap-6 lg:p-4">
                     {/* Desktop Sidebar */}
                     <aside className="hidden lg:block w-72 flex-shrink-0">
-                        <div className="sticky top-28">
+                        <div className="sticky top-28 space-y-6">
                             <div className="bg-white rounded-2xl border border-neutral-200/60 shadow-sm p-5">
                                 <h2 className="font-display font-bold text-lg text-neutral-900 mb-4">Filtre</h2>
                                 <PlanFilters
@@ -460,6 +484,8 @@ export default function PlanPage() {
                                     hideApplyButton={true}
                                 />
                             </div>
+                            {/* Desktop Sidebar Ad */}
+                            <AdSenseBanner size="rectangle" />
                         </div>
                     </aside>
 
@@ -570,7 +596,7 @@ export default function PlanPage() {
 
                         {/* Recipe Grid */}
                         {loading ? (
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-6 px-3 lg:px-0">
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-6 px-3 lg:px-0">
                                 {[...Array(6)].map((_, i) => (
                                     <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm animate-pulse">
                                         <div className="h-48 bg-neutral-200" />
@@ -592,7 +618,7 @@ export default function PlanPage() {
                                 <p className="text-neutral-500">Încearcă alte filtre sau elimină căutarea.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-6 px-3 lg:px-0">
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-6 px-3 lg:px-0">
                                 {filteredRecipes.map((recipe, index) => {
                                     const inPlan = isRecipeInPlan(recipe.id);
 
@@ -602,7 +628,7 @@ export default function PlanPage() {
                                             className={cn(
                                                 "bg-white rounded-xl lg:rounded-2xl overflow-hidden shadow-sm lg:shadow-soft transition-all duration-300",
                                                 "hover:shadow-md lg:hover:shadow-hard hover:-translate-y-1 lg:hover:-translate-y-1.5 cursor-pointer",
-                                                inPlan ? "border-2 border-emerald-400" : "border border-neutral-200/60 hover:border-primary-200"
+                                                inPlan ? "border-2 border-foreground" : "border border-neutral-200/60 hover:border-primary-200"
                                             )}
                                         >
                                             {/* Card Image - Click to view details */}
@@ -651,7 +677,7 @@ export default function PlanPage() {
                                                         className="flex-1 cursor-pointer"
                                                         onClick={() => fetchRecipeDetails(recipe.id)}
                                                     >
-                                                        <h3 className="text-xs lg:text-base font-bold text-neutral-900 mb-1 lg:mb-2 line-clamp-2 hover:text-primary-600 transition-colors font-display leading-tight">
+                                                        <h3 className="text-sm lg:text-base font-bold text-neutral-900 mb-1 lg:mb-2 line-clamp-2 hover:text-primary-600 transition-colors font-display leading-tight">
                                                             {recipe.title}
                                                         </h3>
                                                         <div className="flex items-center gap-1.5 lg:gap-3 text-[10px] lg:text-sm text-neutral-500">
@@ -678,7 +704,7 @@ export default function PlanPage() {
                                                         className={cn(
                                                             "flex-shrink-0 w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-all border-2",
                                                             inPlan
-                                                                ? "bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/30"
+                                                                ? "bg-foreground text-white border-foreground shadow-lg shadow-foreground/30"
                                                                 : "bg-white text-neutral-400 border-neutral-200 hover:border-primary-400 hover:text-primary-500"
                                                         )}
                                                         title={inPlan ? "Elimină din plan" : "Adaugă în plan"}
@@ -697,15 +723,34 @@ export default function PlanPage() {
                                             </div>
                                         </div>
 
-                                        {/* ADSENSE BANNER - In-Feed (Mobile only after 4th recipe) */}
+                                        {/* In-Feed Ad - Mobile: after 4th recipe */}
                                         {index === 3 && (
                                             <div className="col-span-2 lg:hidden my-2">
-                                                <AdSenseBanner slotId="1234567890" layout="in-article" className="h-[120px]" />
+                                                <AdSenseBanner size="in-feed" />
+                                            </div>
+                                        )}
+                                        {/* In-Feed Ad - Mobile: after 10th recipe */}
+                                        {index === 9 && (
+                                            <div className="col-span-2 lg:hidden my-2">
+                                                <AdSenseBanner size="in-feed" />
+                                            </div>
+                                        )}
+                                        {/* In-Feed Ad - Desktop: after every 9th recipe */}
+                                        {(index + 1) % 9 === 0 && index !== filteredRecipes.length - 1 && (
+                                            <div className="hidden lg:flex col-span-3 my-4">
+                                                <AdSenseBanner size="banner" className="w-full" />
                                             </div>
                                         )}
                                         </React.Fragment>
                                     );
                                 })}
+                            </div>
+                        )}
+
+                        {/* Bottom Ad */}
+                        {!loading && filteredRecipes.length > 0 && (
+                            <div className="mt-8 px-3 lg:px-0">
+                                <AdSenseBanner size="rectangle" className="max-w-xl mx-auto" />
                             </div>
                         )}
 

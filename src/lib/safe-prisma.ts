@@ -4,6 +4,7 @@
  */
 
 import { prisma } from './db-config';
+import { logger } from '@/lib/logger';
 
 // Flag to track if database is available
 let databaseAvailable: boolean | null = null;
@@ -21,7 +22,7 @@ async function checkConnection(): Promise<boolean> {
         databaseAvailable = true;
         return true;
     } catch (error) {
-        console.error('Database connection failed:', error);
+        logger.error('Database connection failed', { error }, 'SafePrisma');
         databaseAvailable = false;
         // Reset after 30 seconds to retry
         setTimeout(() => { databaseAvailable = null; }, 30000);
@@ -41,13 +42,13 @@ export async function safeQuery<T>(
         // Quick connection check
         const isConnected = await checkConnection();
         if (!isConnected) {
-            console.warn(errorMessage || 'Database unavailable, returning default');
+            logger.warn(errorMessage || 'Database unavailable, returning default', {}, 'SafePrisma');
             return defaultValue;
         }
 
         return await queryFn();
     } catch (error) {
-        console.error(errorMessage || 'Database query failed:', error);
+        logger.error(errorMessage || 'Database query failed', { error }, 'SafePrisma');
         // Mark database as potentially unavailable
         databaseAvailable = null;
         return defaultValue;

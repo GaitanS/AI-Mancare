@@ -1,6 +1,7 @@
 {
-    "name": "Retete Ieftine",
-    "short_name": "Retete Ieftine",
+    "name": "CatalogSmart",
+    "short_name": "CatalogSmart",
+    "description": "Cataloage online Kaufland, Lidl, Profi - Oferte si retete economice",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",

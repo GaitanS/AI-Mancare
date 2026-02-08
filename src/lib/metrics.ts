@@ -10,7 +10,6 @@ import { logger } from './logger'
 interface MetricValue {
     value: number
     timestamp: number
-    labels?: Record<string, string>
 }
 
 interface HistogramBucket {
@@ -28,7 +27,7 @@ interface Histogram {
  * Metrics collector singleton
  */
 class MetricsCollector {
-    private counters: Map<string, MetricValue[]> = new Map()
+    private counters: Map<string, MetricValue> = new Map()
     private gauges: Map<string, MetricValue> = new Map()
     private histograms: Map<string, Histogram> = new Map()
 
@@ -60,12 +59,9 @@ class MetricsCollector {
      */
     incCounter(name: string, value: number = 1, labels?: Record<string, string>) {
         const key = this.buildKey(name, labels)
-        const existing = this.counters.get(key) || []
-        existing.push({
-            value,
-            timestamp: Date.now(),
-            labels
-        })
+        const existing = this.counters.get(key) || { value: 0, timestamp: Date.now() }
+        existing.value += value
+        existing.timestamp = Date.now()
         this.counters.set(key, existing)
     }
 
@@ -76,8 +72,7 @@ class MetricsCollector {
         const key = this.buildKey(name, labels)
         this.gauges.set(key, {
             value,
-            timestamp: Date.now(),
-            labels
+            timestamp: Date.now()
         })
     }
 
@@ -133,10 +128,9 @@ class MetricsCollector {
         const lines: string[] = []
 
         // Counters
-        for (const [key, values] of this.counters) {
-            const total = values.reduce((sum, v) => sum + v.value, 0)
+        for (const [key, metric] of this.counters) {
             lines.push(`# TYPE ${key.split('{')[0]} counter`)
-            lines.push(`${key} ${total}`)
+            lines.push(`${key} ${metric.value}`)
         }
 
         // Gauges
@@ -164,8 +158,8 @@ class MetricsCollector {
      */
     toJSON() {
         const counters: Record<string, number> = {}
-        for (const [key, values] of this.counters) {
-            counters[key] = values.reduce((sum, v) => sum + v.value, 0)
+        for (const [key, metric] of this.counters) {
+            counters[key] = metric.value
         }
 
         const gauges: Record<string, number> = {}

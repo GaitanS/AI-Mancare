@@ -3,7 +3,7 @@
  * Password hashing, token generation, encryption
  */
 
-import { createHash, randomBytes, pbkdf2 } from 'crypto';
+import { createHash, randomBytes, pbkdf2, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 
 const pbkdf2Async = promisify(pbkdf2);
@@ -111,7 +111,7 @@ export function verifyCSRFToken(
   const tokenBuffer = Buffer.from(token);
   const expectedBuffer = Buffer.from(expectedToken);
 
-  return tokenBuffer.compare(expectedBuffer) === 0;
+  return timingSafeEqual(tokenBuffer, expectedBuffer);
 }
 
 /**

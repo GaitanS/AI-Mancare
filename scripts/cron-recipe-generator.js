@@ -3,6 +3,10 @@
 /**
  * Recipe Generator Cron Job - Standalone JavaScript
  * Generates weekly recipes based on current offers using OpenRouter/Gemini
+ *
+ * KEY PRINCIPLE: The AI suggests REAL, WELL-KNOWN recipes that use
+ * ingredients currently on sale. It does NOT invent new recipes.
+ *
  * Runs every Monday at 6 AM via GitHub Actions
  */
 
@@ -56,23 +60,89 @@ const log = {
 // Configuration
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
-const AI_MODEL = process.env.AI_MODEL || 'google/gemini-2.5-flash-preview';
+const AI_MODEL = process.env.AI_MODEL || 'google/gemini-2.5-flash';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://catalogsmart.ro';
+const MAX_PROMPT_PRODUCTS = 500;
+
+// ─── DIETARY FLAGS CALCULATOR (ported from src/lib/dietary.ts) ───
+function containsWord(text, words) {
+  return words.some(w => new RegExp(`\\b${w}\\b`, 'i').test(text));
+}
+
+function calculateDietaryFlags(fullText) {
+  const text = fullText.toLowerCase();
+  let isGlutenFree = true, isDairyFree = true, isVegan = true, isVegetarian = true;
+
+  const meats = ['pui', 'porc', 'vită', 'vita', 'carne', 'șuncă', 'sunca', 'slănină', 'slanina', 'cârnați', 'carnati', 'pește', 'peste', 'ton'];
+  if (containsWord(text, meats)) { isVegan = false; isVegetarian = false; }
+
+  const dairy = ['lapte', 'smântână', 'smantana', 'iaurt', 'brânză', 'branza', 'cașcaval', 'cascaval', 'unt', 'frișcă', 'frisca', 'parmezan'];
+  if (containsWord(text, dairy)) { isDairyFree = false; isVegan = false; }
+
+  if (text.includes('ouă') || text.includes('oua') || /\bou\b/.test(text)) { isVegan = false; }
+
+  const gluten = ['pâine', 'paine', 'făină', 'faina', 'pesmet', 'paste', 'crutoane', 'grâu', 'grau', 'gluten'];
+  if (containsWord(text, gluten)) { isGlutenFree = false; }
+
+  return { isGlutenFree, isDairyFree, isVegan, isVegetarian };
+}
+
+// ─── DIFFICULTY NORMALIZATION (ported from src/lib/utils.ts) ───
+function normalizeDifficulty(difficulty) {
+  const stripped = (difficulty || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  switch (stripped) {
+    case 'usor': return 'USOR';
+    case 'mediu': return 'MEDIU';
+    case 'dificil': return 'DIFICIL';
+    default: return (difficulty || 'MEDIU').toUpperCase();
+  }
+}
+
+// ─── NON-COOKING PRODUCT FILTER ───
+// Products that should NOT be used as recipe ingredients
+const NON_COOKING_KEYWORDS = [
+  // Snacks & junk (not cooking ingredients)
+  'chips', 'cipsu', 'pufuleți', 'pufuleti', 'covrig', 'sticks', 'nachos', 'popcorn',
+  // Drinks (non-cooking)
+  'cola', 'pepsi', 'fanta', 'sprite', '7up', 'redbull', 'red bull', 'energizant',
+  'bere', 'vodka', 'whisky', 'rom ', 'gin ', 'lichior', 'cidru', 'radler',
+  // Household / non-food
+  'detergent', 'balsam rufe', 'înălbitor', 'inalbitor', 'dezinfectant',
+  'șampon', 'sampon', 'gel de duș', 'gel de dus', 'săpun lichid', 'sapun lichid',
+  'cremă de corp', 'crema de corp', 'deodorant', 'antiperspirant',
+  'hârtie igienică', 'hartie igienica', 'șervețele', 'servetele',
+  'periuță', 'periuta', 'pastă de dinți', 'pasta de dinti',
+  'scutece', 'pampers', 'absorbante',
+  'baterii', 'becuri', 'lumânări', 'lumanari',
+  'hrană animale', 'hrana animale', 'pisici', 'câini', 'caini',
+  // Candy / sweets (not cooking ingredients, unlike Nutella/chocolate which can be)
+  'gumă de mestecat', 'guma de mestecat', 'bombone', 'acadele', 'jeleuri',
+  // Tobacco
+  'țigări', 'tigari', 'tutun',
+];
+
+/**
+ * Filter out non-cooking products
+ */
+function isCookingIngredient(productName) {
+  const nameLower = productName.toLowerCase();
+  return !NON_COOKING_KEYWORDS.some(keyword => nameLower.includes(keyword));
+}
 
 /**
  * Call OpenRouter API with Gemini
  */
-async function callAI(prompt, systemPrompt = '') {
+async function callAI(prompt, systemPrompt = '', retryCount = 0) {
   try {
     const response = await axios.post(
       `${OPENROUTER_BASE_URL}/chat/completions`,
       {
         model: AI_MODEL,
         messages: [
-          { role: 'system', content: systemPrompt || 'Ești un chef profesionist român cu experiență în bucătăria tradițională. Dai instrucțiuni TEHNICE și PRECISE: temperaturi exacte (cu/fără ventilator), gramaje precise, tehnici de tăiere cu dimensiuni, timpi de gătire și semne vizuale de verificare. Rețetele tale sunt economice dar detaliate ca într-o carte de bucate profesională.' },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.8,
+        temperature: 0.7,
         max_tokens: 4000,
       },
       {
@@ -88,140 +158,397 @@ async function callAI(prompt, systemPrompt = '') {
 
     return response.data.choices[0]?.message?.content || '';
   } catch (error) {
-    log.error(`AI call failed: ${error.message}`);
+    if (retryCount < 1) {
+      log.error(`AI call failed (attempt ${retryCount + 1}): ${error.message}. Retrying in 3s...`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      return callAI(prompt, systemPrompt, retryCount + 1);
+    }
+    log.error(`AI call failed after ${retryCount + 1} attempts: ${error.message}`);
     throw error;
   }
 }
 
 /**
- * Get products on sale from database
+ * Get ALL cooking products on sale from database (no arbitrary limit)
  */
 async function getProductsOnSale() {
   try {
-    // Get ANY products from the last 7 days (fresh data)
-    // We don't rely only on discountPercentage because sometimes AI misses the original price
-    // Fetch a large pool of ACTIVE products (not just recent ones) to ensure staples (flour, oil, vegetables) are included
     const products = await prisma.product.findMany({
       where: {
-        // Only ensure they are still valid offers
         validUntil: { gte: new Date() }
       },
-      take: 300, // Increased to 300 to give AI a rich pantry
       orderBy: [
-        { discountPercentage: 'desc' }, // Deals first
-        { price: 'asc' } // Then cheap staples
+        { discountPercentage: 'desc' },
+        { price: 'asc' }
       ]
     });
 
-    if (products.length > 0) {
-      return products;
+    // Filter to cooking ingredients only
+    const cookingProducts = products.filter(p => isCookingIngredient(p.name));
+
+    log.info(`Found ${products.length} total products, ${cookingProducts.length} are cooking ingredients`);
+
+    if (cookingProducts.length > 0) {
+      return cookingProducts;
     }
 
-    // If no valid-dated products, get ANY products (fallback)
+    // Fallback: any recent products
     const anyProducts = await prisma.product.findMany({
       take: 200,
       orderBy: { createdAt: 'desc' }
     });
 
-    if (anyProducts.length > 0) {
-      return anyProducts;
-    }
-
-    // Fallback to defaults
-    throw new Error('No products found');
+    return anyProducts.filter(p => isCookingIngredient(p.name));
   } catch (error) {
     log.error(`Failed to fetch products: ${error.message}`);
-    // Return some default ingredients if DB fails
-    return [
-      { name: 'Carne de pui', category: 'Carne' },
-      { name: 'Cartofi', category: 'Legume' },
-      { name: 'Ceapă', category: 'Legume' },
-      { name: 'Roșii', category: 'Legume' },
-      { name: 'Orez', category: 'Cereale' },
-      { name: 'Paste', category: 'Cereale' },
-      { name: 'Ouă', category: 'Lactate' },
-      { name: 'Brânză', category: 'Lactate' },
-      { name: 'Lapte', category: 'Lactate' },
-      { name: 'Unt', category: 'Lactate' },
-    ];
+    return [];
   }
 }
 
 /**
- * Generate a single recipe
+ * Group products by rough category for better AI understanding
  */
-async function generateRecipe(ingredients, existingTitles = []) {
-  const ingredientList = ingredients.map(p => p.name).join(', ');
+function groupProductsByCategory(products) {
+  const categories = {
+    'Carne & Mezeluri': [],
+    'Pește & Fructe de mare': [],
+    'Lactate & Ouă': [],
+    'Legume & Fructe': [],
+    'Pâine & Panificație': [],
+    'Paste, Orez & Cereale': [],
+    'Conserve & Sosuri': [],
+    'Condimente & Uleiuri': [],
+    'Dulciuri & Deserturi': [],
+    'Băuturi (pt gătit)': [],
+    'Altele': [],
+  };
 
-  const prompt = `Ești o bunică din România sau o gospodină cu experiență (stilul JamilaCuisine / Gina Bradea), care gătește SIMPLU, GUSTOS și TRADIȚIONAL.
+  for (const p of products) {
+    const name = p.name.toLowerCase();
 
-  🛑 STOP RMEȚETE "FANCY" SAU INVENȚII CIUDATE!
-  - NU folosi titluri pompoase gen "Mise en Place", "Infuzie", "Deconstructie", "Tehnica X".
-  - NU folosi ingrediente ciudate în combinații greșite (fără "crustă de pufuleți", fără "infuzie de apă minerală").
-  - Vrem mâncare REALĂ, pe care o mănâncă românii zi de zi.
+    if (/pui|porc|vită|vita|curcan|miel|carne|cârnați|carnati|salam|șuncă|sunca|bacon|slănină|slanina|cârnăciori|carnaciori|pulpă|pulpa|piept|mușchiuleț|muschiulet|fleică|fleica|antricot|ceafă|ceafa|cotlet|crenvurști|crenvursti|parizer/.test(name)) {
+      categories['Carne & Mezeluri'].push(p);
+    } else if (/pește|peste|somon|ton |sardine|macrou|crevete|calmar|hering|cod |doradă|dorada|păstrăv|pastrav/.test(name)) {
+      categories['Pește & Fructe de mare'].push(p);
+    } else if (/lapte|iaurt|smântână|smantana|brânză|branza|cașcaval|cascaval|unt |ouă|oua|frișcă|frisca|cremă|crema|mascarpone|mozzarella|parmezan|telemea|ricotta/.test(name)) {
+      categories['Lactate & Ouă'].push(p);
+    } else if (/roșii|rosii|ceapă|ceapa|cartofi|morcov|ardei|salată|salata|castraveți|castraveti|varză|varza|dovlecel|vinete|spanac|usturoi|ciuperci|mazăre|mazare|fasole|lămâie|lamaie|portocal|măr |mar |banane|pere|struguri|căpșun|capsun|afine|zmeură|zmura|kiwi|mango|ananas|avocado|legume|fructe/.test(name)) {
+      categories['Legume & Fructe'].push(p);
+    } else if (/pâine|paine|baghetă|bagheta|chifle|cozonac|croissant|corn |franzelă|franzela|tortilla|lipie/.test(name)) {
+      categories['Pâine & Panificație'].push(p);
+    } else if (/paste |spaghete|penne|fusilli|macaroane|orez|bulgur|cuscus|făină|faina|mălai|malai|griș|gris|fulgi de ovăz|fulgi de ovaz|cereale|muesli/.test(name)) {
+      categories['Paste, Orez & Cereale'].push(p);
+    } else if (/conservă|conserva|sos |bulion|pastă de|pasta de|ketchup|muștar|mustar|maioneză|maioneza|hrean|oțet|otet/.test(name)) {
+      categories['Conserve & Sosuri'].push(p);
+    } else if (/ulei|măsline|masline|sare |piper|boia|oregano|cimbru|dafin|condiment|mirodenie|zahăr|zahar|miere|vanilie|scorțișoară|scortisoara/.test(name)) {
+      categories['Condimente & Uleiuri'].push(p);
+    } else if (/ciocolată|ciocolata|nutella|cacao|biscuiți|biscuiti|napolitane|prăjitură|prajitura|tort |înghețată|inghetata|budincă|budinca|cremă de|crema de|wafel/.test(name)) {
+      categories['Dulciuri & Deserturi'].push(p);
+    } else if (/apă|apa|suc |nectar|limonadă|limonada|vin |must|cidru/.test(name)) {
+      categories['Băuturi (pt gătit)'].push(p);
+    } else {
+      categories['Altele'].push(p);
+    }
+  }
 
-  LISTA DE REȚETE ACCEPTATE (EXEMPLE DE STIL):
-  - Cartofi prăjiți cu ou și cașcaval
-  - Coaste la cuptor cu cartofi wedges
-  - Bulz ciobănesc
-  - Mămăligă cu brânză și smântână
-  - Clătite clasice (cu dulceață sau brânză)
-  - Salată orientală
-  - Ciulama de pui cu ciuperci
-  - Piept de pui la grătar cu piure
-  - Tocăniță de ciuperci / cartofi
-  - Gulaș de porc / vită
-  - Ciorbă de perișoare / legume / văcuță
-  - Cornulețe cu rahat / nucă
-  - Sarmale, Ardei umpluți, Pilaf
+  return categories;
+}
 
-  AI la dispoziție următoarele ingrediente (la reducere): ${ingredientList}
+/**
+ * Format products into a concise list for the AI prompt
+ */
+function formatProductsForPrompt(products) {
+  // Deduplicate by name
+  const unique = Array.from(new Map(products.map(p => [p.name, p])).values());
 
-  SARCINA TA:
-  Alege ingredientele și creează o rețetă CLASICĂ românească.
-  Dacă ai "biscuiți" și "iaurt", nu face "Mousse cu infuzie", fă "Salam de biscuiți" sau "Prăjitură rapidă".
-  Dacă ai "cartofi" și "ulei", fă "Cartofi Țărănești" sau "Tocăniță", nu "Gremolata".
+  // Limit to MAX_PROMPT_PRODUCTS to avoid token overflow
+  const limited = unique
+    .sort((a, b) => (Number(b.discountPercentage) || 0) - (Number(a.discountPercentage) || 0))
+    .slice(0, MAX_PROMPT_PRODUCTS);
 
-  REGULI PENTRU TITLU:
-  - Simplu și clar: "Ciorbă de Perișoare", nu "Elixir de Carne în Supă Clară".
-  - Fără ghilimele sau epitete inutile în titlu.
+  if (unique.length > MAX_PROMPT_PRODUCTS) {
+    log.info(`Truncated product list from ${unique.length} to ${MAX_PROMPT_PRODUCTS} (best deals first)`);
+  }
 
-  REGULI DE GĂTIT:
-  - Explică simplu, ca pentru un om normal.
-  - Folosește "călit", "fiert", "prăjit", "cuptor".
-  - Gustul trebuie să fie cel de "acasă".
+  const grouped = groupProductsByCategory(limited);
 
-  Răspunde STRICT în format JSON:
-  {
-    "title": "Numele simplu al rețetei (ex: 'Cartofi Țărănești cu Cârnați')",
-    "description": "O descriere simplă: 'O mâncare sățioasă, exact ca la bunica acasă, perfectă pentru prânz.'",
-    "cookingTime": 45,
-    "servings": 4,
-    "difficulty": "Ușor|Mediu",
-    "estimatedCost": 25.00,
-    "ingredients": [
-      { "name": "Cartofi", "quantity": "1", "unit": "kg" }
-    ],
-    "steps": [
-      "Curățăm cartofii și îi tăiem cuburi...",
-      "Călim ceapa în ulei până devine aurie...",
-      "Adăugăm carnea și o lăsăm să se rumenească..."
-    ],
-    "tips": [
-      "Folosiți cartofi roz pentru prăjit, se țin mai bine.",
-      "Puneți puțină boia dulce pentru culoare."
-    ],
-    "tags": ["tradițional", "prânz", "ieftin"]
-  }`;
+  let text = '';
+  for (const [category, items] of Object.entries(grouped)) {
+    if (items.length === 0) continue;
+    text += `\n📦 ${category}:\n`;
+    for (const p of items) {
+      const discount = p.discountPercentage ? ` (-${p.discountPercentage}%)` : '';
+      text += `  • ${p.name} — ${Number(p.price).toFixed(2)} lei${discount} [ID: ${p.id}]\n`;
+    }
+  }
 
+  return text;
+}
 
+// ─── RECIPE CATEGORIES FOR VARIETY ───
+const RECIPE_CATEGORIES = [
+  'Supă sau ciorbă românească tradițională',
+  'Mâncare gătită cu carne (tocăniță, friptură, gratar)',
+  'Paste (italienești sau altă bucătărie)',
+  'Rețetă vegetariană sau de post',
+  'Desert sau prăjitură',
+  'Mic dejun substanțial sau brunch',
+  'Salată consistentă (de masă principală)',
+  'Rețetă internațională populară (pizza, risotto, curry, stir-fry, tacos)',
+  'Plăcintă, clătite sau foi (savuroase sau dulci)',
+  'Mâncare rapidă sub 30 minute',
+];
 
-  const response = await callAI(prompt);
+// ─── SEASONAL AWARENESS ───
+function getSeasonHint() {
+  const month = new Date().getMonth(); // 0-11
+  if (month >= 11 || month <= 1) return 'iarnă (preferă supe, ciorbe, tocănițe, mâncăruri la cuptor, comfort food)';
+  if (month >= 2 && month <= 4) return 'primăvară (preferă mâncăruri ușoare, legume proaspete de sezon, paste)';
+  if (month >= 5 && month <= 7) return 'vară (preferă salate, grătare, mâncăruri reci, rețete rapide, deserturi răcoritoare)';
+  return 'toamnă (preferă supe cremă, plăcinte, tocănițe, mâncăruri cu legume de toamnă)';
+}
 
-  // Parse JSON from response
+function getSeasonalCategories() {
+  const month = new Date().getMonth();
+  if (month >= 11 || month <= 1) {
+    return [
+      'Supă sau ciorbă românească tradițională',
+      'Mâncare gătită cu carne (tocăniță, friptură, la cuptor)',
+      'Paste (italienești sau altă bucătărie)',
+      'Rețetă vegetariană sau de post',
+      'Desert sau prăjitură',
+      'Plăcintă, clătite sau foi (savuroase sau dulci)',
+      'Rețetă internațională populară (pizza, risotto, curry, stir-fry)',
+      'Mâncare rapidă sub 30 minute',
+      'Supă cremă de legume de sezon',
+      'Tocăniță sau mâncare la cuptor de iarnă',
+    ];
+  }
+  if (month >= 5 && month <= 7) {
+    return [
+      'Salată consistentă (de masă principală)',
+      'Mâncare rapidă sub 30 minute',
+      'Rețetă internațională populară (pizza, risotto, tacos, stir-fry)',
+      'Paste (italienești sau altă bucătărie)',
+      'Desert răcoritor sau prăjitură de vară',
+      'Mic dejun substanțial sau brunch',
+      'Rețetă vegetariană sau de post',
+      'Grătar sau mâncare ușoară de vară',
+      'Plăcintă, clătite sau foi (savuroase sau dulci)',
+      'Supă rece sau ciorbă ușoară de vară',
+    ];
+  }
+  return RECIPE_CATEGORIES;
+}
+
+// ─── SMART DEDUPLICATION ───
+function isSimilarTitle(newTitle, existingTitles) {
+  const normalize = (t) => t.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]/g, '').trim();
+
+  const newWords = normalize(newTitle).split(/\s+/).filter(w => w.length > 2);
+  if (newWords.length === 0) return false;
+
+  for (const existing of existingTitles) {
+    const existingWords = new Set(normalize(existing).split(/\s+/).filter(w => w.length > 2));
+    if (existingWords.size === 0) continue;
+    const overlap = newWords.filter(w => existingWords.has(w)).length;
+    const similarity = overlap / Math.max(newWords.length, existingWords.size);
+    if (similarity > 0.6) return true;
+  }
+  return false;
+}
+
+// ─── STORE CONCENTRATION ───
+function getDominantStores(products) {
+  const storeCounts = {};
+  for (const p of products) {
+    storeCounts[p.store] = (storeCounts[p.store] || 0) + 1;
+  }
+  return Object.entries(storeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([store]) => store);
+}
+
+// ─── RECIPE QUALITY VALIDATION ───
+function validateRecipeQuality(recipeData) {
+  const errors = [];
+
+  if (!recipeData.title || recipeData.title.trim().length < 5) {
+    errors.push('Title too short or missing');
+  }
+
+  const ingredients = recipeData.ingredients || [];
+  if (ingredients.length < 3) {
+    errors.push(`Too few ingredients: ${ingredients.length} (minimum 3)`);
+  }
+
+  const steps = recipeData.steps || recipeData.instructions || [];
+  if (steps.length < 2) {
+    errors.push(`Too few steps: ${steps.length} (minimum 2)`);
+  }
+
+  const cookTime = recipeData.cook_time || recipeData.cookingTime || 0;
+  const prepTime = recipeData.prep_time || 0;
+  if (cookTime + prepTime <= 0) {
+    errors.push('Total time must be > 0');
+  }
+
+  if (errors.length > 0) {
+    log.error(`Recipe quality check failed for "${recipeData.title || 'unknown'}": ${errors.join('; ')}`);
+    return false;
+  }
+  return true;
+}
+
+// ─── SMART TAG GENERATION ───
+function generateSmartTags(recipeData) {
+  const tags = new Set();
+  const title = (recipeData.title || '').toLowerCase();
+  const allText = title + ' ' + (recipeData.description || '').toLowerCase();
+
+  // Difficulty
+  tags.add(recipeData.difficulty || 'mediu');
+
+  // Always economic
+  tags.add('economic');
+
+  // Servings
+  tags.add(`${recipeData.servings || 4} portii`);
+
+  // Total time
+  const totalTime = (recipeData.prep_time || 0) + (recipeData.cook_time || recipeData.cookingTime || 30);
+  tags.add(`${totalTime} minute`);
+  if (totalTime <= 30) tags.add('rapid');
+  if (totalTime >= 60) tags.add('gatit lent');
+
+  // Meal type detection
+  if (/mic dejun|brunch|omletă|omleta|pancake|clătite|clatite/.test(allText)) tags.add('mic dejun');
+  if (/supă|supa|ciorbă|ciorba|borș|bors/.test(allText)) tags.add('supa');
+  if (/salată|salata/.test(allText)) tags.add('salata');
+  if (/desert|prăjitură|prajitura|tort |cozonac|clătite|clatite|papanași|papanasi|budincă|budinca/.test(allText)) tags.add('desert');
+  if (/paste |spaghete|penne|carbonara|bolognese|lasagna/.test(allText)) tags.add('paste');
+  if (/pizza/.test(allText)) tags.add('pizza');
+  if (/grătar|gratar|grill/.test(allText)) tags.add('gratar');
+
+  // Cooking method detection
+  if (/cuptor|la cuptor/.test(allText)) tags.add('la cuptor');
+  if (/prăjit|prajit|tigaie/.test(allText)) tags.add('prajit');
+  if (/fiert|fiarbe/.test(allText)) tags.add('fiert');
+
+  // Cuisine detection
+  if (/românesc|romanesc|tradițional|traditional|ciorbă|ciorba|sarmale|mici |mititei|papanași|papanasi|musaca|tocăniță|tocanita/.test(allText)) tags.add('romanesc');
+  if (/italian|paste |pizza|risotto|carbonara|bolognese|lasagna/.test(allText)) tags.add('italian');
+  if (/curry|tikka|masala|naan/.test(allText)) tags.add('indian');
+  if (/stir-fry|wok|soia|noodles/.test(allText)) tags.add('asiatic');
+  if (/tacos|burrito|quesadilla|guacamole/.test(allText)) tags.add('mexican');
+
+  return Array.from(tags);
+}
+
+// ─── REAL COST CALCULATION ───
+function calculateRealCost(matchedIngredients, allProducts) {
+  let total = 0;
+  let matchedCount = 0;
+  for (const ing of matchedIngredients) {
+    if (ing.id) {
+      const product = allProducts.find(p => p.id === ing.id);
+      if (product) {
+        total += Number(product.price);
+        matchedCount++;
+      }
+    }
+  }
+  if (matchedCount >= matchedIngredients.length * 0.4) {
+    return Math.round(total * 100) / 100;
+  }
+  return 0;
+}
+
+/**
+ * Generate a single REAL recipe using products on sale
+ */
+async function generateRecipe(allProducts, categoryHint, existingTitles = []) {
+  const productList = formatProductsForPrompt(allProducts);
+  const avoidList = existingTitles.length > 0
+    ? `\nNU repeta aceste rețete deja generate: ${existingTitles.join(', ')}`
+    : '';
+
+  // Smart context: season + dominant stores
+  const seasonHint = getSeasonHint();
+  const dominantStores = getDominantStores(allProducts);
+  const storeHint = dominantStores.length > 0
+    ? `\n- Magazine cu cele mai multe oferte: ${dominantStores.join(', ')} (preferă ingrediente dintr-un singur magazin dacă posibil)`
+    : '';
+
+  const systemPrompt = `Ești un chef profesionist cu experiență în bucătăria românească și internațională.
+
+ROLUL TĂU: Recomanzi rețete REALE, CUNOSCUTE, pe care oamenii le caută pe bloguri culinare (Jamila, Laura Laurențiu, Savori Urbane, Gina Bradea) sau în cărți de bucate. NU inventezi rețete noi.
+
+STIL DE SCRIERE:
+- Cald, prietenos, explicativ, ca o gospodină expertă
+- Explică DE CE facem un pas ("călim ceapa ca să devină dulce")
+- Folosește termeni românești: "călit", "înăbușit", "rumenit", "dres cu ou", "scăzut"
+- NU folosi: "dressing" (zi "sos"), "confiat" (zi "gătit lent"), "topping" (zi "garnitură")
+
+RETURNEAZĂ DOAR JSON VALID, fără text înainte sau după.`;
+
+  const userPrompt = `PRODUSE LA OFERTĂ ÎN MAGAZINE ACUM:
+${productList}
+
+CATEGORIE CERUTĂ: ${categoryHint}
+${avoidList}
+
+CONTEXT SEZONIER: Suntem în ${seasonHint}
+
+SARCINĂ:
+Recomandă o rețetă REALĂ și CUNOSCUTĂ din categoria cerută, potrivită sezonului actual.
+
+REGULI OBLIGATORII:
+1. Rețeta trebuie să fie o rețetă pe care o găsești pe orice blog culinar sau carte de bucate. NU inventa rețete noi.
+   - BINE: "Ciorbă de perișoare", "Paste Carbonara", "Clătite cu Nutella", "Papanași", "Musaca de cartofi"
+   - RĂU: "Salată fusion de ton cu biscuiți", "Pui descompus tropical", "Mix exotic de cereale"
+2. Folosește CÂT MAI MULTE ingrediente din lista de oferte de mai sus.${storeHint}
+3. Dacă rețeta are nevoie de ingrediente de bază care NU sunt în lista de oferte (sare, piper, apă, ulei), include-le dar marchează-le.
+4. Titlul trebuie să fie APETISANT și FAMILIAR (cum l-ai găsi pe Google).
+5. Instrucțiunile trebuie să fie DETALIATE: temperaturi exacte, cantități în grame, timpi de gătit.
+
+FORMAT JSON STRICT:
+{
+  "title": "Titlu apetisant și familiar (ex: Ciorbă de perișoare pufoase)",
+  "description": "1-2 fraze care te fac să salivezi",
+  "prep_time": 15,
+  "cook_time": 30,
+  "servings": 4,
+  "difficulty": "ușor",
+  "estimatedCost": 25.00,
+  "ingredients": [
+    { "product_id": "ID-ul exact din lista de produse", "name": "Piept de pui", "quantity": "500", "unit": "g", "onSale": true },
+    { "product_id": "pantry", "name": "Sare", "quantity": "1", "unit": "lingurită", "onSale": false }
+  ],
+  "steps": [
+    "Pas 1 detaliat cu temperaturi și cantități...",
+    "Pas 2..."
+  ],
+  "tips": ["Sfat practic util"],
+  "tags": ["tradițional", "prânz", "economic"],
+  "nutritionalInfo": {
+    "calories": 450,
+    "protein": 25,
+    "carbs": 40,
+    "fat": 15,
+    "fiber": 5
+  }
+}
+
+IMPORTANT: Referențiază produsele prin ID-ul lor exact din lista de oferte (marcat cu [ID: xxx]).
+Dacă un ingredient NU e în lista de oferte (sare, piper, apă, ulei), pune product_id: "pantry".`;
+
+  const response = await callAI(userPrompt, systemPrompt);
+
   try {
-    // Extract JSON from markdown code blocks if present
-    // Extract JSON string using robust bracket matching
     let jsonStr = response;
     const firstBrace = response.indexOf('{');
     const lastBrace = response.lastIndexOf('}');
@@ -232,16 +559,15 @@ async function generateRecipe(ingredients, existingTitles = []) {
 
     return JSON.parse(jsonStr.trim());
   } catch (parseError) {
-    log.error(`Failed to parse recipe JSON: ${parseError.message} `);
+    log.error(`Failed to parse recipe JSON: ${parseError.message}`);
     return null;
   }
 }
 
-
 /**
  * Save recipe to database
  */
-async function saveRecipe(recipeData, availableProducts = []) {
+async function saveRecipe(recipeData, availableProducts = [], allExistingTitles = []) {
   try {
     const slug = recipeData.title
       .toLowerCase()
@@ -260,101 +586,127 @@ async function saveRecipe(recipeData, availableProducts = []) {
       return null;
     }
 
+    // Smart deduplication: check title similarity (not just exact slug)
+    if (isSimilarTitle(recipeData.title, allExistingTitles)) {
+      log.info(`Recipe "${recipeData.title}" is too similar to an existing recipe, skipping`);
+      return null;
+    }
+
     // MATCHING LOGIC: Try to link AI ingredients to real Product IDs
     const matchedIngredients = (recipeData.ingredients || []).map(ing => {
-      // CLEANUP: Remove parenthetical explanations AI might have added
-      // e.g. "Bere blondă (pentru aciditate)" -> "Bere blondă"
-      const cleanName = ing.name.replace(/\s*\(.*?\)\s*/g, '').trim().toLowerCase();
-
-      // 1. Try exact match (using clean name)
-      let match = availableProducts.find(p =>
-        p.name.toLowerCase() === cleanName
-      );
-
-      // 2. Try fuzzy match: Product name contains ingredient name
-      // DB: "Bere Blondă Ursus" contains Clean: "bere blondă" -> MATCH
-      if (!match) {
-        match = availableProducts.find(p =>
-          p.name.toLowerCase().includes(cleanName)
-        );
-      }
-
-      // 3. Try reverse fuzzy: Ingredient name contains product name
-      // Clean: "piept de pui dezosat" contains DB: "piept de pui" -> MATCH
-      if (!match) {
-        match = availableProducts.find(p =>
-          cleanName.includes(p.name.toLowerCase())
-        );
-      }
-
-      // 4. Try word intersection (last resort for things like "Ciolan de porc")
-      // If we match 3+ words, it's likely the same thing
-      if (!match && cleanName.split(' ').length > 2) {
-        match = availableProducts.find(p => {
-          const pWords = p.name.toLowerCase().split(' ');
-          const iWords = cleanName.split(' ');
-          const intersection = pWords.filter(w => iWords.includes(w));
-          return intersection.length >= 3; // e.g. "Ciolan", "de", "porc"
-        });
-      }
-
-      if (match) {
-        // Return object WITH ID for the API to use
+      // 0. If product_id is "pantry", it's a basic ingredient not from stores
+      if (ing.product_id === 'pantry') {
         return {
-          id: match.id, // CRITICAL: This links to the DB product
-          name: ing.name.replace(/\s*\(.*?\)\s*/g, ''), // Store clean name for display too, looks better
+          name: ing.name || 'ingredient de bază',
           quantity: ing.quantity,
-          unit: ing.unit,
-          matchedProduct: match.name // stored for debugging/reference
+          unit: ing.unit || 'buc',
         };
       }
 
-      // No match found - keep as raw text (API fallback will handle display)
-      // Also clean the display name even if no match, to avoid "(pentru aciditate)" cluttering the UI
+      // 1. Try exact product_id match first (AI was told to reference by ID)
+      if (ing.product_id && ing.product_id !== 'pantry') {
+        const idMatch = availableProducts.find(p => p.id === ing.product_id);
+        if (idMatch) {
+          return {
+            id: idMatch.id,
+            name: ing.name || idMatch.name,
+            quantity: ing.quantity,
+            unit: ing.unit || idMatch.unit || 'buc',
+            matchedProduct: idMatch.name
+          };
+        }
+      }
+
+      const ingName = (ing.name || '').toLowerCase();
+
+      // 2. Try exact name match
+      let match = availableProducts.find(p =>
+        p.name.toLowerCase() === ingName
+      );
+
+      // 3. Try fuzzy match: Product name contains ingredient name
+      if (!match) {
+        match = availableProducts.find(p =>
+          p.name.toLowerCase().includes(ingName)
+        );
+      }
+
+      // 4. Try reverse fuzzy: Ingredient name contains product name
+      if (!match) {
+        match = availableProducts.find(p =>
+          ingName.includes(p.name.toLowerCase())
+        );
+      }
+
+      if (match) {
+        return {
+          id: match.id,
+          name: ing.name,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          matchedProduct: match.name
+        };
+      }
+
+      // No match - keep as plain ingredient
       return {
-        ...ing,
-        name: ing.name.replace(/\s*\(.*?\)\s*/g, '').trim()
+        name: ing.name,
+        quantity: ing.quantity,
+        unit: ing.unit,
       };
     });
 
-    // Schema uses: instructions (LongText), ingredientIds (Text), cookTime, prepTime, tags (Text)
+    // Calculate dietary flags from recipe content
+    const stepsArray = (recipeData.steps || recipeData.instructions || []);
+    const stepsText = stepsArray.map(s => typeof s === 'string' ? s : (s.text || '')).join(' ');
+    const dietaryText = recipeData.title + ' ' + stepsText + ' ' +
+      matchedIngredients.map(i => i.name).join(' ');
+    const dietaryFlags = calculateDietaryFlags(dietaryText);
+
+    // Calculate real cost from matched product prices (fallback to AI estimate)
+    const realCost = calculateRealCost(matchedIngredients, availableProducts);
+    const finalCost = realCost > 0 ? realCost : (recipeData.estimatedCost || 25);
+    if (realCost > 0) {
+      log.info(`Real cost: ${realCost} lei (AI estimated: ${recipeData.estimatedCost || '?'} lei)`);
+    }
+
     const recipe = await prisma.recipe.create({
       data: {
         title: recipeData.title,
         slug: slug,
         description: recipeData.description,
-        cookTime: recipeData.cookingTime || 30,
-        prepTime: 10,
-        totalTime: (recipeData.cookingTime || 30) + 10,
+        cookTime: recipeData.cook_time || recipeData.cookingTime || 30,
+        prepTime: recipeData.prep_time || 10,
+        totalTime: (recipeData.cook_time || recipeData.cookingTime || 30) + (recipeData.prep_time || 10),
         servings: recipeData.servings || 4,
-        difficulty: (recipeData.difficulty || 'mediu').toLowerCase(),
-        estimatedCost: recipeData.estimatedCost || 25,
-        // ingredientIds stores JSON array of ingredient objects (now with IDs!)
+        difficulty: normalizeDifficulty(recipeData.difficulty || 'mediu'),
+        estimatedCost: finalCost,
         ingredientIds: JSON.stringify(matchedIngredients),
-        // instructions stores JSON array of steps
         instructions: JSON.stringify(recipeData.steps || recipeData.instructions || []),
         tips: JSON.stringify(recipeData.tips || []),
-        // tags is a Text field, store as comma-separated or JSON
-        tags: JSON.stringify(recipeData.tags || ['economic']),
+        tags: JSON.stringify(generateSmartTags(recipeData)),
+        metaDescription: (recipeData.description || '').substring(0, 160),
+        nutritionPerServing: recipeData.nutritionalInfo ? JSON.stringify(recipeData.nutritionalInfo) : null,
+        calories: recipeData.nutritionalInfo?.calories || null,
         isPublished: true,
+        ...dietaryFlags,
       }
     });
 
-    log.success(`Created recipe: ${recipe.title} `);
+    log.success(`Created recipe: ${recipe.title}`);
     return recipe;
   } catch (error) {
-    log.error(`Failed to save recipe: ${error.message} `);
+    log.error(`Failed to save recipe: ${error.message}`);
     return null;
   }
 }
 
 /**
- * Generate multiple recipes
+ * Generate multiple recipes with category variety
  */
 async function generateWeeklyRecipes(count = 10) {
-  log.info(`Starting generation of ${count} recipes`);
+  log.info(`Starting generation of ${count} REAL recipes`);
 
-  // Write initial status
   writeStatus({
     running: true,
     startedAt: new Date().toISOString(),
@@ -372,15 +724,28 @@ async function generateWeeklyRecipes(count = 10) {
     throw new Error('OPENROUTER_API_KEY is not set!');
   }
 
-  // Get products on sale
+  // Get ALL cooking products on sale (no arbitrary limit)
   const products = await getProductsOnSale();
-  log.info(`Found ${products.length} products to use for recipes`);
+  log.info(`Found ${products.length} cooking products on sale`);
+
+  if (products.length === 0) {
+    writeStatus({
+      running: false,
+      current: 0,
+      total: count,
+      message: 'Nu s-au găsit produse la ofertă.',
+      complete: true,
+      generatedCount: 0,
+      error: null
+    });
+    return [];
+  }
 
   writeStatus({
     running: true,
     current: 0,
     total: count,
-    message: `Găsite ${products.length} produse cu reducere`,
+    message: `Găsite ${products.length} produse alimentare la ofertă`,
     complete: false,
     generatedCount: 0,
     error: null
@@ -390,7 +755,7 @@ async function generateWeeklyRecipes(count = 10) {
   const existingRecipes = await prisma.recipe.findMany({
     select: { title: true },
     orderBy: { createdAt: 'desc' },
-    take: 50
+    take: 100
   });
   const existingTitles = existingRecipes.map(r => r.title);
 
@@ -398,34 +763,54 @@ async function generateWeeklyRecipes(count = 10) {
 
   for (let i = 0; i < count; i++) {
     try {
-      log.info(`Generating recipe ${i + 1}/${count}...`);
+      // Use seasonal categories for variety
+      const seasonCategories = getSeasonalCategories();
+      const categoryHint = seasonCategories[i % seasonCategories.length];
+
+      log.info(`Generating recipe ${i + 1}/${count} (${categoryHint})...`);
 
       writeStatus({
         running: true,
         current: i,
         total: count,
-        message: `Generăm rețeta ${i + 1}/${count}...`,
+        message: `Generăm rețeta ${i + 1}/${count}: ${categoryHint}...`,
         complete: false,
         generatedCount: createdRecipes.length,
         error: null
       });
 
-      // Deduplicate products by name to avoid "Wine, Wine, Wine" scenarios
-      const uniqueProducts = Array.from(new Map(products.map(p => [p.name, p])).values());
-      const shuffled = [...uniqueProducts].sort(() => Math.random() - 0.5);
-      const selectedProducts = shuffled.slice(0, 12); // Give it more options (12 instead of 8)
-
-      const recipeData = await generateRecipe(selectedProducts, [...existingTitles, ...createdRecipes.map(r => r.title)]);
+      // Pass ALL products - the AI sees everything available
+      const recipeData = await generateRecipe(
+        products,
+        categoryHint,
+        [...existingTitles, ...createdRecipes.map(r => r.title)]
+      );
 
       if (recipeData) {
-        // Pass selectedProducts for matching logic
-        const saved = await saveRecipe(recipeData, selectedProducts);
+        // Quality validation before saving
+        if (!validateRecipeQuality(recipeData)) {
+          log.info(`Recipe "${recipeData.title}" failed quality check, skipping`);
+          continue;
+        }
+
+        const allTitles = [...existingTitles, ...createdRecipes.map(r => r.title)];
+        const saved = await saveRecipe(recipeData, products, allTitles);
         if (saved) {
           createdRecipes.push(saved);
+        } else {
+          // Dedup collision - retry once with a different category
+          log.info(`Retrying with different category after dedup collision...`);
+          const retryCategory = seasonCategories[(i + 5) % seasonCategories.length];
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const retryData = await generateRecipe(products, retryCategory, allTitles);
+          if (retryData && validateRecipeQuality(retryData)) {
+            const retrySaved = await saveRecipe(retryData, products, allTitles);
+            if (retrySaved) createdRecipes.push(retrySaved);
+          }
         }
       }
 
-      // Rate limiting - wait 2 seconds between API calls
+      // Rate limiting
       await new Promise(resolve => setTimeout(resolve, 2000));
 
     } catch (error) {
@@ -433,7 +818,6 @@ async function generateWeeklyRecipes(count = 10) {
     }
   }
 
-  // Write final status
   writeStatus({
     running: false,
     startedAt: null,
@@ -454,7 +838,7 @@ async function generateWeeklyRecipes(count = 10) {
  */
 async function runRecipeGeneration() {
   log.info('========================================');
-  log.info('Starting Weekly Recipe Generation');
+  log.info('Starting Weekly Recipe Generation (REAL RECIPES MODE)');
   log.info('========================================');
 
   const startTime = Date.now();

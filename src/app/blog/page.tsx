@@ -3,8 +3,11 @@ import Link from 'next/link';
 import { ArticleCard } from '@/components/ArticleCard';
 
 export const metadata: Metadata = {
-    title: 'Blog - Sfaturi pentru Cumpărături Inteligente | CatalogSmart',
+    title: 'Blog - Sfaturi pentru Cumpărături Inteligente',
     description: 'Descoperă ghiduri, tips și trucuri pentru a economisi bani la cumpărături. Articole despre oferte, rețete ieftine și planificare buget.',
+    alternates: {
+        canonical: '/blog',
+    },
     openGraph: {
         title: 'Blog CatalogSmart - Economisește la Cumpărături',
         description: 'Ghiduri complete pentru cumpărături inteligente în România.',
@@ -204,25 +207,24 @@ const categories = [
 export default function BlogPage() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white">
-            {/* Hero Section */}
-            <section className="relative py-16 md:py-24 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white overflow-hidden">
+            {/* Hero Section - Compact on Mobile */}
+            <section className="relative py-6 md:py-24 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white overflow-hidden">
                 <div className="absolute inset-0 pattern-kitchen opacity-5" />
                 <div className="container-custom relative">
                     <div className="max-w-3xl mx-auto text-center">
-                        <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
+                        <h1 className="font-display text-xl md:text-5xl font-bold mb-2 md:mb-4">
                             Blog CatalogSmart
                         </h1>
-                        <p className="text-lg text-neutral-300 mb-8">
+                        <p className="text-sm md:text-lg text-neutral-300 mb-4 md:mb-8">
                             Sfaturi, ghiduri și trucuri pentru cumpărături inteligente.
-                            Economisește bani și timp cu articolele noastre.
                         </p>
 
                         {/* Category Pills */}
-                        <div className="flex flex-wrap justify-center gap-2">
+                        <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                             {categories.map((cat) => (
                                 <button
                                     key={cat.id}
-                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${cat.id === 'all'
+                                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors ${cat.id === 'all'
                                         ? 'bg-primary-500 text-white'
                                         : 'bg-white/10 text-white hover:bg-white/20'
                                         }`}

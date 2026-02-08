@@ -21,7 +21,7 @@ export default function AddToPlanModal({ recipe, onConfirm, onClose }: AddToPlan
     const [portions, setPortions] = useState(recipe.servings || 4);
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-    const scaledCost = recipe.estimatedCost
+    const scaledCost = recipe.estimatedCost && recipe.servings > 0
         ? Math.round((recipe.estimatedCost * portions / recipe.servings) * 100) / 100
         : null;
 
@@ -64,7 +64,7 @@ export default function AddToPlanModal({ recipe, onConfirm, onClose }: AddToPlan
                     {/* Close Button */}
                     <button
                         onClick={onClose}
-                        className="absolute top-3 right-3 w-8 h-8 bg-black/40 hover:bg-black/60 rounded-full flex items-center justify-center transition-colors"
+                        className="absolute top-3 right-3 w-10 h-10 bg-black/40 hover:bg-black/60 rounded-full flex items-center justify-center transition-colors touch-manipulation"
                     >
                         <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -112,7 +112,7 @@ export default function AddToPlanModal({ recipe, onConfirm, onClose }: AddToPlan
                                 <button
                                     key={num}
                                     onClick={() => setPortions(num)}
-                                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${portions === num
+                                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors touch-manipulation ${portions === num
                                             ? 'bg-primary-600 text-white'
                                             : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                                         }`}
@@ -133,7 +133,7 @@ export default function AddToPlanModal({ recipe, onConfirm, onClose }: AddToPlan
                                 <button
                                     key={day}
                                     onClick={() => setSelectedDay(selectedDay === day ? null : day)}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${selectedDay === day
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all touch-manipulation ${selectedDay === day
                                             ? 'bg-primary-600 text-white shadow-md'
                                             : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                                         }`}

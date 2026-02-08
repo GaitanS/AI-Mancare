@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
     try {
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error) {
-        console.error('Failed to clear database:', error);
+        logger.error('Failed to clear database', { error }, 'AdminDB');
         return NextResponse.json({
             error: 'Internal Database Error',
             details: error instanceof Error ? error.message : String(error)

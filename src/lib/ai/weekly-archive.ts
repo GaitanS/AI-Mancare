@@ -5,6 +5,7 @@
 
 import prisma from '@/lib/db';
 import type { RecipeArchive } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 /**
  * Archive recipes older than 7 days
@@ -39,11 +40,10 @@ export async function archiveOldRecipes(): Promise<{ archived: number; errors: s
                         : recipe.ingredientIds;
 
                     if (Array.isArray(ingredientIds) && ingredientIds.length > 0) {
-                        const products = await prisma.product.findMany({
-                            where: { id: { in: ingredientIds } },
-                            select: { name: true }
-                        });
-                        ingredientNames = products.map(p => p.name.toLowerCase().trim());
+                        // ingredientIds contains objects with {name, quantity, unit}, not product IDs
+                        ingredientNames = ingredientIds
+                            .filter((item: any) => item && typeof item === 'object' && item.name)
+                            .map((item: any) => item.name.toLowerCase().trim());
                     }
                 } catch (e) {
                     console.error(`[ARCHIVE] Failed to extract ingredients for ${recipe.id}:`, e);

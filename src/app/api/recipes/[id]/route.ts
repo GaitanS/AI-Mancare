@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // GET /api/recipes/[id] - Get single recipe with full details and ingredients
 export async function GET(
@@ -19,6 +20,21 @@ export async function GET(
                 { status: 404 }
             );
         }
+
+        // Fire-and-forget: increment view count
+        prisma.recipe.update({
+            where: { id },
+            data: { viewCount: { increment: 1 } }
+        }).catch((err) => { logger.warn('Failed to increment viewCount', { recipeId: id, error: err?.message }, 'RecipesAPI'); });
+
+        // Fire-and-forget: track interaction
+        prisma.userInteraction.create({
+            data: {
+                sessionId: request.headers.get('x-session-id') || 'anonymous',
+                recipeId: id,
+                type: 'view',
+            }
+        }).catch((err) => { logger.warn('Failed to track recipe view interaction', { recipeId: id, error: err?.message }, 'RecipesAPI'); });
 
         // Parse JSON fields safely
         const safeParseArray = (val: any) => {
@@ -150,10 +166,12 @@ export async function GET(
                 totalTime: recipe.totalTime,
                 difficulty: recipe.difficulty,
                 estimatedCost: recipe.estimatedCost ? Number(recipe.estimatedCost) : null,
-                instructions: safeParseArray(recipe.instructions).map((step: string, index: number) => ({
-                    step: index + 1,
-                    text: step
-                })),
+                instructions: safeParseArray(recipe.instructions).map((step: any, index: number) => {
+                    if (typeof step === 'object' && step !== null && step.text) {
+                        return { step: step.step || index + 1, text: step.text };
+                    }
+                    return { step: index + 1, text: String(step) };
+                }),
                 tips: safeParseArray(recipe.tips),
                 tags: safeParseArray(recipe.tags),
                 nutritionPerServing: safeParseJSON(recipe.nutritionPerServing),
@@ -164,7 +182,7 @@ export async function GET(
 
         return NextResponse.json(response);
     } catch (error) {
-        console.error('Error fetching recipe:', error);
+        logger.error('Error fetching recipe', { error }, 'RecipesAPI');
         return NextResponse.json(
             { success: false, error: 'Failed to fetch recipe' },
             { status: 500 }

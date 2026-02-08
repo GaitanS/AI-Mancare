@@ -17,7 +17,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const query = params.q || '';
 
   return {
-    title: query ? `Rezultate pentru "${query}" - CatalogSmart` : 'Cauta - CatalogSmart',
+    title: query ? `Rezultate pentru "${query}"` : 'Caută produse și rețete',
     description: query
       ? `Rezultate pentru cautarea "${query}" - produse si retete economice`
       : 'Cauta produse la reducere si retete economice',
@@ -48,17 +48,38 @@ async function searchProducts(query: string): Promise<Product[]> {
     take: 24,
   });
 
-  return products.map((p: any) => ({
-    ...p,
-    price: Number(p.price),
-    originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-    validFrom: p.validFrom.toISOString(),
-    validUntil: p.validUntil.toISOString(),
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-    nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-    allergens: p.allergens as string[] | null,
-  }));
+  // Fetch catalog image paths for products that have catalog references
+  const catalogIds = [...new Set(products.map((p: any) => p.catalogId).filter(Boolean))];
+  const catalogs = catalogIds.length > 0 ? await prisma.catalog.findMany({
+    where: { id: { in: catalogIds } },
+    select: { id: true, imageBasePath: true }
+  }) : [];
+  const catalogMap = new Map(catalogs.map((c: any) => [c.id, c.imageBasePath]));
+
+  return products.map((p: any) => {
+    let catalogPageImage: string | null = null;
+    if (p.catalogId && p.catalogPage) {
+      const imageBasePath = catalogMap.get(p.catalogId);
+      if (imageBasePath) {
+        const pageNum = String(p.catalogPage).padStart(2, '0');
+        catalogPageImage = `${imageBasePath}/page-${pageNum}.webp`;
+      }
+    }
+
+    return {
+      ...p,
+      price: Number(p.price),
+      originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+      validFrom: p.validFrom.toISOString(),
+      validUntil: p.validUntil.toISOString(),
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+      nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
+      allergens: p.allergens as string[] | null,
+      catalogPageImage,
+      catalogPageNumber: p.catalogPage,
+    };
+  });
 }
 
 async function searchRecipes(query: string): Promise<Recipe[]> {
@@ -105,18 +126,18 @@ export default async function SearchPage({ searchParams }: PageProps) {
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
           }} />
 
-          <div className="relative container-custom py-20 md:py-32">
+          <div className="relative container-custom py-8 md:py-32">
             <div className="text-center max-w-2xl mx-auto animate-fade-in-up">
-              <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-primary-500/30">
-                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-12 h-12 md:w-20 md:h-20 bg-gradient-to-br from-primary-500 to-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-8 shadow-lg shadow-primary-500/30">
+                <svg className="w-6 h-6 md:w-10 md:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              <h1 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">
+              <h1 className="font-display text-xl md:text-4xl font-bold text-white mb-2 md:mb-4">
                 Cauta produse si{' '}
                 <span className="text-gradient-primary">retete</span>
               </h1>
-              <p className="text-lg text-neutral-300">
+              <p className="text-sm md:text-lg text-neutral-300">
                 Introdu cel putin 2 caractere pentru a cauta
               </p>
             </div>
@@ -151,9 +172,9 @@ export default async function SearchPage({ searchParams }: PageProps) {
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
         }} />
 
-        <div className="relative container-custom py-12 md:py-16">
-          {/* Breadcrumb */}
-          <nav aria-label="Breadcrumb" className="mb-6 animate-fade-in-up">
+        <div className="relative container-custom py-4 md:py-16">
+          {/* Breadcrumb - Hidden on mobile */}
+          <nav aria-label="Breadcrumb" className="hidden md:block mb-6 animate-fade-in-up">
             <ol className="flex items-center gap-2 text-sm">
               <li>
                 <Link href="/" className="flex items-center gap-1 text-neutral-400 hover:text-white transition-colors">
@@ -169,32 +190,32 @@ export default async function SearchPage({ searchParams }: PageProps) {
           </nav>
 
           <div className="max-w-3xl animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-            {/* Search icon badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-6">
+            {/* Search icon badge - Hidden on mobile */}
+            <div className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-6">
               <svg className="w-4 h-4 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <span className="text-sm font-medium text-white/90">Rezultate cautare</span>
             </div>
 
-            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+            <h1 className="font-display text-xl md:text-4xl lg:text-5xl font-bold text-white mb-2 md:mb-4">
               Rezultate pentru{' '}
               <span className="text-gradient-primary">&quot;{query}&quot;</span>
             </h1>
 
             {/* Results count */}
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-primary-500/20 to-emerald-500/20 backdrop-blur-sm border border-primary-500/30">
-                <span className="font-display text-2xl font-bold text-white">{totalResults}</span>
-                <span className="text-sm text-neutral-300">rezultate</span>
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl bg-gradient-to-r from-primary-500/20 to-emerald-500/20 backdrop-blur-sm border border-primary-500/30">
+                <span className="font-display text-lg md:text-2xl font-bold text-white">{totalResults}</span>
+                <span className="text-xs md:text-sm text-neutral-300">rezultate</span>
               </span>
               {products.length > 0 && (
-                <span className="text-sm text-neutral-400">
+                <span className="text-xs md:text-sm text-neutral-400">
                   {products.length} produse
                 </span>
               )}
               {recipes.length > 0 && (
-                <span className="text-sm text-neutral-400">
+                <span className="text-xs md:text-sm text-neutral-400">
                   {recipes.length} retete
                 </span>
               )}

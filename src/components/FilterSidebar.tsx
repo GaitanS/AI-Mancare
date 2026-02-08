@@ -36,22 +36,24 @@ interface FilterSidebarProps {
   type: 'products' | 'recipes';
   config: ProductFilterConfig | RecipeFilterConfig;
   className?: string;
+  embedded?: boolean; // When true, don't render mobile button/drawer (used when inside another mobile panel)
 }
 
-// Store colors for visual indicators
+// Store colors for visual indicators (hex values for inline styles)
 const storeColors: Record<string, string> = {
-  kaufland: 'from-[#e10915] to-[#c00812]',
-  lidl: 'from-[#0050aa] to-[#003d82]',
-  penny: 'from-[#cd1719] to-[#a81315]',
-  carrefour: 'from-[#004e9e] to-[#003a76]',
-  'mega-image': 'from-[#e31837] to-[#b8142d]',
-  auchan: 'from-[#e2001a] to-[#b80016]',
+  kaufland: '#e10915',
+  lidl: '#0050aa',
+  penny: '#cd1719',
+  carrefour: '#004e9e',
+  'mega-image': '#e31837',
+  auchan: '#e2001a',
 };
 
 export default function FilterSidebar({
   type,
   config,
   className,
+  embedded = false,
 }: FilterSidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -107,11 +109,15 @@ export default function FilterSidebar({
     router.push(window.location.pathname, { scroll: false });
   }, [router]);
 
-  // Check if any filters are active
-  const hasActiveFilters = searchParams.toString().length > 0;
+  // Non-filter params to exclude from active filter count
+  const nonFilterParams = new Set(['sortBy', 'sortOrder', 'page', 'pageSize']);
+
+  // Check if any filters are active (excluding sort/pagination params)
+  const filterKeys = Array.from(searchParams.keys()).filter(k => !nonFilterParams.has(k));
+  const hasActiveFilters = filterKeys.length > 0;
 
   // Count active filters
-  const activeFilterCount = Array.from(searchParams.keys()).length;
+  const activeFilterCount = filterKeys.length;
 
   // Toggle checkbox filter
   const toggleCheckbox = useCallback(
@@ -182,10 +188,12 @@ export default function FilterSidebar({
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-1">
-                    <span className={cn(
-                      'w-2.5 h-2.5 rounded-full shadow-sm',
-                      storeColors[store.value] ? `bg-[${storeColors[store.value]}]` : 'bg-neutral-400'
-                    )} />
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shadow-sm"
+                      style={{
+                        backgroundColor: storeColors[store.value] || '#a3a3a3',
+                      }}
+                    />
                     <span className={cn(
                       'text-sm font-medium transition-colors',
                       isChecked ? 'text-neutral-900' : 'text-neutral-600 group-hover:text-neutral-900'
@@ -444,6 +452,15 @@ export default function FilterSidebar({
       </>
     );
   };
+
+  // When embedded, just render the filter content directly (no mobile button/drawer)
+  if (embedded) {
+    return (
+      <div className={cn('space-y-1', className)}>
+        {type === 'recipes' ? renderRecipeFilters() : renderProductFilters()}
+      </div>
+    );
+  }
 
   return (
     <>

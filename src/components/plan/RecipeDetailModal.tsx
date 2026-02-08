@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { normalizeDifficulty } from '@/lib/utils';
 
 interface Ingredient {
     id: string;
@@ -110,7 +111,7 @@ const difficultyConfig = {
 
 export default function RecipeDetailModal({ recipe, isInPlan, onAddToPlan, onClose }: RecipeDetailModalProps) {
     const [showShareToast, setShowShareToast] = useState(false);
-    const difficultyInfo = difficultyConfig[recipe.difficulty as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
+    const difficultyInfo = difficultyConfig[normalizeDifficulty(recipe.difficulty) as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
 
     // Block body scroll when modal is open
     useEffect(() => {
@@ -251,7 +252,9 @@ export default function RecipeDetailModal({ recipe, isInPlan, onAddToPlan, onClo
                                                     <span className="text-[10px] md:text-sm text-neutral-400">({ing.store})</span>
                                                 )}
                                             </div>
-                                            <span className="font-bold text-neutral-700">{ing.price.toFixed(2)} RON</span>
+                                            <span className="font-bold text-neutral-700">
+                                            {ing.quantity} {ing.unit}
+                                        </span>
                                         </li>
                                     ))}
                                 </ul>

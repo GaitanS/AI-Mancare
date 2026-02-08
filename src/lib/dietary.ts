@@ -2,6 +2,15 @@
  * Utility to calculate strict dietary flags based on recipe text content.
  * Used for both seed data and AI-generated recipes.
  */
+
+/**
+ * Helper: check if any keyword appears as a whole word in text
+ * Uses word boundary regex to avoid false positives (e.g. "unt" in "punct")
+ */
+function containsWord(text: string, words: string[]): boolean {
+    return words.some(w => new RegExp(`\\b${w}\\b`, 'i').test(text));
+}
+
 export function calculateDietaryFlags(fullText: string): {
     isGlutenFree: boolean;
     isDairyFree: boolean;
@@ -19,20 +28,19 @@ export function calculateDietaryFlags(fullText: string): {
 
     // 1. Meat (Breaks Vegan/Veg)
     const meats = ['pui', 'porc', 'vită', 'vita', 'carne', 'șuncă', 'sunca', 'slănină', 'slanina', 'cârnați', 'carnati', 'pește', 'peste', 'ton'];
-    if (meats.some(m => text.includes(m))) {
+    if (containsWord(text, meats)) {
         isVegan = false;
         isVegetarian = false;
     }
 
     // 2. Eggs/Dairy (Breaks Vegan (Eggs), Dairy Free (Dairy))
     const dairy = ['lapte', 'smântână', 'smantana', 'iaurt', 'brânză', 'branza', 'cașcaval', 'cascaval', 'unt', 'frișcă', 'frisca', 'parmezan'];
-    if (dairy.some(d => text.includes(d))) {
+    if (containsWord(text, dairy)) {
         isDairyFree = false;
         isVegan = false;
     }
 
-    // Eggs are tricky, "ou" matches "noua". Use regex or cleaner check.
-    // Simple check for "ou " or "oua"
+    // Eggs - "ou" handled with word boundary to avoid matching "noua", etc.
     if (text.includes('ouă') || text.includes('oua') || /\bou\b/.test(text)) {
         isVegan = false;
         // Vegetarian is still true
@@ -40,17 +48,8 @@ export function calculateDietaryFlags(fullText: string): {
 
     // 3. Gluten
     const gluten = ['pâine', 'paine', 'făină', 'faina', 'pesmet', 'paste', 'crutoane', 'grâu', 'grau', 'gluten'];
-    if (gluten.some(g => text.includes(g))) {
+    if (containsWord(text, gluten)) {
         isGlutenFree = false;
-    }
-
-    // Heuristics for typical dishes
-    if (text.includes('paste')) isGlutenFree = false;
-
-    // Explicit exclusions if the AI explicitly stated something (optional)
-    if (text.includes('vegan') && !text.includes('non-vegan')) {
-        // Trust explicit label if present? Maybe dangerous if ingredients contradict.
-        // Let's stick to negative constraints for safety.
     }
 
     return {

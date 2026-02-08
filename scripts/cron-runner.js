@@ -67,8 +67,8 @@ function getRomaniaTime() {
     return { dayOfWeek, hour, minute };
 }
 
-// Run a task script
-function runScript(scriptName, taskName) {
+// Run a task via the queue system (creates ProcessRun entry for queue-worker to pick up)
+async function queueTask(scriptName, taskName) {
     const scriptPath = path.join(process.cwd(), 'scripts', scriptName);
 
     if (!fs.existsSync(scriptPath)) {
@@ -76,17 +76,38 @@ function runScript(scriptName, taskName) {
         return;
     }
 
-    log(`🚀 Starting task: ${taskName} (${scriptName})`);
+    log(`🚀 Queueing task: ${taskName} (${scriptName})`);
 
-    const child = spawn('node', [scriptPath], {
-        detached: true,
-        stdio: 'ignore',
-        cwd: process.cwd(),
-        env: process.env
-    });
+    try {
+        // Find the matching ScrapingProcess by script name
+        const process = await prisma.scrapingProcess.findFirst({
+            where: { script: { contains: scriptName } }
+        });
 
-    child.unref();
-    log(`✅ Task ${taskName} started in background (PID: ${child.pid})`);
+        if (process) {
+            await prisma.processRun.create({
+                data: {
+                    processId: process.id,
+                    status: 'queued',
+                    triggeredBy: 'schedule'
+                }
+            });
+            log(`✅ Task ${taskName} queued via process system (processId: ${process.id})`);
+        } else {
+            // Fallback: direct spawn for unmapped scripts
+            log(`⚠️ No process found for ${scriptName}, falling back to direct spawn`);
+            const child = spawn('node', [scriptPath], {
+                detached: true,
+                stdio: 'ignore',
+                cwd: require('process').cwd(),
+                env: require('process').env
+            });
+            child.unref();
+            log(`✅ Task ${taskName} started in background (PID: ${child.pid})`);
+        }
+    } catch (error) {
+        log(`❌ Failed to queue task ${taskName}: ${error.message}`);
+    }
 }
 
 // Update last run timestamp
@@ -136,7 +157,7 @@ async function main() {
 
                 if (scriptName) {
                     log(`⏰ Time to run: ${schedule.taskName}`);
-                    runScript(scriptName, schedule.taskName);
+                    await queueTask(scriptName, schedule.taskName);
                     await updateLastRun(schedule.taskName);
                 } else {
                     log(`⚠️ Unknown task: ${schedule.taskName}`);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 interface ExportItem {
     ingredientName: string;
@@ -166,7 +167,7 @@ export async function GET(request: NextRequest) {
             itemCount: exportItems.length,
         });
     } catch (error) {
-        console.error('Export error:', error);
+        logger.error('Export error', { error }, 'CartExportAPI');
         return NextResponse.json(
             { error: 'Failed to export cart' },
             { status: 500 }

@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
-import { formatPrice } from '@/lib/utils';
+import { cn, formatPrice, normalizeDifficulty } from '@/lib/utils';
 import type { Product, Recipe } from '@/types';
 
 interface SearchResult {
@@ -268,10 +267,10 @@ export default function SearchBar() {
                         <p className="text-xs text-neutral-500 flex items-center gap-2">
                           <span className={cn(
                             'inline-block w-1.5 h-1.5 rounded-full',
-                            recipe.difficulty === 'USOR' ? 'bg-success-500' :
-                              recipe.difficulty === 'MEDIU' ? 'bg-warning-500' : 'bg-danger-500'
+                            normalizeDifficulty(recipe.difficulty) === 'USOR' ? 'bg-success-500' :
+                              normalizeDifficulty(recipe.difficulty) === 'MEDIU' ? 'bg-warning-500' : 'bg-danger-500'
                           )} />
-                          {recipe.difficulty === 'USOR' ? 'Usor' : recipe.difficulty === 'MEDIU' ? 'Mediu' : 'Dificil'}
+                          {normalizeDifficulty(recipe.difficulty) === 'USOR' ? 'Ușor' : normalizeDifficulty(recipe.difficulty) === 'MEDIU' ? 'Mediu' : 'Dificil'}
                           &middot; {recipe.totalTime} min
                         </p>
                       </div>
@@ -290,7 +289,12 @@ export default function SearchBar() {
           {/* View All Results */}
           <div className="px-4 py-3 bg-gradient-to-r from-primary-50 to-emerald-50 border-t border-neutral-100">
             <button
-              onClick={handleSubmit}
+              onClick={() => {
+                if (query.trim()) {
+                  setIsOpen(false);
+                  router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+                }
+              }}
               className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors"
             >
               Vezi toate rezultatele

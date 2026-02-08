@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { withRateLimit } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 import type { Product, ProductFilters, PaginatedResponse, ApiResponse } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
+const productsRateLimit = withRateLimit({ limit: 100, windowMs: 60 * 1000, keyPrefix: 'api-products' });
+
 // GET /api/products - Get products with filters and pagination
 export async function GET(request: NextRequest) {
   try {
+    const rateLimitResponse = await productsRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
     const { searchParams } = new URL(request.url);
 
     // Parse query parameters
@@ -125,7 +131,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching products:', error);
+    logger.error('Error fetching products', { error }, 'ProductsAPI');
 
     const response: ApiResponse = {
       success: false,
@@ -203,7 +209,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
-    console.error('Error creating product:', error);
+    logger.error('Error creating product', { error }, 'ProductsAPI');
 
     return NextResponse.json(
       { success: false, error: 'Failed to create product' },

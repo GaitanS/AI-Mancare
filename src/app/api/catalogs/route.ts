@@ -3,11 +3,17 @@
  * Returns catalogs grouped by store for the catalog listing page
  */
 
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/db';
+import { withRateLimit } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
-export async function GET() {
+const catalogsRateLimit = withRateLimit({ limit: 100, windowMs: 60 * 1000, keyPrefix: 'api-catalogs' });
+
+export async function GET(request: NextRequest) {
   try {
+    const rateLimitResponse = await catalogsRateLimit(request);
+    if (rateLimitResponse) return rateLimitResponse;
     const catalogs = await prisma.catalog.findMany({
       where: {
         status: 'COMPLETED',
@@ -55,7 +61,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Error fetching catalogs:', error);
+    logger.error('Error fetching catalogs', { error }, 'CatalogsAPI');
     return NextResponse.json(
       { success: false, error: 'Failed to fetch catalogs' },
       { status: 500 }

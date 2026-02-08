@@ -1,7 +1,5 @@
 // Type Definitions pentru Retete Ieftine
 
-import { Decimal } from '@prisma/client/runtime/library';
-
 // ==========================================
 // PRODUCT TYPES
 // ==========================================
@@ -109,6 +107,9 @@ export interface Recipe {
   isVegan?: boolean;
   isVegetarian?: boolean;
 
+  // Popularity
+  viewCount?: number;
+
   // Status
   isPublished?: boolean;
   isFeatured?: boolean;
@@ -139,6 +140,13 @@ export interface GeneratedRecipe {
   instructions: RecipeStep[];
   tips: string[];
   estimated_cost: number;
+  nutritionalInfo?: {
+    calories?: number;
+    protein?: string;
+    carbs?: string;
+    fat?: string;
+    fiber?: string;
+  } | null;
 }
 
 // ==========================================

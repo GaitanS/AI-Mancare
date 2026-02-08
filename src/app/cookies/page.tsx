@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Politica de Cookies - Retete Ieftine',
-  description: 'Politica de utilizare a cookie-urilor pe platforma Retete Ieftine. Aflati ce cookies folosim si cum le puteti gestiona.',
+  title: 'Politica de Cookies',
+  description: 'Politica de utilizare a cookie-urilor pe platforma CatalogSmart. Aflati ce cookies folosim si cum le puteti gestiona.',
+  alternates: {
+    canonical: '/cookies',
+  },
   robots: {
     index: true,
     follow: true,
@@ -213,7 +216,7 @@ export default function CookiesPage() {
                   Pentru intrebari despre utilizarea cookie-urilor pe site-ul nostru:
                 </p>
                 <ul className="list-none mt-4 space-y-2 text-foreground/80 font-body">
-                  <li><strong>Email:</strong> privacy@reteteieftine.ro</li>
+                  <li><strong>Email:</strong> privacy@catalogsmart.ro</li>
                   <li><strong>Pagina de contact:</strong> <a href="/contact" className="text-primary-600 hover:text-primary-700">/contact</a></li>
                 </ul>
               </section>

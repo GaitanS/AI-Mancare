@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/db';
+import { logAudit } from '@/lib/audit-logger';
 
 // Default schedules - used as fallback when DB is not available
 const DEFAULT_SCHEDULES = [
@@ -14,47 +16,34 @@ const DEFAULT_SCHEDULES = [
  */
 export async function GET() {
     try {
-        // Dynamically import Prisma to avoid initialization errors
-        const { PrismaClient } = await import('@prisma/client');
-        const prisma = new PrismaClient();
+        let schedules = await prisma.scheduleConfig.findMany({
+            orderBy: { taskName: 'asc' },
+        });
 
-        try {
-            let schedules = await prisma.scheduleConfig.findMany({
-                orderBy: { taskName: 'asc' },
-            });
-
-            // If no schedules exist, try to create defaults
-            if (schedules.length === 0) {
-                try {
-                    await prisma.scheduleConfig.createMany({
-                        data: DEFAULT_SCHEDULES.map(s => ({
-                            taskName: s.taskName,
-                            enabled: s.enabled,
-                            dayOfWeek: s.dayOfWeek,
-                            hour: s.hour,
-                            minute: s.minute,
-                        })),
-                    });
-                    schedules = await prisma.scheduleConfig.findMany({
-                        orderBy: { taskName: 'asc' },
-                    });
-                } catch {
-                    // Table doesn't exist, return defaults
-                    await prisma.$disconnect();
-                    return NextResponse.json({ schedules: DEFAULT_SCHEDULES });
-                }
+        // If no schedules exist, try to create defaults
+        if (schedules.length === 0) {
+            try {
+                await prisma.scheduleConfig.createMany({
+                    data: DEFAULT_SCHEDULES.map(s => ({
+                        taskName: s.taskName,
+                        enabled: s.enabled,
+                        dayOfWeek: s.dayOfWeek,
+                        hour: s.hour,
+                        minute: s.minute,
+                    })),
+                });
+                schedules = await prisma.scheduleConfig.findMany({
+                    orderBy: { taskName: 'asc' },
+                });
+            } catch {
+                // Table doesn't exist, return defaults
+                return NextResponse.json({ schedules: DEFAULT_SCHEDULES });
             }
-
-            await prisma.$disconnect();
-            return NextResponse.json({ schedules });
-        } catch (dbError) {
-            console.error('DB error, using fallback:', dbError);
-            await prisma.$disconnect().catch(() => { });
-            return NextResponse.json({ schedules: DEFAULT_SCHEDULES, _fallback: true });
         }
-    } catch (importError) {
-        // Prisma import failed entirely - return defaults
-        console.error('Prisma import failed, using fallback:', importError);
+
+        return NextResponse.json({ schedules });
+    } catch (dbError) {
+        console.error('DB error, using fallback:', dbError);
         return NextResponse.json({ schedules: DEFAULT_SCHEDULES, _fallback: true });
     }
 }
@@ -63,7 +52,7 @@ export async function GET() {
  * POST /api/admin/schedules - Update a schedule config
  * Body: { taskName: string, enabled?: boolean, dayOfWeek?: number, hour?: number, minute?: number }
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const { taskName, enabled, dayOfWeek, hour, minute } = body;
@@ -72,11 +61,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'taskName is required' }, { status: 400 });
         }
 
-        // Try to use database
         try {
-            const { PrismaClient } = await import('@prisma/client');
-            const prisma = new PrismaClient();
-
             const updateData: Record<string, unknown> = {};
             if (typeof enabled === 'boolean') updateData.enabled = enabled;
             if (typeof dayOfWeek === 'number') updateData.dayOfWeek = dayOfWeek;
@@ -95,7 +80,14 @@ export async function POST(req: Request) {
                 },
             });
 
-            await prisma.$disconnect();
+            await logAudit({
+              action: typeof enabled === 'boolean' ? 'TOGGLE' : 'UPDATE',
+              entity: 'schedule',
+              entityId: schedule.id,
+              details: `Updated schedule: ${taskName}${typeof enabled === 'boolean' ? ` (${enabled ? 'enabled' : 'disabled'})` : ''}`,
+              request: req,
+            });
+
             return NextResponse.json({
                 success: true,
                 message: `Schedule "${taskName}" updated`,

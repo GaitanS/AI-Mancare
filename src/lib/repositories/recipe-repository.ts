@@ -75,7 +75,7 @@ export class RecipeRepository extends BaseRepository<Recipe, Prisma.RecipeCreate
     async findPopular(limit: number = 10): Promise<Recipe[]> {
         return this.executeWithLogging('findPopular', () =>
             this.db.recipe.findMany({
-                orderBy: { createdAt: 'desc' },
+                orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
                 take: limit
             })
         )
@@ -133,11 +133,15 @@ export class RecipeRepository extends BaseRepository<Recipe, Prisma.RecipeCreate
     }
 
     /**
-     * Mark recipe as viewed (placeholder - no viewCount field in schema)
+     * Increment recipe view count (fire-and-forget)
      */
     async incrementViews(id: string): Promise<void> {
-        // viewCount field not in schema - this is a no-op placeholder
-        return;
+        await this.executeWithLogging('incrementViews', () =>
+            this.db.recipe.update({
+                where: { id },
+                data: { viewCount: { increment: 1 } }
+            })
+        )
     }
 
     /**

@@ -2,9 +2,10 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Store, Calendar, Tag } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Store, Calendar, Tag, ShoppingCart, Check } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { addProductToCart, isProductInCart } from '@/lib/cart-utils';
 
 interface CatalogViewerProps {
     isOpen: boolean;
@@ -28,12 +29,16 @@ export default function CatalogViewer({ isOpen, onClose, product, catalog, navig
     const router = useRouter();
     const imageRef = useRef<HTMLDivElement>(null);
     const sheetRef = useRef<HTMLDivElement>(null);
+    const [inCart, setInCart] = useState(false);
+    const [justAdded, setJustAdded] = useState(false);
 
     // Reset state when product changes
     useEffect(() => {
         setZoom(1);
         setPan({ x: 0, y: 0 });
-    }, [product.id]);
+        setInCart(isProductInCart(product.name));
+        setJustAdded(false);
+    }, [product.id, product.name]);
 
     // Lock body scroll when viewer is open
     useEffect(() => {
@@ -58,13 +63,13 @@ export default function CatalogViewer({ isOpen, onClose, product, catalog, navig
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, navigation, onClose, router]);
+    }, [isOpen, navigation, onClose, onNavigate]);
 
     if (!isOpen) return null;
 
     // Determine current image URL
     // catalogPage is 1-based index. catalog.images is array [0..N]
-    const pageIndex = (product.catalogPage || 1) - 1;
+    const pageIndex = (product.catalogPageNumber || product.catalogPage || 1) - 1;
     const imageUrl = catalog?.images?.[pageIndex] || null;
 
     const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.5, 2));
@@ -131,7 +136,7 @@ export default function CatalogViewer({ isOpen, onClose, product, catalog, navig
             <div
                 ref={sheetRef}
                 className={`fixed left-0 right-0 z-[9999] bg-background md:bg-neutral-900/95 transition-transform duration-300 ease-out
-                    inset-0 bottom-[60px] md:bottom-0 flex flex-col md:flex-row md:items-center md:justify-center
+                    inset-0 bottom-16 md:bottom-0 flex flex-col md:flex-row md:items-center md:justify-center
                     ${isOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
                     ${isOpen ? '' : 'md:opacity-0 md:pointer-events-none'}
                     overflow-hidden`}
@@ -152,7 +157,7 @@ export default function CatalogViewer({ isOpen, onClose, product, catalog, navig
                     {/* Close Button - Global */}
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 z-[10001] p-2 bg-neutral-900/90 hover:bg-neutral-900 text-neutral-200 rounded-full transition-colors shadow-elevated backdrop-blur-sm border border-neutral-700"
+                        className="absolute top-4 right-4 z-[10001] w-11 h-11 md:w-auto md:h-auto md:p-2 flex items-center justify-center bg-neutral-900/90 hover:bg-neutral-900 text-neutral-200 rounded-full transition-colors shadow-elevated backdrop-blur-sm border border-neutral-700 touch-manipulation"
                     >
                         <X size={24} />
                     </button>
@@ -160,12 +165,12 @@ export default function CatalogViewer({ isOpen, onClose, product, catalog, navig
                     {/* Left Side: Catalog Viewer (Available Space) */}
                     <div className="flex-1 relative bg-neutral-800 flex items-center justify-center h-full transition-all overflow-hidden">
                         {/* Zoom Controls */}
-                        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex gap-2 bg-neutral-900/90 backdrop-blur-sm rounded-full p-2 border border-neutral-700 shadow-elevated">
-                            <button onClick={handleZoomOut} className="p-2 hover:bg-neutral-700 rounded-full text-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" disabled={zoom <= 1}>
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex gap-2 bg-neutral-900/90 backdrop-blur-sm rounded-full p-1.5 md:p-2 border border-neutral-700 shadow-elevated">
+                            <button onClick={handleZoomOut} className="p-2.5 md:p-2 hover:bg-neutral-700 rounded-full text-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-manipulation" disabled={zoom <= 1}>
                                 <ZoomOut size={20} />
                             </button>
                             <span className="text-neutral-200 text-sm font-mono self-center px-2 font-medium">{Math.round(zoom * 100)}%</span>
-                            <button onClick={handleZoomIn} className="p-2 hover:bg-neutral-700 rounded-full text-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" disabled={zoom >= 2}>
+                            <button onClick={handleZoomIn} className="p-2.5 md:p-2 hover:bg-neutral-700 rounded-full text-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-manipulation" disabled={zoom >= 2}>
                                 <ZoomIn size={20} />
                             </button>
                             {zoom > 1 && (
@@ -204,7 +209,7 @@ export default function CatalogViewer({ isOpen, onClose, product, catalog, navig
                         {/* Image Viewer Area */}
                         <div
                             ref={imageRef}
-                            className={`relative w-full h-full flex items-center justify-center overflow-hidden cursor-${zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'}`}
+                            className={`relative w-full h-full flex items-center justify-center overflow-hidden ${zoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'}`}
                             onMouseDown={handleMouseDown}
                             onMouseMove={handleMouseMove}
                             onMouseUp={handleMouseUp}
@@ -226,7 +231,7 @@ export default function CatalogViewer({ isOpen, onClose, product, catalog, navig
                                 >
                                     <img
                                         src={imageUrl}
-                                        alt={`Page ${product.catalogPage}`}
+                                        alt={`Page ${product.catalogPageNumber || product.catalogPage}`}
                                         className="object-contain max-h-[90vh] w-auto shadow-2xl"
                                         draggable={false}
                                     />
@@ -294,7 +299,41 @@ export default function CatalogViewer({ isOpen, onClose, product, catalog, navig
                                 </div>
                             </div>
 
-                            {/* Close button removed as per request (X already exists) */}
+                            {/* Add to Cart Button */}
+                            <button
+                                onClick={() => {
+                                    addProductToCart({
+                                        id: product.id,
+                                        name: product.name,
+                                        price: Number(product.price),
+                                        originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
+                                        discountPercentage: product.discountPercentage || null,
+                                        store: catalog?.store || '',
+                                        unit: product.unit,
+                                        imageUrl: product.catalogPageImage || null,
+                                    });
+                                    setInCart(true);
+                                    setJustAdded(true);
+                                    setTimeout(() => setJustAdded(false), 2000);
+                                }}
+                                className={`mt-3 md:mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 md:py-3 rounded-lg md:rounded-xl font-semibold text-sm md:text-base transition-all touch-manipulation ${
+                                    inCart
+                                        ? 'bg-foreground hover:bg-foreground/90 text-white'
+                                        : 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm hover:shadow-md'
+                                }`}
+                            >
+                                {inCart ? (
+                                    <>
+                                        <Check size={18} className={justAdded ? 'animate-bounce' : ''} />
+                                        {justAdded ? 'Adăugat!' : 'În coș'}
+                                    </>
+                                ) : (
+                                    <>
+                                        <ShoppingCart size={18} />
+                                        Adaugă în coș
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>

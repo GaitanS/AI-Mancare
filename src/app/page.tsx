@@ -5,6 +5,7 @@ import prisma from '@/lib/db';
 import { cache, CacheKeys } from '@/lib/cache';
 import ProductCard, { ProductCardSkeleton } from '@/components/ProductCard';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
+import AdSenseBanner from '@/components/AdSenseBanner';
 import type { Product, Recipe } from '@/types';
 import type { Metadata } from 'next';
 import heroVegetables from '../../public/hero-vegetables.png';
@@ -13,7 +14,7 @@ import heroPlate from '../../public/hero-plate.png';
 import FeaturedOffersSection from '@/components/FeaturedOffersSection';
 
 export const metadata: Metadata = {
-  title: 'CatalogSmart - Oferte si Retete Economice pentru Toata Familia',
+  title: 'Oferte si Retete Economice pentru Toata Familia',
   description:
     'Descopera cele mai bune oferte din supermarketuri si retete delicioase la preturi mici. Economiseste bani gatind acasa cu ingrediente la reducere!',
   alternates: {
@@ -38,17 +39,38 @@ async function getFeaturedOffers(): Promise<Product[]> {
           take: 8,
         });
 
-        return products.map((p: any) => ({
-          ...p,
-          price: Number(p.price),
-          originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-          validFrom: p.validFrom.toISOString(),
-          validUntil: p.validUntil.toISOString(),
-          createdAt: p.createdAt.toISOString(),
-          updatedAt: p.updatedAt.toISOString(),
-          nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-          allergens: p.allergens as string[] | null,
-        }));
+        // Fetch catalog image paths
+        const catalogIds = [...new Set(products.map((p: any) => p.catalogId).filter(Boolean))];
+        const catalogs = catalogIds.length > 0 ? await prisma.catalog.findMany({
+          where: { id: { in: catalogIds } },
+          select: { id: true, imageBasePath: true }
+        }) : [];
+        const catalogMap = new Map(catalogs.map((c: any) => [c.id, c.imageBasePath]));
+
+        return products.map((p: any) => {
+          let catalogPageImage: string | null = null;
+          if (p.catalogId && p.catalogPage) {
+            const imageBasePath = catalogMap.get(p.catalogId);
+            if (imageBasePath) {
+              const pageNum = String(p.catalogPage).padStart(2, '0');
+              catalogPageImage = `${imageBasePath}/page-${pageNum}.webp`;
+            }
+          }
+
+          return {
+            ...p,
+            price: Number(p.price),
+            originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+            validFrom: p.validFrom.toISOString(),
+            validUntil: p.validUntil.toISOString(),
+            createdAt: p.createdAt.toISOString(),
+            updatedAt: p.updatedAt.toISOString(),
+            nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
+            allergens: p.allergens as string[] | null,
+            catalogPageImage,
+            catalogPageNumber: p.catalogPage,
+          };
+        });
       } catch (error) {
         console.warn('Failed to fetch featured offers:', error);
         return [];
@@ -93,7 +115,7 @@ async function getStats() {
     async () => {
       const now = new Date();
       try {
-        const [productCount, recipeCount, storeCount] = await Promise.all([
+        const [productCount, recipeCount] = await Promise.all([
           prisma.product.count({
             where: {
               validFrom: { lte: now },
@@ -101,26 +123,17 @@ async function getStats() {
             },
           }),
           prisma.recipe.count(),
-          prisma.product.groupBy({
-            by: ['store'],
-            where: {
-              validFrom: { lte: now },
-              validUntil: { gte: now },
-            },
-          }),
         ]);
 
         return {
           products: productCount,
           recipes: recipeCount,
-          stores: storeCount.length,
         };
       } catch (error) {
         console.warn('Failed to fetch stats:', error);
         return {
           products: 0,
           recipes: 0,
-          stores: 0
         };
       }
     },
@@ -128,28 +141,66 @@ async function getStats() {
   );
 }
 
-// Store with brand colors
-const stores = [
-  { name: 'Kaufland', slug: 'kaufland', gradient: 'from-[#e10915] to-[#c00812]' },
-  { name: 'Lidl', slug: 'lidl', gradient: 'from-[#0050aa] to-[#003d82]' },
-  { name: 'Penny', slug: 'penny', gradient: 'from-[#cd1719] to-[#a81315]' },
-  { name: 'Carrefour', slug: 'carrefour', gradient: 'from-[#004e9e] to-[#003a76]' },
-  { name: 'Mega Image', slug: 'mega-image', gradient: 'from-[#e31837] to-[#b8142d]' },
-  { name: 'Auchan', slug: 'auchan', gradient: 'from-[#e2001a] to-[#b80016]' },
-  { name: 'Selgros', slug: 'selgros', gradient: 'from-[#d2001e] to-[#a00017]' },
-];
+// Brand gradient colors (static design config)
+const STORE_GRADIENTS: Record<string, string> = {
+  kaufland: 'from-[#e10915] to-[#c00812]',
+  lidl: 'from-[#0050aa] to-[#003d82]',
+  penny: 'from-[#cd1719] to-[#a81315]',
+  carrefour: 'from-[#004e9e] to-[#003a76]',
+  'mega-image': 'from-[#e31837] to-[#b8142d]',
+  auchan: 'from-[#e2001a] to-[#b80016]',
+  selgros: 'from-[#d2001e] to-[#a00017]',
+  profi: 'from-[#e30613] to-[#b80510]',
+  'la-doi-pasi': 'from-[#009639] to-[#00782e]',
+};
+
+// Fetch active stores from DB
+async function getActiveStores() {
+  return cache.getOrSet(
+    'stores:active_home',
+    async () => {
+      try {
+        const now = new Date();
+        const storeGroups = await prisma.product.groupBy({
+          by: ['store'],
+          where: {
+            validFrom: { lte: now },
+            validUntil: { gte: now },
+          },
+          _count: { store: true },
+          orderBy: { _count: { store: 'desc' } },
+        });
+
+        return storeGroups.map((g: { store: string }) => {
+          const slug = g.store.toLowerCase().replace(/\s+/g, '-');
+          return {
+            name: g.store,
+            slug,
+            gradient: STORE_GRADIENTS[slug] || 'from-neutral-500 to-neutral-600',
+          };
+        });
+      } catch (error) {
+        console.warn('Failed to fetch active stores:', error);
+        return [];
+      }
+    },
+    3600
+  );
+}
 
 export default async function HomePage() {
   // Fallback data in case of any database errors
   let featuredOffers: Product[] = [];
   let featuredRecipes: Recipe[] = [];
-  let stats = { products: 0, recipes: 0, stores: 0 };
+  let stats = { products: 0, recipes: 0 };
+  let stores: { name: string; slug: string; gradient: string }[] = [];
 
   try {
-    [featuredOffers, featuredRecipes, stats] = await Promise.all([
+    [featuredOffers, featuredRecipes, stats, stores] = await Promise.all([
       getFeaturedOffers(),
       getFeaturedRecipes(),
       getStats(),
+      getActiveStores(),
     ]);
   } catch (error) {
     console.error('HomePage data fetch failed:', error);
@@ -158,7 +209,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="relative min-h-[85vh] md:min-h-[550px] flex items-center overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-900 via-neutral-950 to-black text-white">
+      <section className="relative min-h-[50vh] md:min-h-[550px] flex items-center overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-900 via-neutral-950 to-black text-white">
         {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {/* Subtle glow effects */}
@@ -195,64 +246,64 @@ export default async function HomePage() {
         {/* Pattern Overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20" />
 
-        <div className="container-custom relative z-20 pt-10 pb-10">
+        <div className="container-custom relative z-20 pt-4 pb-4 sm:pt-10 sm:pb-10">
           <div className="max-w-5xl mx-auto text-center flex flex-col items-center">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-6 animate-fade-in-up shadow-glow-primary">
-              <span className="relative flex h-2.5 w-2.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-4 sm:py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-3 sm:mb-6 animate-fade-in-up shadow-glow-primary">
+              <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-500"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-primary-500"></span>
               </span>
-              <span className="text-sm text-neutral-200 font-medium tracking-wide">Cataloage actualizate săptămânal</span>
+              <span className="text-[10px] sm:text-sm text-neutral-200 font-medium tracking-wide">Cataloage actualizate săptămânal</span>
             </div>
 
             {/* Headline - CRITICAL PENTRU SEO */}
-            <h1 className="font-display text-4xl sm:text-5xl md:text-7xl font-black mb-6 leading-[1.05] tracking-tight animate-fade-in-up drop-shadow-2xl" style={{ animationDelay: '100ms' }}>
+            <h1 className="font-display text-2xl sm:text-5xl md:text-7xl font-black mb-2 sm:mb-6 leading-[1.05] tracking-tight animate-fade-in-up drop-shadow-2xl" style={{ animationDelay: '100ms' }}>
               <span className="text-white">Toate{' '}</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-300 to-accent-300 relative">
                 cataloagele
-                <span className="absolute -bottom-2 left-0 w-full h-[6px] bg-primary-500/30 -rotate-2 rounded-full blur-sm"></span>
+                <span className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-[3px] sm:h-[6px] bg-primary-500/30 -rotate-2 rounded-full blur-sm"></span>
               </span>
               <br />
-              <span className="text-neutral-200 font-bold text-3xl sm:text-4xl md:text-6xl block mt-2">dar inteligente</span>
+              <span className="text-neutral-200 font-bold text-xl sm:text-4xl md:text-6xl block mt-1 sm:mt-2">dar inteligente</span>
             </h1>
 
             {/* Subheadline - SEO + Features */}
-            <p className="text-lg text-neutral-300 mb-8 max-w-2xl mx-auto leading-relaxed px-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <p className="text-sm sm:text-lg text-neutral-300 mb-4 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2 sm:px-4 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
               Oferte din <span className="text-white font-semibold">Lidl, Kaufland, Penny</span> și altele.
               Alege o rețetă și AI-ul găsește <span className="text-white font-semibold">cele mai bune prețuri</span> din toate magazinele — gata de comparat! Găsești toate ofertele aici la zi!
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10 animate-fade-in-up relative z-20" style={{ animationDelay: '300ms' }}>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center mb-4 sm:mb-10 animate-fade-in-up relative z-20" style={{ animationDelay: '300ms' }}>
               <Link
                 href="/oferte"
-                className="group relative px-8 py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold text-lg shadow-[0_0_40px_-10px_rgba(225,29,72,0.4)] hover:shadow-[0_0_60px_-15px_rgba(225,29,72,0.6)] hover:-translate-y-1 transition-all duration-300"
+                className="group relative px-5 py-2.5 sm:px-8 sm:py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold text-sm sm:text-lg shadow-[0_0_40px_-10px_rgba(225,29,72,0.4)] hover:shadow-[0_0_60px_-15px_rgba(225,29,72,0.6)] hover:-translate-y-1 transition-all duration-300"
               >
                 <div className="absolute inset-0 rounded-xl overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-700" />
                 </div>
                 <span className="relative flex items-center justify-center gap-2">
                   Vezi Ofertele
-                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>
               </Link>
               <Link
                 href="/plan"
-                className="px-8 py-3.5 bg-white/5 backdrop-blur-sm border border-white/10 text-white rounded-xl font-bold text-lg hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 transition-all duration-300"
+                className="px-5 py-2.5 sm:px-8 sm:py-3.5 bg-white/5 backdrop-blur-sm border border-white/10 text-white rounded-xl font-bold text-sm sm:text-lg hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 transition-all duration-300"
               >
                 Vezi Rețetele
               </Link>
             </div>
 
             {/* Compact Layout: Plate and Stats Side-by-Side on Desktop */}
-            <div className="w-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 animate-fade-in-up relative z-20" style={{ animationDelay: '400ms' }}>
+            <div className="w-full flex flex-col md:flex-row items-center justify-center gap-3 sm:gap-8 md:gap-16 animate-fade-in-up relative z-20" style={{ animationDelay: '400ms' }}>
 
               {/* Central Hero Plate */}
-              <div className="relative aspect-square w-[240px] sm:w-[300px]">
-                <div className="absolute inset-0 bg-gradient-to-t from-primary-600/30 to-transparent blur-[60px] rounded-full opacity-70 animate-pulse-soft" />
+              <div className="relative aspect-square w-[140px] sm:w-[240px] md:w-[300px]">
+                <div className="absolute inset-0 bg-gradient-to-t from-primary-600/30 to-transparent blur-[40px] sm:blur-[60px] rounded-full opacity-70 animate-pulse-soft" />
                 <Image
                   src={heroPlate}
                   alt="Mâncare delicioasă"
@@ -260,29 +311,29 @@ export default async function HomePage() {
                   fill
                   className="object-contain drop-shadow-2xl z-10"
                   priority
-                  sizes="(max-width: 640px) 240px, 300px"
+                  sizes="(max-width: 640px) 140px, (max-width: 768px) 240px, 300px"
                 />
               </div>
 
               {/* Stats - SCHIMBAT pentru CatalogSmart */}
-              <div className="grid grid-cols-3 gap-6 md:gap-10">
+              <div className="grid grid-cols-3 gap-4 sm:gap-6 md:gap-10">
                 <div className="text-center group">
-                  <p className="font-display text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary-400 to-primary-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
+                  <p className="font-display text-lg sm:text-2xl md:text-4xl font-bold bg-gradient-to-r from-primary-400 to-primary-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
                     {stats.products.toLocaleString('ro-RO')}+
                   </p>
-                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-primary-300 transition-colors">Oferte</p>
+                  <p className="text-neutral-400 text-[10px] sm:text-xs font-bold mt-0.5 sm:mt-1 uppercase tracking-wider group-hover:text-primary-300 transition-colors">Oferte</p>
                 </div>
                 <div className="text-center group">
-                  <p className="font-display text-2xl sm:text-4xl font-bold bg-gradient-to-r from-accent-400 to-accent-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
-                    {stats.stores}
+                  <p className="font-display text-lg sm:text-2xl md:text-4xl font-bold bg-gradient-to-r from-accent-400 to-accent-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
+                    {stores.length}
                   </p>
-                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-accent-300 transition-colors">Cataloage</p>
+                  <p className="text-neutral-400 text-[10px] sm:text-xs font-bold mt-0.5 sm:mt-1 uppercase tracking-wider group-hover:text-accent-300 transition-colors">Cataloage</p>
                 </div>
                 <div className="text-center group">
-                  <p className="font-display text-2xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-400 to-emerald-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
+                  <p className="font-display text-lg sm:text-2xl md:text-4xl font-bold bg-gradient-to-r from-emerald-400 to-emerald-200 bg-clip-text text-transparent group-hover:scale-105 transition-transform">
                     7 zile
                   </p>
-                  <p className="text-neutral-400 text-xs font-bold mt-1 uppercase tracking-wider group-hover:text-emerald-300 transition-colors">Update</p>
+                  <p className="text-neutral-400 text-[10px] sm:text-xs font-bold mt-0.5 sm:mt-1 uppercase tracking-wider group-hover:text-emerald-300 transition-colors">Update</p>
                 </div>
               </div>
             </div>
@@ -314,7 +365,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-
+      {/* Ad Section 1 - After Stores */}
+      <section className="py-4 bg-neutral-50">
+        <div className="container-custom">
+          <AdSenseBanner size="banner" className="max-w-4xl mx-auto" />
+        </div>
+      </section>
 
       {/* Featured Offers Section */}
       <section id="catalog-section" className="py-12 sm:py-20 bg-white">
@@ -352,6 +408,13 @@ export default async function HomePage() {
               </svg>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Ad Section 2 - Between Offers and Recipes */}
+      <section className="py-6 sm:py-8 bg-white">
+        <div className="container-custom">
+          <AdSenseBanner size="rectangle" className="max-w-xl mx-auto" />
         </div>
       </section>
 
@@ -404,6 +467,13 @@ export default async function HomePage() {
               </svg>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Ad Section 3 - Before How It Works */}
+      <section className="py-4 bg-kitchen-cream">
+        <div className="container-custom">
+          <AdSenseBanner size="banner" className="max-w-4xl mx-auto" />
         </div>
       </section>
 

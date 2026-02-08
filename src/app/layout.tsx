@@ -81,7 +81,7 @@ export const metadata: Metadata = {
       'Vezi online cataloagele Kaufland, Lidl si Profi. Oferte si promotii actualizate saptamanal. Retete ieftine cu produse la reducere.',
     images: [
       {
-        url: '/og-image.jpg',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'CatalogSmart - Cataloage Online Kaufland, Lidl, Profi',
@@ -93,7 +93,7 @@ export const metadata: Metadata = {
     title: 'Catalog Kaufland, Lidl, Profi Online - Oferte Actuale',
     description:
       'Vezi online cataloagele Kaufland, Lidl si Profi. Oferte actualizate saptamanal. Retete ieftine cu produse la reducere.',
-    images: ['/og-image.jpg'],
+    images: ['/opengraph-image'],
     creator: '@catalogsmart',
   },
   robots: {

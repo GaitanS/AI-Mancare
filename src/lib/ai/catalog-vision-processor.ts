@@ -7,6 +7,7 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { sleep } from '@/lib/utils';
 import axios from 'axios';
+import { logger } from '@/lib/logger';
 
 // OpenRouter client
 const openrouter = new OpenAI({

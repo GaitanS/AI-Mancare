@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ export async function GET() {
 
         return NextResponse.json(status);
     } catch (e: unknown) {
-        console.error('Failed to read recipe status', e);
+        logger.error('Failed to read recipe status', { error: e }, 'AdminStatus');
         return NextResponse.json({
             running: false,
             error: 'Failed to read status'

@@ -2,20 +2,21 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import prisma from '@/lib/db';
 import { cache, CacheKeys } from '@/lib/cache';
+import { normalizeDifficulty } from '@/lib/utils';
 import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
 import FancyPageHeader from '@/components/FancyPageHeader';
 import type { Recipe } from '@/types';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Rețete Economice | CatalogSmart',
+    title: 'Rețete Economice',
     description:
         'Descoperă rețete delicioase și economice bazate pe ingredientele aflate în promoție. Gătește gustos și economisește bani cu CatalogSmart!',
     alternates: {
         canonical: '/retete',
     },
     openGraph: {
-        title: 'Rețete Economice | CatalogSmart',
+        title: 'Rețete Economice',
         description: 'Rețete delicioase create cu ingrediente la reducere. Economisește până la 30%!',
         type: 'website',
         url: '/retete',
@@ -37,6 +38,7 @@ async function getRecipes(): Promise<Recipe[]> {
 
                 return recipes.map((r: any) => ({
                     ...r,
+                    difficulty: normalizeDifficulty(r.difficulty),
                     estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
                     instructions: r.instructions as Recipe['instructions'],
                     tips: r.tips as string[] | null,
@@ -91,8 +93,8 @@ export default async function RecipesPage() {
                 ]}
             />
 
-            {/* Hero Section (Mobile & Tablet) */}
-            <section className="lg:hidden relative py-12 sm:py-20 bg-gradient-to-br from-accent-50 via-kitchen-cream to-kitchen-butter overflow-hidden">
+            {/* Hero Section (Mobile & Tablet) - Compact */}
+            <section className="lg:hidden relative py-6 sm:py-20 bg-gradient-to-br from-accent-50 via-kitchen-cream to-kitchen-butter overflow-hidden">
                 {/* Background decoration */}
                 <div className="absolute inset-0 pattern-kitchen opacity-10" />
                 <div className="absolute top-10 right-10 w-64 h-64 bg-accent-200 rounded-full filter blur-[80px] opacity-40" />
@@ -100,16 +102,15 @@ export default async function RecipesPage() {
 
                 <div className="container-custom relative z-10">
                     <div className="max-w-3xl">
-                        <span className="inline-block px-3 py-1 bg-accent-100 text-accent-700 text-xs font-semibold rounded-full mb-4 border border-accent-200">
+                        <span className="inline-block px-2 py-0.5 sm:px-3 sm:py-1 bg-accent-100 text-accent-700 text-[10px] sm:text-xs font-semibold rounded-full mb-2 sm:mb-4 border border-accent-200">
                             {recipes.length}+ Rețete disponibile
                         </span>
-                        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6">
+                        <h1 className="font-display text-2xl sm:text-5xl md:text-6xl font-bold text-foreground mb-2 sm:mb-6">
                             Rețete{' '}
                             <span className="text-gradient-golden">Economice</span>
                         </h1>
-                        <p className="text-lg text-neutral-600 mb-8 max-w-2xl leading-relaxed">
+                        <p className="text-sm sm:text-lg text-neutral-600 mb-4 sm:mb-8 max-w-2xl leading-relaxed">
                             Descoperă rețete delicioase create special pentru ingredientele aflate în promoție.
-                            Gătește gustos și economisește bani!
                         </p>
 
                         {/* Quick Stats */}

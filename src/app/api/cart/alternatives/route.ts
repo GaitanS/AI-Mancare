@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 interface AlternativeProduct {
     id: string;
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
                 : null,
         });
     } catch (error) {
-        console.error('Alternatives error:', error);
+        logger.error('Alternatives error', { error }, 'CartAlternativesAPI');
         return NextResponse.json(
             { error: 'Failed to find alternatives' },
             { status: 500 }

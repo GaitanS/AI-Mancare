@@ -1066,13 +1066,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     if (!article) {
         return {
-            title: 'Articol negăsit | CatalogSmart',
+            title: 'Articol negăsit',
         };
     }
 
     return {
-        title: `${article.title} | CatalogSmart`,
+        title: article.title,
         description: article.metaDescription,
+        alternates: {
+            canonical: `/blog/${slug}`,
+        },
         openGraph: {
             title: article.title,
             description: article.metaDescription,
@@ -1087,6 +1090,67 @@ export async function generateStaticParams() {
     return Object.keys(articlesContent).map((slug) => ({
         slug,
     }));
+}
+
+function simpleMarkdownToHtml(md: string): string {
+    const lines = md.trim().split('\n');
+    const htmlLines: string[] = [];
+    let inList = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+        if (!line) {
+            if (inList) {
+                htmlLines.push('</ul>');
+                inList = false;
+            }
+            continue;
+        }
+
+        // Bold
+        line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+        // Headings (### before ##)
+        if (line.startsWith('### ')) {
+            if (inList) { htmlLines.push('</ul>'); inList = false; }
+            htmlLines.push(`<h3 class="text-xl font-semibold mt-8 mb-3 text-neutral-800">${line.slice(4)}</h3>`);
+        } else if (line.startsWith('## ')) {
+            if (inList) { htmlLines.push('</ul>'); inList = false; }
+            htmlLines.push(`<h2 class="text-2xl font-bold mt-10 mb-4 text-neutral-900">${line.slice(3)}</h2>`);
+        } else if (line.startsWith('- ')) {
+            if (!inList) { htmlLines.push('<ul class="list-disc pl-6 my-4 space-y-1">'); inList = true; }
+            htmlLines.push(`<li>${line.slice(2)}</li>`);
+        } else if (/^\d+\.\s/.test(line)) {
+            // Numbered list items rendered as unordered for simplicity
+            if (!inList) { htmlLines.push('<ul class="list-disc pl-6 my-4 space-y-1">'); inList = true; }
+            htmlLines.push(`<li>${line.replace(/^\d+\.\s/, '')}</li>`);
+        } else if (line.startsWith('|')) {
+            // Table rows - skip header separators
+            if (line.match(/^\|[\s-|]+$/)) continue;
+            const cells = line.split('|').filter(c => c.trim());
+            const isHeader = i + 1 < lines.length && lines[i + 1].trim().match(/^\|[\s-|]+$/);
+            const tag = isHeader ? 'th' : 'td';
+            const cls = isHeader ? 'font-semibold text-left py-2 px-3' : 'py-2 px-3';
+            const row = cells.map(c => `<${tag} class="${cls}">${c.trim()}</${tag}>`).join('');
+            if (isHeader) {
+                htmlLines.push('<div class="overflow-x-auto my-4"><table class="w-full text-sm border-collapse">');
+                htmlLines.push(`<thead><tr class="border-b border-neutral-200">${row}</tr></thead><tbody>`);
+            } else {
+                htmlLines.push(`<tr class="border-b border-neutral-100">${row}</tr>`);
+            }
+            // Check if next non-separator line is not a table row → close table
+            let nextContentIdx = i + 1;
+            while (nextContentIdx < lines.length && lines[nextContentIdx].trim().match(/^\|[\s-|]+$/)) nextContentIdx++;
+            if (nextContentIdx >= lines.length || !lines[nextContentIdx].trim().startsWith('|')) {
+                if (!isHeader) htmlLines.push('</tbody></table></div>');
+            }
+        } else {
+            if (inList) { htmlLines.push('</ul>'); inList = false; }
+            htmlLines.push(`<p class="leading-relaxed mb-4 text-neutral-700">${line}</p>`);
+        }
+    }
+    if (inList) htmlLines.push('</ul>');
+    return htmlLines.join('\n');
 }
 
 export default async function ArticlePage({ params }: PageProps) {
@@ -1194,6 +1258,7 @@ export default async function ArticlePage({ params }: PageProps) {
                 {/* Content */}
                 <div className="container-custom py-12 md:py-16">
                     <div className="max-w-3xl mx-auto">
+                        {/* Content is from static hardcoded articles, not user input - safe to render */}
                         <div
                             className="prose prose-lg prose-neutral max-w-none
                 prose-headings:font-display prose-headings:font-bold
@@ -1203,7 +1268,7 @@ export default async function ArticlePage({ params }: PageProps) {
                 prose-ul:my-4 prose-li:mb-1
                 prose-strong:text-neutral-900
                 prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline"
-                            dangerouslySetInnerHTML={{ __html: article.content.replace(/\n/g, '<br/>').replace(/## /g, '</p><h2>').replace(/### /g, '</p><h3>').replace(/<h2>/g, '<h2 class="text-2xl font-bold mt-10 mb-4 text-neutral-900">').replace(/<h3>/g, '<h3 class="text-xl font-semibold mt-8 mb-3 text-neutral-800">') }}
+                            dangerouslySetInnerHTML={{ __html: simpleMarkdownToHtml(article.content) }}
                         />
 
                         {/* CTA */}

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/db';
+import { getSubstitutions } from '@/lib/substitutions';
+import { suggestComplementary } from '@/lib/search/co-occurrence';
+import { logger } from '@/lib/logger';
 
 interface CartItem {
     ingredientName: string;
@@ -25,6 +28,17 @@ interface CartItem {
         savings: number;
     }>;
     ownedByUser: boolean;
+    /** If product was found via substitution, the original ingredient name */
+    substitutedFrom?: string;
+    /** Human-readable note about the substitution */
+    substitutionNote?: string;
+}
+
+interface ComplementarySuggestion {
+    name: string;
+    reason: string;
+    confidence: number;
+    pairedWith: string;
 }
 
 interface AutoFillResponse {
@@ -32,6 +46,8 @@ interface AutoFillResponse {
     totalCost: number;
     totalSavings: number;
     storeBreakdown: Record<string, { count: number; subtotal: number }>;
+    /** Complementary ingredient suggestions based on co-occurrence */
+    suggestions?: ComplementarySuggestion[];
 }
 
 export async function POST(request: NextRequest) {
@@ -151,7 +167,41 @@ export async function POST(request: NextRequest) {
                 take: 5,
             });
 
-            const bestMatch = products[0] || null;
+            let bestMatch = products[0] || null;
+            let substitutedFrom: string | undefined;
+            let substitutionNote: string | undefined;
+
+            // Substitution fallback: if no product found, try substitutions
+            if (!bestMatch) {
+                const subs = getSubstitutions(ingredientName);
+                for (const sub of subs) {
+                    const subProducts = await prisma.product.findMany({
+                        where: {
+                            AND: [
+                                { name: { contains: sub.substitute.split(' ')[0] } },
+                                store ? { store: store } : {},
+                                { validFrom: { lte: now } },
+                                { validUntil: { gte: now } },
+                            ],
+                        },
+                        orderBy: [
+                            { discountPercentage: 'desc' },
+                            { price: 'asc' },
+                        ],
+                        take: 3,
+                    });
+
+                    if (subProducts.length > 0) {
+                        bestMatch = subProducts[0];
+                        // Add remaining sub products to alternatives pool
+                        products.push(...subProducts.slice(1));
+                        substitutedFrom = ingredientName;
+                        substitutionNote = `${sub.substitute} (${sub.ratio}) - ${sub.notes}`;
+                        break;
+                    }
+                }
+            }
+
             const alternatives = products.slice(1).map((p) => ({
                 id: p.id,
                 name: p.name,
@@ -180,6 +230,8 @@ export async function POST(request: NextRequest) {
                     : null,
                 alternatives,
                 ownedByUser: false,
+                substitutedFrom,
+                substitutionNote,
             };
 
             items.push(item);
@@ -269,16 +321,26 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // "You also need..." suggestions from co-occurrence analysis
+        const cartIngredientNames = Array.from(ingredientsMap.keys());
+        let suggestions: ComplementarySuggestion[] = [];
+        try {
+            suggestions = await suggestComplementary(cartIngredientNames, 5);
+        } catch {
+            // Non-critical: silently ignore co-occurrence errors
+        }
+
         const response: AutoFillResponse = {
             items,
             totalCost: Math.round(totalCost * 100) / 100,
             totalSavings: Math.round(totalSavings * 100) / 100,
             storeBreakdown,
+            suggestions: suggestions.length > 0 ? suggestions : undefined,
         };
 
         return NextResponse.json(response);
     } catch (error) {
-        console.error('Auto-fill error:', error);
+        logger.error('Auto-fill error', { error }, 'CartAutoFillAPI');
         return NextResponse.json(
             { error: 'Failed to auto-fill cart' },
             { status: 500 }

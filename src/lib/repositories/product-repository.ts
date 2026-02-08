@@ -232,8 +232,12 @@ export class ProductRepository extends BaseRepository<Product, Prisma.ProductCre
         return {
             ...(filters.store && { store: filters.store }),
             ...(filters.category && { category: filters.category }),
-            ...(filters.minPrice && { price: { gte: filters.minPrice } }),
-            ...(filters.maxPrice && { price: { lte: filters.maxPrice } }),
+            ...((filters.minPrice || filters.maxPrice) && {
+                price: {
+                    ...(filters.minPrice && { gte: filters.minPrice }),
+                    ...(filters.maxPrice && { lte: filters.maxPrice }),
+                }
+            }),
             ...(filters.minDiscount && { discountPercentage: { gte: filters.minDiscount } }),
             ...(filters.validOnly !== false && { validUntil: { gte: new Date() } }),
             ...(filters.search && {

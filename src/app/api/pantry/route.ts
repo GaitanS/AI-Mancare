@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
     try {
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
             owned,
         });
     } catch (error) {
-        console.error('Pantry toggle error:', error);
+        logger.error('Pantry toggle error', { error }, 'PantryAPI');
         return NextResponse.json(
             { error: 'Failed to update pantry' },
             { status: 500 }
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
             count: items.length,
         });
     } catch (error) {
-        console.error('Pantry fetch error:', error);
+        logger.error('Pantry fetch error', { error }, 'PantryAPI');
         return NextResponse.json(
             { error: 'Failed to fetch pantry' },
             { status: 500 }

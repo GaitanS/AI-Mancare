@@ -160,18 +160,45 @@ async function getProducts(filters: ProductFilters, page: number, pageSize: numb
       prisma.product.count({ where }),
     ]);
 
+    // Collect unique catalogIds to fetch catalog info
+    const catalogIds = [...new Set(products.map((p: any) => p.catalogId).filter(Boolean))];
+
+    // Fetch catalog info for image paths
+    const catalogs = catalogIds.length > 0 ? await prisma.catalog.findMany({
+      where: { id: { in: catalogIds } },
+      select: { id: true, imageBasePath: true }
+    }) : [];
+
+    // Create a map for quick lookup
+    const catalogMap = new Map(catalogs.map((c: any) => [c.id, c.imageBasePath]));
+
     return {
-      products: products.map((p: any) => ({
-        ...p,
-        price: Number(p.price),
-        originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-        validFrom: p.validFrom.toISOString(),
-        validUntil: p.validUntil.toISOString(),
-        createdAt: p.createdAt.toISOString(),
-        updatedAt: p.updatedAt.toISOString(),
-        nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-        allergens: p.allergens as string[] | null,
-      })),
+      products: products.map((p: any) => {
+        // Calculate catalog page image URL
+        let catalogPageImage: string | null = null;
+        if (p.catalogId && p.catalogPage) {
+          const imageBasePath = catalogMap.get(p.catalogId);
+          if (imageBasePath) {
+            // Format page number with leading zeros (e.g., 01, 02, ... 10, 11)
+            const pageNum = String(p.catalogPage).padStart(2, '0');
+            catalogPageImage = `${imageBasePath}/page-${pageNum}.webp`;
+          }
+        }
+
+        return {
+          ...p,
+          price: Number(p.price),
+          originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+          validFrom: p.validFrom.toISOString(),
+          validUntil: p.validUntil.toISOString(),
+          createdAt: p.createdAt.toISOString(),
+          updatedAt: p.updatedAt.toISOString(),
+          nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
+          allergens: p.allergens as string[] | null,
+          catalogPageImage,
+          catalogPageNumber: p.catalogPage,
+        };
+      }),
       total,
       totalPages: Math.ceil(total / pageSize),
     };

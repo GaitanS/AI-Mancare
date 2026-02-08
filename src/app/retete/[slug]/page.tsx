@@ -4,8 +4,10 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, normalizeDifficulty } from '@/lib/utils';
 import { Recipe } from '@/types';
+import AdSenseBanner from '@/components/AdSenseBanner';
+import { generateRecipeSchema, generateBreadcrumbSchema } from '@/lib/seo/schema-generators';
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -167,25 +169,59 @@ async function getRecipe(slug: string) {
     }
 
     // Parse Ingredients from ingredientIds
-    let parsedIngredients: Ingredient[] = [];
+    let rawIngredients: any[] = [];
     if (recipe.ingredientIds) {
         if (typeof recipe.ingredientIds === 'string') {
             try {
-                // Assuming ingredientIds actually stores the full ingredient objects snapshot
-                parsedIngredients = JSON.parse(recipe.ingredientIds);
+                rawIngredients = JSON.parse(recipe.ingredientIds);
             } catch {
-                parsedIngredients = [];
+                rawIngredients = [];
             }
         } else {
-            // If it's already an object (Prisma Json type)
-            parsedIngredients = recipe.ingredientIds as unknown as Ingredient[];
+            rawIngredients = recipe.ingredientIds as unknown as any[];
         }
     }
 
     // Ensure it's an array
-    if (!Array.isArray(parsedIngredients)) {
-        parsedIngredients = [];
+    if (!Array.isArray(rawIngredients)) {
+        rawIngredients = [];
     }
+
+    // Extract product IDs from ingredients that have them
+    const productIds = rawIngredients
+        .map((ing: any) => ing?.id)
+        .filter((id: any) => typeof id === 'string' && id.length > 10); // Filter valid UUIDs
+
+    // Fetch actual product data for ingredients with IDs
+    let productsMap = new Map<string, { price: number; store: string }>();
+    if (productIds.length > 0) {
+        const products = await prisma.product.findMany({
+            where: { id: { in: productIds } },
+            select: { id: true, price: true, store: true },
+        });
+        products.forEach(p => {
+            productsMap.set(p.id, {
+                price: Number(p.price) || 0,
+                store: p.store || 'Generic'
+            });
+        });
+    }
+
+    // Build final ingredients with prices
+    const parsedIngredients: Ingredient[] = rawIngredients.map((ing: any, index: number) => {
+        const productData = ing?.id ? productsMap.get(ing.id) : null;
+        // Use null for price if no product found (will display "—")
+        const price = productData?.price ?? null;
+        return {
+            id: ing?.id || `gen-${index}`,
+            name: ing?.name || 'Ingredient',
+            price: price as unknown as number, // Allow null through type system
+            originalPrice: null,
+            store: productData?.store || '',
+            unit: ing?.unit || 'buc',
+            quantity: Number(ing?.quantity) || 1,
+        };
+    });
 
     return {
         ...recipe,
@@ -193,7 +229,7 @@ async function getRecipe(slug: string) {
         instructions: parsedInstructions,
         tips: parsedTips,
         nutritionPerServing: parsedNutrition,
-        ingredients: parsedIngredients, // Explicitly provide ingredients
+        ingredients: parsedIngredients,
     };
 }
 
@@ -203,13 +239,16 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
     if (!recipe) {
         return {
-            title: 'Rețetă negăsită - CatalogSmart',
+            title: 'Rețetă negăsită',
         };
     }
 
     return {
-        title: `${recipe.title} - Rețete Economice | CatalogSmart`,
+        title: `${recipe.title} - Rețetă Economică`,
         description: recipe.description.substring(0, 160),
+        alternates: {
+            canonical: `/retete/${params.slug}`,
+        },
         openGraph: {
             images: recipe.imageUrl ? [recipe.imageUrl] : [],
         },
@@ -230,10 +269,39 @@ export default async function RecipePage(props: Props) {
         notFound();
     }
 
-    const difficultyInfo = difficultyConfig[recipe.difficulty as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
+    const difficultyInfo = difficultyConfig[normalizeDifficulty(recipe.difficulty) as keyof typeof difficultyConfig] || difficultyConfig.MEDIU;
+
+    // JSON-LD structured data for Google rich results
+    const recipeSchema = generateRecipeSchema({
+        name: recipe.title,
+        description: recipe.description || '',
+        imageUrl: recipe.imageUrl,
+        prepTime: recipe.prepTime,
+        cookTime: recipe.cookTime,
+        totalTime: recipe.totalTime,
+        servings: recipe.servings || undefined,
+        difficulty: recipe.difficulty || undefined,
+        ingredients: recipe.ingredients.map((ing: Ingredient) =>
+            `${ing.quantity} ${ing.unit} ${ing.name}`
+        ),
+        instructions: recipe.instructions.map((step: RecipeStep) => step.text),
+        calories: recipe.nutritionPerServing?.calories || null,
+    });
+
+    const breadcrumbSchema = generateBreadcrumbSchema([
+        { name: 'Acasă', url: 'https://catalogsmart.ro' },
+        { name: 'Rețete', url: 'https://catalogsmart.ro/retete' },
+        { name: recipe.title, url: `https://catalogsmart.ro/retete/${recipe.slug}` },
+    ]);
+
+    const jsonLdScripts = [recipeSchema, breadcrumbSchema];
 
     return (
         <div className="min-h-screen bg-[#FDFBF7] pb-24 md:pb-20"> {/* Added pb-24 for sticky footer */}
+            {/* JSON-LD Structured Data */}
+            {jsonLdScripts.map((schema, i) => (
+                <script key={i} type="application/ld+json">{JSON.stringify(schema)}</script>
+            ))}
             {/* Header Image Area */}
             <div className="relative h-[50vh] md:h-[60vh] lg:h-[50vh] w-full">
                 {recipe.imageUrl ? (
@@ -307,7 +375,7 @@ export default async function RecipePage(props: Props) {
             </div>
 
             {/* Mobile Actions Bar (Under Image) */}
-            <div className="md:hidden bg-white border-b border-neutral-100 px-6 py-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
+            <div className="md:hidden bg-white border-b border-neutral-100 px-6 py-4 flex justify-between items-center sticky top-16 z-30 shadow-sm">
                 <div className="flex flex-col">
                     <span className="text-xs text-neutral-400 uppercase font-bold tracking-wider">Cost Estimat</span>
                     <span className="text-xl font-bold text-primary-600 font-display">
@@ -340,9 +408,9 @@ export default async function RecipePage(props: Props) {
 
                         {/* MOBILE ONLY: Ingredients Accordion Effect or Block */}
                         <div className="lg:hidden">
-                            {/* Ad Slot #1 */}
-                            <div className="w-full h-24 bg-neutral-100 rounded-xl flex items-center justify-center mb-8 border border-neutral-200 border-dashed">
-                                <span className="text-neutral-400 text-sm font-medium uppercase tracking-widest">Reclamă</span>
+                            {/* Ad Slot #1 - Mobile Banner */}
+                            <div className="mb-8">
+                                <AdSenseBanner size="in-feed" />
                             </div>
 
                             <div className="bg-white rounded-2xl shadow-card border border-neutral-100 p-4">
@@ -357,15 +425,10 @@ export default async function RecipePage(props: Props) {
                                         <li key={ing.id} className="flex items-start justify-between gap-3 pb-2 border-b border-neutral-50 last:border-0 last:pb-0">
                                             <div className="flex-1 flex items-center gap-1.5">
                                                 <span className="w-1 h-1 bg-primary-500 rounded-full flex-shrink-0"></span>
-                                                <div>
-                                                    <div className="font-medium text-neutral-800 text-sm">{ing.name}</div>
-                                                    {ing.store && (
-                                                        <div className="text-[10px] text-neutral-400 mt-0.5">({ing.store})</div>
-                                                    )}
-                                                </div>
+                                                <div className="font-medium text-neutral-800 text-sm">{ing.name}</div>
                                             </div>
-                                            <div className="font-bold text-neutral-700 whitespace-nowrap text-xs">
-                                                {formatPrice(ing.price)}
+                                            <div className="font-semibold text-neutral-500 whitespace-nowrap text-xs">
+                                                {ing.quantity} {ing.unit}
                                             </div>
                                         </li>
                                     ))}
@@ -402,10 +465,8 @@ export default async function RecipePage(props: Props) {
                             </div>
                         </section>
 
-                        {/* Ad Slot #2 */}
-                        <div className="w-full h-64 bg-neutral-100 rounded-2xl flex items-center justify-center border border-neutral-200 border-dashed">
-                            <span className="text-neutral-400 text-sm font-medium uppercase tracking-widest">Reclamă Mare</span>
-                        </div>
+                        {/* Ad Slot #2 - Large Rectangle */}
+                        <AdSenseBanner size="rectangle" />
 
                         {/* Tips */}
                         {recipe.tips && recipe.tips.length > 0 && (
@@ -444,24 +505,17 @@ export default async function RecipePage(props: Props) {
                                     <li key={ing.id} className="flex items-start justify-between gap-3 pb-2 border-b border-neutral-50 last:border-0 last:pb-0">
                                         <div className="flex-1 flex items-center gap-1.5">
                                             <span className="w-1 h-1 bg-primary-500 rounded-full flex-shrink-0"></span>
-                                            <div>
-                                                <div className="font-medium text-neutral-800 text-sm">{ing.name}</div>
-                                                {ing.store && (
-                                                    <div className="text-[10px] text-neutral-400 mt-0.5">({ing.store})</div>
-                                                )}
-                                            </div>
+                                            <div className="font-medium text-neutral-800 text-sm">{ing.name}</div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="font-bold text-neutral-700 text-xs">
-                                                {formatPrice(ing.price)}
-                                            </div>
+                                        <div className="font-semibold text-neutral-500 whitespace-nowrap text-xs">
+                                            {ing.quantity} {ing.unit}
                                         </div>
                                     </li>
                                 ))}
                             </ul>
 
                             <div className="mt-8 pt-8 border-t border-neutral-100">
-                                <AdComponent slot="sidebar_square" />
+                                <AdSenseBanner size="rectangle" />
                             </div>
 
                             <div className="mt-6">
@@ -523,7 +577,7 @@ export default async function RecipePage(props: Props) {
             </div>
 
             {/* Sticky Mobile Footer Action Bar */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-100 p-4 pb-8 lg:hidden z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-neutral-100 p-4 lg:hidden z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
                 <div className="flex gap-4 items-center max-w-lg mx-auto">
                     <div className="flex-1">
                         <span className="text-xs text-neutral-400 block font-medium uppercase tracking-wider mb-0.5">Total</span>
@@ -542,23 +596,6 @@ export default async function RecipePage(props: Props) {
 
             {/* Safe Area Spacer for Mobile Footer */}
             <div className="h-20 lg:hidden"></div>
-        </div>
-    );
-}
-
-// Production-ready Ad Component structure
-function AdComponent({ slot }: { slot: string }) {
-    const isSidebar = slot === 'sidebar_square';
-    return (
-        <div className={`w-full flex items-center justify-center my-4 ${isSidebar ? 'min-h-[250px]' : 'min-h-[100px]'} bg-neutral-50/50 rounded-lg`}>
-            {/* Google AdSense Placeholder */}
-            <ins className="adsbygoogle"
-                style={{ display: 'block', width: '100%' }}
-                data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" // TODO: Replace with your AdSense Publisher ID
-                data-ad-slot={isSidebar ? "1234567890" : "0987654321"} // TODO: Replace with specific Ad Unit ID
-                data-ad-format="auto"
-                data-full-width-responsive="true"
-            />
         </div>
     );
 }

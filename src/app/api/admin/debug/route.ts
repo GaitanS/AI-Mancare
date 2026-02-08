@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
 import { metrics } from '@/lib/metrics'
-import { prisma } from '@/lib/prisma'
+import prisma from '@/lib/db'
 import fs from 'fs'
 import path from 'path'
 

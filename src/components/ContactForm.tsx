@@ -15,17 +15,34 @@ export default function ContactForm({ subjects }: ContactFormProps) {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [error, setError] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setError('');
 
-        // Simulate form submission (or send to API)
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+            const res = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
 
-        setSubmitted(true);
-        setIsSubmitting(false);
-        setFormData({ name: '', email: '', subject: '', message: '' });
+            const data = await res.json();
+
+            if (!res.ok) {
+                setError(data.error || 'A aparut o eroare. Te rugam sa incerci din nou.');
+                return;
+            }
+
+            setSubmitted(true);
+            setFormData({ name: '', email: '', subject: '', message: '' });
+        } catch {
+            setError('Nu s-a putut trimite mesajul. Verifica conexiunea la internet.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -57,6 +74,11 @@ export default function ContactForm({ subjects }: ContactFormProps) {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                    {error}
+                </div>
+            )}
             <div>
                 <label htmlFor="name" className="block text-sm font-semibold text-neutral-900 mb-1">
                     Nume *
@@ -122,6 +144,22 @@ export default function ContactForm({ subjects }: ContactFormProps) {
                     className="w-full px-4 py-3 rounded-xl border border-neutral-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition-colors resize-none"
                     placeholder="Scrie mesajul tău aici..."
                 />
+            </div>
+
+            <div className="flex items-start gap-3">
+                <input
+                    type="checkbox"
+                    id="privacy"
+                    required
+                    className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 mt-0.5"
+                />
+                <label htmlFor="privacy" className="text-sm text-foreground/70 font-body">
+                    Am citit si sunt de acord cu{' '}
+                    <a href="/confidentialitate" className="text-primary-600 hover:text-primary-700">
+                        Politica de Confidentialitate
+                    </a>
+                    . *
+                </label>
             </div>
 
             <button
