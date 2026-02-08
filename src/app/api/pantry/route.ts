@@ -16,14 +16,23 @@ export async function POST(request: NextRequest) {
 
         const normalizedName = ingredientName.toLowerCase().trim();
 
+        // Build OR conditions for user/session
+        const orConditions = [];
+        if (userId) orConditions.push({ userId });
+        if (sessionId) orConditions.push({ sessionId });
+
+        if (orConditions.length === 0) {
+            return NextResponse.json(
+                { error: 'userId or sessionId required' },
+                { status: 400 }
+            );
+        }
+
         // Check if item already exists in pantry
         const existing = await prisma.userPantry.findFirst({
             where: {
                 ingredientName: normalizedName,
-                OR: [
-                    { userId: userId || undefined },
-                    { sessionId: sessionId || undefined },
-                ],
+                OR: orConditions,
             },
         });
 
@@ -87,13 +96,15 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        // Build OR conditions for user/session
+        const orConditions = [];
+        if (userId) orConditions.push({ userId });
+        if (sessionId) orConditions.push({ sessionId });
+
         const items = await prisma.userPantry.findMany({
             where: {
                 isAvailable: true,
-                OR: [
-                    { userId: userId || undefined },
-                    { sessionId: sessionId || undefined },
-                ],
+                OR: orConditions,
             },
             orderBy: { addedAt: 'desc' },
         });

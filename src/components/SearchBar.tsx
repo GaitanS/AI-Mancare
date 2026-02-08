@@ -37,9 +37,14 @@ export default function SearchBar() {
           const data = await response.json();
           setResults(data.data);
           setIsOpen(true);
+        } else {
+          setResults(null);
+          setIsOpen(false);
         }
       } catch (error) {
         console.error('Search error:', error);
+        setResults(null);
+        setIsOpen(false);
       } finally {
         setIsLoading(false);
       }
@@ -48,14 +53,17 @@ export default function SearchBar() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Close dropdown on click outside
+  // Close dropdown on click outside - only when open
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
+        !dropdownRef.current.contains(target) &&
         inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
+        !inputRef.current.contains(target)
       ) {
         setIsOpen(false);
       }
@@ -63,7 +71,7 @@ export default function SearchBar() {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen]);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {

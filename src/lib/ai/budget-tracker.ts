@@ -37,10 +37,15 @@ interface TrackUsageParams {
  * Calculate cost in cents for a given model and token usage
  */
 function calculateCostCents(model: string, inputTokens: number, outputTokens: number): number {
+  if (inputTokens < 0 || outputTokens < 0) {
+    console.warn('[BUDGET] Negative token count detected', { inputTokens, outputTokens });
+    return 0;
+  }
   const pricing = MODEL_PRICING[model] || MODEL_PRICING['google/gemini-2.5-flash'];
   const inputCost = (inputTokens / 1_000_000) * pricing.input;
   const outputCost = (outputTokens / 1_000_000) * pricing.output;
-  return Math.ceil(inputCost + outputCost);
+  const total = inputCost + outputCost;
+  return total > 0 ? Math.ceil(total) : 0;
 }
 
 /**
@@ -140,8 +145,8 @@ export async function checkBudgetLimit(operation: string): Promise<boolean> {
   const limit = DAILY_LIMITS[operation];
   if (!limit) return false; // No limit configured
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
   const todaySpend = await prisma.aiBudget.aggregate({
     where: {
@@ -168,14 +173,13 @@ export async function checkBudgetLimit(operation: string): Promise<boolean> {
 export async function getDashboardBudget() {
   const now = new Date();
 
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-  const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
-  weekStart.setHours(0, 0, 0, 0);
+  const weekStart = new Date(todayStart);
+  const dayOfWeek = weekStart.getUTCDay();
+  weekStart.setUTCDate(weekStart.getUTCDate() - ((dayOfWeek + 6) % 7)); // Monday
 
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   const [todayStats, weekStats, monthStats] = await Promise.all([
     getBudgetStats({ startDate: todayStart }),

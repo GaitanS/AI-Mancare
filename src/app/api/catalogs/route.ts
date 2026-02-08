@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
       catalogsByStore[store].push({
         ...catalog,
-        localImages: catalog.localImages ? JSON.parse(catalog.localImages) : [],
+        localImages: (() => { try { return catalog.localImages ? JSON.parse(catalog.localImages) : []; } catch { return []; } })(),
         // First image for thumbnail
         thumbnail: catalog.imageBasePath ? `${catalog.imageBasePath}/page-01.webp` : null
       });

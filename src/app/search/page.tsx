@@ -17,10 +17,13 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const query = params.q || '';
 
   return {
-    title: query ? `Rezultate pentru "${query}"` : 'Caută produse și rețete',
+    title: query ? `Rezultate pentru "${query}"` : 'Cauta produse si retete',
     description: query
       ? `Rezultate pentru cautarea "${query}" - produse si retete economice`
       : 'Cauta produse la reducere si retete economice',
+    alternates: {
+      canonical: '/search',
+    },
     robots: {
       index: false,
       follow: true,
@@ -29,81 +32,91 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 }
 
 async function searchProducts(query: string): Promise<Product[]> {
-  const now = new Date();
+  try {
+    const now = new Date();
 
-  const products = await prisma.product.findMany({
-    where: {
-      validFrom: { lte: now },
-      validUntil: { gte: now },
-      OR: [
-        { name: { contains: query } },
-        { brand: { contains: query } },
-        { category: { contains: query } },
+    const products = await prisma.product.findMany({
+      where: {
+        validFrom: { lte: now },
+        validUntil: { gte: now },
+        OR: [
+          { name: { contains: query } },
+          { brand: { contains: query } },
+          { category: { contains: query } },
+        ],
+      },
+      orderBy: [
+        { discountPercentage: 'desc' },
+        { createdAt: 'desc' },
       ],
-    },
-    orderBy: [
-      { discountPercentage: 'desc' },
-      { createdAt: 'desc' },
-    ],
-    take: 24,
-  });
+      take: 24,
+    });
 
-  // Fetch catalog image paths for products that have catalog references
-  const catalogIds = [...new Set(products.map((p: any) => p.catalogId).filter(Boolean))];
-  const catalogs = catalogIds.length > 0 ? await prisma.catalog.findMany({
-    where: { id: { in: catalogIds } },
-    select: { id: true, imageBasePath: true }
-  }) : [];
-  const catalogMap = new Map(catalogs.map((c: any) => [c.id, c.imageBasePath]));
+    // Fetch catalog image paths for products that have catalog references
+    const catalogIds = [...new Set(products.map((p: any) => p.catalogId).filter(Boolean))];
+    const catalogs = catalogIds.length > 0 ? await prisma.catalog.findMany({
+      where: { id: { in: catalogIds } },
+      select: { id: true, imageBasePath: true }
+    }) : [];
+    const catalogMap = new Map(catalogs.map((c: any) => [c.id, c.imageBasePath]));
 
-  return products.map((p: any) => {
-    let catalogPageImage: string | null = null;
-    if (p.catalogId && p.catalogPage) {
-      const imageBasePath = catalogMap.get(p.catalogId);
-      if (imageBasePath) {
-        const pageNum = String(p.catalogPage).padStart(2, '0');
-        catalogPageImage = `${imageBasePath}/page-${pageNum}.webp`;
+    return products.map((p: any) => {
+      let catalogPageImage: string | null = null;
+      if (p.catalogId && p.catalogPage) {
+        const imageBasePath = catalogMap.get(p.catalogId);
+        if (imageBasePath) {
+          const pageNum = String(p.catalogPage).padStart(2, '0');
+          catalogPageImage = `${imageBasePath}/page-${pageNum}.webp`;
+        }
       }
-    }
 
-    return {
-      ...p,
-      price: Number(p.price),
-      originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
-      validFrom: p.validFrom.toISOString(),
-      validUntil: p.validUntil.toISOString(),
-      createdAt: p.createdAt.toISOString(),
-      updatedAt: p.updatedAt.toISOString(),
-      nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-      allergens: p.allergens as string[] | null,
-      catalogPageImage,
-      catalogPageNumber: p.catalogPage,
-    };
-  });
+      return {
+        ...p,
+        price: Number(p.price),
+        originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+        validFrom: p.validFrom.toISOString(),
+        validUntil: p.validUntil.toISOString(),
+        createdAt: p.createdAt.toISOString(),
+        updatedAt: p.updatedAt.toISOString(),
+        nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
+        allergens: p.allergens as string[] | null,
+        catalogPageImage,
+        catalogPageNumber: p.catalogPage,
+      };
+    });
+  } catch (error) {
+    console.error('Search products failed:', error);
+    return [];
+  }
 }
 
 async function searchRecipes(query: string): Promise<Recipe[]> {
-  const recipes = await prisma.recipe.findMany({
-    where: {
-      OR: [
-        { title: { contains: query } },
-        { description: { contains: query } },
+  try {
+    const recipes = await prisma.recipe.findMany({
+      where: {
+        OR: [
+          { title: { contains: query } },
+          { description: { contains: query } },
+        ],
+      },
+      orderBy: [
+        { createdAt: 'desc' },
       ],
-    },
-    orderBy: [
-      { createdAt: 'desc' },
-    ],
-    take: 12,
-  });
+      take: 12,
+    });
 
-  return recipes.map((r: any) => ({
-    ...r,
-    estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
-    instructions: r.instructions as Recipe['instructions'],
-    tips: r.tips as string[] | null,
-    tags: r.tags as string[] | null,
-    nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
-  }));
+    return recipes.map((r: any) => ({
+      ...r,
+      estimatedCost: r.estimatedCost ? Number(r.estimatedCost) : null,
+      instructions: r.instructions as Recipe['instructions'],
+      tips: r.tips as string[] | null,
+      tags: r.tags as string[] | null,
+      nutritionPerServing: r.nutritionPerServing as Recipe['nutritionPerServing'],
+    }));
+  } catch (error) {
+    console.error('Search recipes failed:', error);
+    return [];
+  }
 }
 
 export default async function SearchPage({ searchParams }: PageProps) {

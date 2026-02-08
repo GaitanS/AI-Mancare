@@ -17,7 +17,7 @@ export const CDN_CONFIG = {
     // Image optimization
     imageOptimization: {
         enabled: process.env.NEXT_PUBLIC_IMAGE_OPTIMIZATION !== 'false',
-        quality: parseInt(process.env.IMAGE_QUALITY || '80'),
+        quality: parseInt(process.env.IMAGE_QUALITY || '80', 10),
         formats: ['webp', 'avif'] as const,
         sizes: {
             thumbnail: 150,

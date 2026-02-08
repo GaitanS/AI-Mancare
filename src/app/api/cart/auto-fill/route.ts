@@ -138,9 +138,12 @@ export async function POST(request: NextRequest) {
             });
 
             // Search for products matching this ingredient
-            const searchTerms = mapping
-                ? JSON.parse(mapping.keywords)
-                : [ingredientName];
+            let searchTerms: string[];
+            if (mapping) {
+                try { searchTerms = JSON.parse(mapping.keywords); } catch { searchTerms = []; }
+            } else {
+                searchTerms = [ingredientName];
+            }
 
             // Build OR conditions for search
             const orConditions = searchTerms.map((term: string) => ({
@@ -272,11 +275,14 @@ export async function POST(request: NextRequest) {
                 // If recipe asks for 'g'/'ml' and we found pack size, divide.
                 let packsToBuy = 1;
 
-                const isMassOrVolume = ['g', 'ml', 'kg', 'l', 'grame', 'litri'].includes(unit.toLowerCase());
+                const isMassOrVolume = ['g', 'ml', 'kg', 'l', 'grame', 'litri', 'litru'].includes(unit.toLowerCase());
 
                 if (isMassOrVolume) {
                     let requiredAmount = quantity;
-                    if (unit.toLowerCase() === 'kg' || unit.toLowerCase() === 'l') requiredAmount *= 1000;
+                    const normalizedUnit = unit.toLowerCase().trim();
+                    if (normalizedUnit === 'kg' || normalizedUnit === 'l' || normalizedUnit === 'litri' || normalizedUnit === 'litru') {
+                        requiredAmount *= 1000;
+                    }
 
                     // If we successfully found a package size in same/compatible unit
                     if (packageSize > 1) { // Assuming meaningful pack size

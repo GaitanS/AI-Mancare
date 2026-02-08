@@ -13,13 +13,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Custom date range
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const startDateStr = searchParams.get('startDate');
+    const endDateStr = searchParams.get('endDate');
     const operation = searchParams.get('operation') || undefined;
 
+    // Safe date parsing - reject invalid dates
+    const parseDate = (str: string | null): Date | undefined => {
+      if (!str) return undefined;
+      const d = new Date(str);
+      return isNaN(d.getTime()) ? undefined : d;
+    };
+
     const stats = await getBudgetStats({
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
+      startDate: parseDate(startDateStr),
+      endDate: parseDate(endDateStr),
       operation,
     });
 

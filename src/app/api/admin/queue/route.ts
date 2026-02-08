@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
+import { verifyRequestOrigin } from '@/lib/admin-auth';
 
 // GET /api/admin/queue - Get queue status and history
 export async function GET(request: NextRequest) {
@@ -73,6 +74,11 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/queue - Add process to queue
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const { processId } = body;

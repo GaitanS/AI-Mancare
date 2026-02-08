@@ -23,6 +23,39 @@ interface SearchResult {
   searchTier?: 'fulltext' | 'fuzzy' | 'semantic' | 'like';
 }
 
+/**
+ * Sanitize search input to prevent XSS/injection attacks
+ */
+function sanitizeSearchQuery(query: string): string {
+  return query
+    .replace(/[<>'"`;\\]/g, '') // Remove potential XSS/injection chars
+    .trim()
+    .substring(0, 200); // Max query length
+}
+
+// Lightweight select for recipe search results - excludes heavy fields
+const recipeSearchSelect = {
+  id: true,
+  title: true,
+  slug: true,
+  description: true,
+  imageUrl: true,
+  difficulty: true,
+  totalTime: true,
+  estimatedCost: true,
+  servings: true,
+  tags: true,
+  isVegetarian: true,
+  isVegan: true,
+  isGlutenFree: true,
+  isDairyFree: true,
+  calories: true,
+  viewCount: true,
+  createdAt: true,
+  updatedAt: true,
+  ingredientIds: true,
+} as const;
+
 // GET /api/search - Unified tiered search across products and recipes
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +63,8 @@ export async function GET(request: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse;
     const { searchParams } = new URL(request.url);
 
-    const query = searchParams.get('q');
+    const rawQuery = searchParams.get('q');
+    const query = rawQuery ? sanitizeSearchQuery(rawQuery) : null;
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 50);
     const type = searchParams.get('type'); // 'products', 'recipes', or undefined for both
     const dedup = searchParams.get('dedup') === 'true';
@@ -58,17 +92,21 @@ export async function GET(request: NextRequest) {
     let productCount = 0;
     let recipeCount = 0;
 
-    if (!type || type === 'products') {
-      const ftProducts = await fulltextSearchProducts(query, limit);
+    {
+      const wantProducts = !type || type === 'products';
+      const wantRecipes = !type || type === 'recipes';
+
+      const [ftProducts, ftRecipes] = await Promise.all([
+        wantProducts ? fulltextSearchProducts(query, limit) : Promise.resolve([]),
+        wantRecipes ? fulltextSearchRecipes(query, limit) : Promise.resolve([]),
+      ]);
+
       if (ftProducts.length > 0) {
         searchResult.products = ftProducts.map(mapProductResult);
         productCount = ftProducts.length;
         searchResult.searchTier = 'fulltext';
       }
-    }
 
-    if (!type || type === 'recipes') {
-      const ftRecipes = await fulltextSearchRecipes(query, limit);
       if (ftRecipes.length > 0) {
         searchResult.recipes = ftRecipes.map(mapRecipeResult);
         recipeCount = ftRecipes.length;
@@ -85,32 +123,31 @@ export async function GET(request: NextRequest) {
     if (needsFuzzyProducts || needsFuzzyRecipes) {
       const queryVariants = expandQuery(query);
 
-      if (needsFuzzyProducts) {
-        const fuzzyProducts = await searchProductsWithVariants(queryVariants, now, limit);
-        if (fuzzyProducts.length > productCount) {
-          // Merge: keep fulltext results first, then add fuzzy results
-          const existingIds = new Set(searchResult.products.map(p => p.id));
-          const newProducts = fuzzyProducts
-            .filter(p => !existingIds.has(p.id))
-            .map(mapPrismaProduct);
-          searchResult.products = [...searchResult.products, ...newProducts].slice(0, limit);
-          if (searchResult.searchTier !== 'fulltext') {
-            searchResult.searchTier = 'fuzzy';
-          }
+      const [fuzzyProducts, fuzzyRecipes] = await Promise.all([
+        needsFuzzyProducts ? searchProductsWithVariants(queryVariants, now, limit) : Promise.resolve([]),
+        needsFuzzyRecipes ? searchRecipesWithVariants(queryVariants, limit) : Promise.resolve([]),
+      ]);
+
+      if (needsFuzzyProducts && fuzzyProducts.length > productCount) {
+        // Merge: keep fulltext results first, then add fuzzy results
+        const existingIds = new Set(searchResult.products.map(p => p.id));
+        const newProducts = fuzzyProducts
+          .filter(p => !existingIds.has(p.id))
+          .map(mapPrismaProduct);
+        searchResult.products = [...searchResult.products, ...newProducts].slice(0, limit);
+        if (searchResult.searchTier !== 'fulltext') {
+          searchResult.searchTier = 'fuzzy';
         }
       }
 
-      if (needsFuzzyRecipes) {
-        const fuzzyRecipes = await searchRecipesWithVariants(queryVariants, limit);
-        if (fuzzyRecipes.length > recipeCount) {
-          const existingIds = new Set(searchResult.recipes.map(r => r.id));
-          const newRecipes = fuzzyRecipes
-            .filter(r => !existingIds.has(r.id))
-            .map(mapPrismaRecipe);
-          searchResult.recipes = [...searchResult.recipes, ...newRecipes].slice(0, limit);
-          if (searchResult.searchTier !== 'fulltext') {
-            searchResult.searchTier = 'fuzzy';
-          }
+      if (needsFuzzyRecipes && fuzzyRecipes.length > recipeCount) {
+        const existingIds = new Set(searchResult.recipes.map(r => r.id));
+        const newRecipes = fuzzyRecipes
+          .filter(r => !existingIds.has(r.id))
+          .map(mapPrismaRecipe);
+        searchResult.recipes = [...searchResult.recipes, ...newRecipes].slice(0, limit);
+        if (searchResult.searchTier !== 'fulltext') {
+          searchResult.searchTier = 'fuzzy';
         }
       }
     }
@@ -125,10 +162,17 @@ export async function GET(request: NextRequest) {
       try {
         const semantic = await semanticSearch(query, limit);
 
-        if (needsSemanticProducts && semantic.productIds.length > 0) {
-          const semProducts = await prisma.product.findMany({
-            where: { id: { in: semantic.productIds } },
-          });
+        const fetchProducts = (needsSemanticProducts && semantic.productIds.length > 0)
+          ? prisma.product.findMany({ where: { id: { in: semantic.productIds } } })
+          : Promise.resolve([]);
+
+        const fetchRecipes = (needsSemanticRecipes && semantic.recipeIds.length > 0)
+          ? prisma.recipe.findMany({ where: { id: { in: semantic.recipeIds } }, select: recipeSearchSelect })
+          : Promise.resolve([]);
+
+        const [semProducts, semRecipes] = await Promise.all([fetchProducts, fetchRecipes]);
+
+        if (semProducts.length > 0) {
           const existingIds = new Set(searchResult.products.map(p => p.id));
           const newProducts = semProducts
             .filter((p: any) => !existingIds.has(p.id))
@@ -137,12 +181,9 @@ export async function GET(request: NextRequest) {
           if (newProducts.length > 0) searchResult.searchTier = 'semantic';
         }
 
-        if (needsSemanticRecipes && semantic.recipeIds.length > 0) {
-          const semRecipes = await prisma.recipe.findMany({
-            where: { id: { in: semantic.recipeIds } },
-          });
+        if (semRecipes.length > 0) {
           const existingIds = new Set(searchResult.recipes.map(r => r.id));
-          const newRecipes = semRecipes
+          const newRecipes = (semRecipes as any[])
             .filter((r: any) => !existingIds.has(r.id))
             .map(mapPrismaRecipe);
           searchResult.recipes = [...searchResult.recipes, ...newRecipes].slice(0, limit);
@@ -159,48 +200,56 @@ export async function GET(request: NextRequest) {
     const needsLikeProducts = (!type || type === 'products') && searchResult.products.length < 2;
     const needsLikeRecipes = (!type || type === 'recipes') && searchResult.recipes.length < 2;
 
-    if (needsLikeProducts) {
-      const likeProducts = await prisma.product.findMany({
-        where: {
-          validFrom: { lte: now },
-          validUntil: { gte: now },
-          OR: [
-            { name: { contains: query } },
-            { brand: { contains: query } },
-            { category: { contains: query } },
-          ],
-        },
-        orderBy: [
-          { discountPercentage: 'desc' },
-          { createdAt: 'desc' },
-        ],
-        take: limit,
-      });
+    if (needsLikeProducts || needsLikeRecipes) {
+      const [likeProducts, likeRecipes] = await Promise.all([
+        needsLikeProducts
+          ? prisma.product.findMany({
+              where: {
+                validFrom: { lte: now },
+                validUntil: { gte: now },
+                OR: [
+                  { name: { contains: query } },
+                  { brand: { contains: query } },
+                  { category: { contains: query } },
+                ],
+              },
+              orderBy: [
+                { discountPercentage: 'desc' },
+                { createdAt: 'desc' },
+              ],
+              take: limit,
+            })
+          : Promise.resolve([]),
+        needsLikeRecipes
+          ? prisma.recipe.findMany({
+              where: {
+                OR: [
+                  { title: { contains: query } },
+                  { description: { contains: query } },
+                ],
+              },
+              select: recipeSearchSelect,
+              orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+              take: limit,
+            })
+          : Promise.resolve([]),
+      ]);
 
-      const existingIds = new Set(searchResult.products.map(p => p.id));
-      const newProducts = likeProducts
-        .filter((p: any) => !existingIds.has(p.id))
-        .map(mapPrismaProduct);
-      searchResult.products = [...searchResult.products, ...newProducts].slice(0, limit);
-    }
+      if (needsLikeProducts && likeProducts.length > 0) {
+        const existingIds = new Set(searchResult.products.map(p => p.id));
+        const newProducts = likeProducts
+          .filter((p: any) => !existingIds.has(p.id))
+          .map(mapPrismaProduct);
+        searchResult.products = [...searchResult.products, ...newProducts].slice(0, limit);
+      }
 
-    if (needsLikeRecipes) {
-      const likeRecipes = await prisma.recipe.findMany({
-        where: {
-          OR: [
-            { title: { contains: query } },
-            { description: { contains: query } },
-          ],
-        },
-        orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
-        take: limit,
-      });
-
-      const existingIds = new Set(searchResult.recipes.map(r => r.id));
-      const newRecipes = likeRecipes
-        .filter((r: any) => !existingIds.has(r.id))
-        .map(mapPrismaRecipe);
-      searchResult.recipes = [...searchResult.recipes, ...newRecipes].slice(0, limit);
+      if (needsLikeRecipes && likeRecipes.length > 0) {
+        const existingIds = new Set(searchResult.recipes.map(r => r.id));
+        const newRecipes = (likeRecipes as any[])
+          .filter((r: any) => !existingIds.has(r.id))
+          .map(mapPrismaRecipe);
+        searchResult.recipes = [...searchResult.recipes, ...newRecipes].slice(0, limit);
+      }
     }
 
     // ========================================
@@ -264,7 +313,7 @@ export async function POST(request: NextRequest) {
     const rateLimitResponse = await suggestRateLimit(request);
     if (rateLimitResponse) return rateLimitResponse;
     const body = await request.json();
-    const query = body.query;
+    const query = body.query ? sanitizeSearchQuery(String(body.query)) : null;
 
     if (!query || query.length < 2) {
       return NextResponse.json({
@@ -279,44 +328,42 @@ export async function POST(request: NextRequest) {
     const variants = expandQuery(query);
     const primaryQuery = variants[0]; // original query
 
-    // Get product name suggestions
-    const productNames = await prisma.product.findMany({
-      where: {
-        validFrom: { lte: now },
-        validUntil: { gte: now },
-        OR: variants.slice(0, 3).map(v => ({
-          name: { contains: v },
-        })),
-      },
-      select: { name: true },
-      distinct: ['name'],
-      take: 5,
-    });
-
-    // Get recipe title suggestions
-    const recipeTitles = await prisma.recipe.findMany({
-      where: {
-        OR: variants.slice(0, 3).map(v => ({
-          title: { contains: v },
-        })),
-      },
-      select: { title: true },
-      take: 5,
-    });
-
-    // Get category suggestions
-    const categories = await prisma.product.findMany({
-      where: {
-        validFrom: { lte: now },
-        validUntil: { gte: now },
-        OR: variants.slice(0, 3).map(v => ({
-          category: { contains: v },
-        })),
-      },
-      select: { category: true },
-      distinct: ['category'],
-      take: 3,
-    });
+    // Run all three suggestion queries in parallel
+    const [productNames, recipeTitles, categories] = await Promise.all([
+      prisma.product.findMany({
+        where: {
+          validFrom: { lte: now },
+          validUntil: { gte: now },
+          OR: variants.slice(0, 3).map(v => ({
+            name: { contains: v },
+          })),
+        },
+        select: { name: true },
+        distinct: ['name'],
+        take: 5,
+      }),
+      prisma.recipe.findMany({
+        where: {
+          OR: variants.slice(0, 3).map(v => ({
+            title: { contains: v },
+          })),
+        },
+        select: { title: true },
+        take: 5,
+      }),
+      prisma.product.findMany({
+        where: {
+          validFrom: { lte: now },
+          validUntil: { gte: now },
+          OR: variants.slice(0, 3).map(v => ({
+            category: { contains: v },
+          })),
+        },
+        select: { category: true },
+        distinct: ['category'],
+        take: 3,
+      }),
+    ]);
 
     const suggestions = [
       ...productNames.map((p: { name: string }) => ({ type: 'product', text: p.name })),
@@ -380,6 +427,7 @@ async function searchRecipesWithVariants(
 
   return prisma.recipe.findMany({
     where: { OR: orConditions },
+    select: recipeSearchSelect,
     orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
     take: limit,
   });

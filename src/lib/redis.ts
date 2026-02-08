@@ -43,9 +43,9 @@ class RedisCacheManager {
         this.config = {
             url: process.env.REDIS_URL,
             host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379'),
+            port: parseInt(process.env.REDIS_PORT || '6379', 10),
             password: process.env.REDIS_PASSWORD,
-            db: parseInt(process.env.REDIS_DB || '0'),
+            db: parseInt(process.env.REDIS_DB || '0', 10),
             keyPrefix: config.keyPrefix || 'retete:',
             defaultTtl: config.defaultTtl || 300, // 5 minutes
             connectTimeout: config.connectTimeout || 5000,

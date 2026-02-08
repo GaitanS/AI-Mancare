@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { formatPrice, normalizeDifficulty } from '@/lib/utils';
 import { Recipe } from '@/types';
 import AdSenseBanner from '@/components/AdSenseBanner';
@@ -244,12 +244,16 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     }
 
     return {
-        title: `${recipe.title} - Rețetă Economică`,
+        title: `${recipe.title} - Reteta Economica`,
         description: recipe.description.substring(0, 160),
         alternates: {
             canonical: `/retete/${params.slug}`,
         },
         openGraph: {
+            title: `${recipe.title} - Reteta Economica`,
+            description: recipe.description.substring(0, 160),
+            type: 'article',
+            url: `/retete/${params.slug}`,
             images: recipe.imageUrl ? [recipe.imageUrl] : [],
         },
     };
@@ -286,6 +290,7 @@ export default async function RecipePage(props: Props) {
         ),
         instructions: recipe.instructions.map((step: RecipeStep) => step.text),
         calories: recipe.nutritionPerServing?.calories || null,
+        datePublished: recipe.createdAt ? new Date(recipe.createdAt).toISOString().split('T')[0] : undefined,
     });
 
     const breadcrumbSchema = generateBreadcrumbSchema([

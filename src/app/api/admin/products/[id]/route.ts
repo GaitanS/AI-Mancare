@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { logAudit, computeChanges } from '@/lib/audit-logger';
+import { verifyRequestOrigin } from '@/lib/admin-auth';
 
 // GET /api/admin/products/[id]
 export async function GET(
@@ -33,6 +34,11 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF protection
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+  }
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -98,6 +104,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF protection
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+  }
+
   try {
     const { id } = await params;
 

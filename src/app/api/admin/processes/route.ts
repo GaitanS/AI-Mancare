@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { logAudit } from '@/lib/audit-logger';
+import { verifyRequestOrigin } from '@/lib/admin-auth';
 
 // GET /api/admin/processes - List all processes
 export async function GET() {
@@ -84,6 +85,11 @@ export async function GET() {
 
 // POST /api/admin/processes - Create new process
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const { name, description, type, script, config, icon, color, cronSchedule } = body;

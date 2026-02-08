@@ -2,16 +2,17 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-    title: 'Întrebări Frecvente (FAQ) - Ajutor și Suport',
-    description: 'Răspunsuri la cele mai frecvente întrebări despre CatalogSmart. Află cum să folosești platforma, cum economisești și cum funcționează compararea prețurilor.',
-    keywords: 'faq catalogsmart, întrebări frecvente, ajutor, suport, cum funcționează',
+    title: 'Intrebari Frecvente (FAQ) - Ajutor si Suport',
+    description: 'Raspunsuri la cele mai frecvente intrebari despre CatalogSmart. Afla cum sa folosesti platforma, cum economisesti si cum functioneaza compararea preturilor.',
+    keywords: 'faq catalogsmart, intrebari frecvente, ajutor, suport, cum functioneaza',
     alternates: {
         canonical: '/faq',
     },
     openGraph: {
-        title: 'FAQ - Întrebări Frecvente',
-        description: 'Găsește răspunsuri la cele mai frecvente întrebări despre CatalogSmart.',
-        type: 'website'
+        title: 'FAQ - Intrebari Frecvente',
+        description: 'Gaseste raspunsuri la cele mai frecvente intrebari despre CatalogSmart.',
+        type: 'website',
+        url: '/faq',
     }
 }
 

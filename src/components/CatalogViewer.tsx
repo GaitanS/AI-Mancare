@@ -56,8 +56,8 @@ export default function CatalogViewer({ isOpen, onClose, product, catalog, navig
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!isOpen) return;
-            if (e.key === 'ArrowLeft' && navigation.prev) goToProduct(navigation.prev.id);
-            if (e.key === 'ArrowRight' && navigation.next) goToProduct(navigation.next.id);
+            if (e.key === 'ArrowLeft' && navigation.prev) onNavigate(navigation.prev.id);
+            if (e.key === 'ArrowRight' && navigation.next) onNavigate(navigation.next.id);
             if (e.key === 'Escape') onClose();
         };
 

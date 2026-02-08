@@ -19,6 +19,7 @@ interface CacheStats {
 class CacheManager {
   private cache: NodeCache
   private stats = { hits: 0, misses: 0 }
+  private statsInterval: NodeJS.Timeout | null = null
 
   constructor() {
     this.cache = new NodeCache({
@@ -30,7 +31,9 @@ class CacheManager {
 
     // Log stats every 5 minutes
     if (typeof setInterval !== 'undefined') {
-      setInterval(() => this.logStats(), 300000)
+      const interval = setInterval(() => this.logStats(), 300000);
+      if (interval.unref) interval.unref(); // Don't prevent process exit
+      this.statsInterval = interval;
     }
   }
 
@@ -186,6 +189,17 @@ class CacheManager {
       })
     }
   }
+
+  /**
+   * Cleanup and destroy cache manager
+   */
+  destroy() {
+    if (this.statsInterval) {
+      clearInterval(this.statsInterval);
+      this.statsInterval = null;
+    }
+    this.cache.flushAll();
+  }
 }
 
 // Singleton instance
@@ -195,9 +209,8 @@ export const cache = new CacheManager()
  * Helper function to invalidate by pattern (exported for tests)
  */
 export function invalidatePattern(pattern: string): void {
-  const keys = cache.getStats().keys > 0 ? [] : []
-  // Use the cache's internal method
-  cache.invalidatePrefix(pattern.replace('*', ''))
+  const prefix = pattern.replace(/\*/g, '');
+  cache.invalidatePrefix(prefix);
 }
 
 /**

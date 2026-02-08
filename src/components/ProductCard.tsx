@@ -307,10 +307,12 @@ export default function ProductCard({
         >
           <div className="flex items-end justify-between gap-1 lg:gap-2">
             <div>
-              {/* Original Price - Calculated if missing */}
-              {(product.originalPrice || (hasDiscount && product.discountPercentage)) && (
+              {/* Original Price - Calculated if missing (guard against 100% discount division by zero) */}
+              {(product.originalPrice || (hasDiscount && product.discountPercentage && product.discountPercentage < 100)) && (
                 <p className="text-[10px] lg:text-sm text-neutral-400 line-through decoration-1 lg:decoration-2">
-                  {formatPrice(product.originalPrice || (product.price / (1 - (product.discountPercentage || 0) / 100)))}
+                  {formatPrice(product.originalPrice || (hasDiscount && product.discountPercentage && product.discountPercentage < 100
+                    ? product.price / (1 - product.discountPercentage / 100)
+                    : null))}
                 </p>
               )}
               {/* Current Price - Compact Mobile / Normal Desktop */}

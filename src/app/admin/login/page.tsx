@@ -12,7 +12,9 @@ export default function AdminLoginPage() {
 
     // Get redirect URL from query params - validate it's a relative path to prevent open redirect
     const rawRedirect = searchParams.get('redirect') || '/admin';
-    const redirectUrl = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/admin';
+    // Strict validation: must start with /admin, only alphanumeric + slashes + hyphens
+    const isValidRedirect = /^\/admin[a-zA-Z0-9\-\/]*$/.test(rawRedirect);
+    const redirectUrl = isValidRedirect ? rawRedirect : '/admin';
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

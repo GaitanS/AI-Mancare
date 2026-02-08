@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { verifyTokenFromRequest, unauthorizedResponse } from '@/lib/admin-auth';
+import { verifyTokenFromRequest, unauthorizedResponse, verifyRequestOrigin } from '@/lib/admin-auth';
 import { recalculateAllRecipeCosts } from '@/lib/smart-recipes';
 
 export const dynamic = 'force-dynamic';
 
 // POST /api/admin/recipes/recalculate - Batch recalculate all recipe costs
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+  }
+
   try {
     const isAuthed = await verifyTokenFromRequest(request);
     if (!isAuthed) {

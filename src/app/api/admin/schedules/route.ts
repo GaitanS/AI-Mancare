@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { logAudit } from '@/lib/audit-logger';
+import { verifyRequestOrigin } from '@/lib/admin-auth';
 
 // Default schedules - used as fallback when DB is not available
 const DEFAULT_SCHEDULES = [
@@ -53,6 +54,11 @@ export async function GET() {
  * Body: { taskName: string, enabled?: boolean, dayOfWeek?: number, hour?: number, minute?: number }
  */
 export async function POST(req: NextRequest) {
+    // CSRF protection
+    if (!verifyRequestOrigin(req)) {
+        return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+    }
+
     try {
         const body = await req.json();
         const { taskName, enabled, dayOfWeek, hour, minute } = body;
@@ -105,7 +111,6 @@ export async function POST(req: NextRequest) {
         }
     } catch (error: unknown) {
         console.error('Failed to update schedule:', error);
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        return NextResponse.json({ error: message }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to update schedule' }, { status: 500 });
     }
 }

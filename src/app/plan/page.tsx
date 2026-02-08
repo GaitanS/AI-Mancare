@@ -127,6 +127,7 @@ export default function PlanPage() {
         const fetchRecipes = async () => {
             try {
                 const res = await fetch('/api/recipes?pageSize=100');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 if (data.success && data.data?.data) {
                     setRecipes(data.data.data);
@@ -150,6 +151,7 @@ export default function PlanPage() {
         setLoadingDetail(true);
         try {
             const res = await fetch(`/api/recipes/${recipeId}`);
+            if (!res.ok) return;
             const data = await res.json();
             if (data.success && data.data) {
                 setDetailRecipe(data.data);
@@ -167,6 +169,7 @@ export default function PlanPage() {
         let fullRecipe = detailRecipe;
         if (!fullRecipe || fullRecipe.id !== recipeId) {
             const res = await fetch(`/api/recipes/${recipeId}`);
+            if (!res.ok) return;
             const data = await res.json();
             if (data.success && data.data) {
                 fullRecipe = data.data;
@@ -278,15 +281,11 @@ export default function PlanPage() {
         // Meat type filter (check tags)
         if (filterMeatType.length > 0 && !filterMeatType.some(m => recipe.tags.includes(m))) return false;
 
-        // Store filter
+        // Store filter - check if ANY selected store matches the recipe's available stores
         if (filterStores.length > 0) {
-            // Recipe must list available stores. If empty, we can't be sure, so maybe show or hide?
-            // Assuming strict mode: if I say "Lidl", I want recipes with ingredients found in Lidl.
             if (!recipe.availableStores || recipe.availableStores.length === 0) return false;
-
-            // Check if recipe stores are a subset of selected filter stores
-            const isSubset = recipe.availableStores.every(store => filterStores.includes(store));
-            if (!isSubset) return false;
+            const hasMatch = filterStores.some(store => recipe.availableStores!.includes(store));
+            if (!hasMatch) return false;
         }
 
         return true;

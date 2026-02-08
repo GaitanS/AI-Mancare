@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/termeni',
   },
+  openGraph: {
+    title: 'Termeni si Conditii',
+    description: 'Termenii si conditiile de utilizare a platformei CatalogSmart.',
+    type: 'website',
+    url: '/termeni',
+  },
   robots: {
     index: true,
     follow: true,

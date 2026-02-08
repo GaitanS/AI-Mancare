@@ -179,7 +179,22 @@ class Logger {
     }): LogEntry[] {
         try {
             const date = options?.date || new Date().toISOString().split('T')[0]
+
+            // Validate date format to prevent path traversal
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                console.error('Invalid date format for logs')
+                return []
+            }
+
             const logFile = path.join(this.logDir, `app-${date}.log`)
+
+            // Verify resolved path is within logDir
+            const resolvedPath = path.resolve(logFile)
+            const resolvedLogDir = path.resolve(this.logDir)
+            if (!resolvedPath.startsWith(resolvedLogDir)) {
+                console.error('Path traversal attempt blocked in logger')
+                return []
+            }
 
             if (!fs.existsSync(logFile)) {
                 return []

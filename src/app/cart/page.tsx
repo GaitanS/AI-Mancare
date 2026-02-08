@@ -58,6 +58,8 @@ export default function CartPage() {
     const hasPendingIngredients = useRef(false);
     // Track if we've completed initialization (set synchronously during render)
     const hasLoadedFromStorage = useRef(false);
+    // Track if persistCart has been called at least once (to allow legitimate clears)
+    const hasPersisted = useRef(false);
 
     if (initialCartRef.current === null && typeof window !== 'undefined') {
         const pending = localStorage.getItem('cart_pending_ingredients');
@@ -119,11 +121,11 @@ export default function CartPage() {
         if (!hasLoadedFromStorage.current) {
             return;
         }
-        // Additional guard: never write empty array if cart had items
-        // This protects against React StrictMode phantom writes
-        if (items.length === 0 && initialCartRef.current && initialCartRef.current.length > 0) {
+        // Guard against React StrictMode phantom writes on first render only
+        if (!hasPersisted.current && items.length === 0 && initialCartRef.current && initialCartRef.current.length > 0) {
             return;
         }
+        hasPersisted.current = true;
         saveCartItems(items);
         isInternalUpdate.current = true;
         window.dispatchEvent(new CustomEvent('cart-updated', { detail: { items } }));
@@ -379,7 +381,7 @@ export default function CartPage() {
 
     const actualTotal = cartItems.reduce((sum, item) => {
         if (lowerCaseOwned.has(item.ingredientName.toLowerCase())) return sum;
-        return sum + (item.matchedProduct?.price || 0) * item.requiredQuantity;
+        return sum + (item.matchedProduct?.price ?? 0) * item.requiredQuantity;
     }, 0);
 
     const currentTotalSavings = cartItems.reduce((sum, item) => {

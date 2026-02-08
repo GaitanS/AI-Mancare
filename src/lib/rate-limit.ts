@@ -35,6 +35,22 @@ class RateLimiter {
     resetAt: number
   } {
     const now = Date.now()
+
+    // Prevent memory exhaustion from too many unique IPs
+    if (this.store.size > 100000) {
+      this.cleanup() // Force cleanup of expired entries
+      if (this.store.size > 50000) {
+        // Instead of clearing ALL entries (nuclear option), deny new keys only
+        const entry = this.store.get(key)
+        if (!entry) {
+          // This is a new key and we're over limit - deny it
+          logger.warn(`Rate limiter denied new key due to size exceeding 50k entries`, { key }, 'RateLimit')
+          return { allowed: false, remaining: 0, resetAt: now + windowMs }
+        }
+        // Existing key - continue to allow it (fall through)
+      }
+    }
+
     const entry = this.store.get(key)
 
     // No entry or expired - create new
@@ -102,12 +118,17 @@ export const rateLimiter = new RateLimiter()
  * Rate limit configuration presets
  */
 export const RateLimitPresets = {
-  // Very strict - for authentication endpoints
+  // Very strict - for authentication endpoints (login, password)
   strict: {
     limit: 5,
     windowMs: 15 * 60 * 1000, // 15 minutes
   },
-  // Moderate - for admin endpoints
+  // Strict for admin mutation routes (POST/PUT/DELETE)
+  adminStrict: {
+    limit: 10,
+    windowMs: 5 * 60 * 1000, // 5 minutes
+  },
+  // Moderate - for admin read endpoints
   moderate: {
     limit: 30,
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -172,7 +193,9 @@ export function withRateLimit(
 
   return async (request: NextRequest) => {
     const clientId = getClientIdentifier(request)
-    const key = `${keyPrefix}:${clientId}`
+    const routePath = new URL(request.url).pathname
+    // Composite key: prefix + IP + route for granular per-route-per-IP limiting
+    const key = `${keyPrefix}:${clientId}:${routePath}`
 
     const result = rateLimiter.check(key, limit, windowMs)
 

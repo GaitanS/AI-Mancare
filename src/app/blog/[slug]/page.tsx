@@ -1168,6 +1168,7 @@ export default async function ArticlePage({ params }: PageProps) {
     });
 
     // JSON-LD for SEO
+    const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro';
     const articleJsonLd = {
         '@context': 'https://schema.org',
         '@type': 'Article',
@@ -1176,14 +1177,34 @@ export default async function ArticlePage({ params }: PageProps) {
         author: {
             '@type': 'Organization',
             name: 'CatalogSmart',
+            url: siteUrl,
         },
         publisher: {
             '@type': 'Organization',
             name: 'CatalogSmart',
-            url: 'https://catalogsmart.ro',
+            url: siteUrl,
+            logo: {
+                '@type': 'ImageObject',
+                url: `${siteUrl}/icon.png`,
+            },
         },
         datePublished: article.publishedAt,
         dateModified: article.publishedAt,
+        mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `${siteUrl}/blog/${slug}`,
+        },
+        inLanguage: 'ro',
+    };
+
+    const breadcrumbJsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Acasa', item: siteUrl },
+            { '@type': 'ListItem', position: 2, name: 'Blog', item: `${siteUrl}/blog` },
+            { '@type': 'ListItem', position: 3, name: article.title, item: `${siteUrl}/blog/${slug}` },
+        ],
     };
 
     const categoryColors: Record<string, string> = {
@@ -1202,9 +1223,14 @@ export default async function ArticlePage({ params }: PageProps) {
 
     return (
         <>
+            {/* Structured data - safe: JSON.stringify on controlled static objects (not user input) */}
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
 
             <article className="min-h-screen bg-white">

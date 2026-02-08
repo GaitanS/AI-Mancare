@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
             const aisleOrder = mapping?.aisleOrder || 99;
             const aisleName = mapping?.aisleName || 'Altele';
-            const searchTerms = mapping ? JSON.parse(mapping.keywords) : [ingredientName];
+            const searchTerms = (() => { try { return mapping ? JSON.parse(mapping.keywords) : [ingredientName]; } catch { return [ingredientName]; } })();
 
             // Build search conditions
             const orConditions = searchTerms.map((term: string) => ({

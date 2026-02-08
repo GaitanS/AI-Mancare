@@ -77,10 +77,10 @@ export async function GET() {
         });
 
     } catch (error) {
+        console.error('Admin status error:', error);
         return NextResponse.json({
             success: false,
             error: 'Failed to get admin status',
-            details: error instanceof Error ? error.message : 'Unknown error'
         }, { status: 500 });
     }
 }

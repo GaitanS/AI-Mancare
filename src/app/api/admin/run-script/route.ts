@@ -5,6 +5,7 @@ import fs from 'fs';
 import { logger } from '@/lib/logger';
 import { validateScriptName, ValidationError } from '@/lib/validation';
 import { withRateLimit, RateLimitPresets } from '@/lib/rate-limit';
+import { verifyRequestOrigin } from '@/lib/admin-auth';
 
 // Helper to create log file for script output
 function createLogStream(scriptName: string) {
@@ -19,6 +20,11 @@ function createLogStream(scriptName: string) {
 
 export async function POST(req: NextRequest) {
     const log = logger.child('AdminRunScript');
+
+    // CSRF protection
+    if (!verifyRequestOrigin(req)) {
+        return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+    }
 
     // Apply rate limiting (max 5 script runs per 15 minutes)
     const rateLimitResult = await withRateLimit({
@@ -90,11 +96,10 @@ export async function POST(req: NextRequest) {
                         message: '📦 Product extractor started! Extracting products from catalog images using AI. Check logs/ for output.',
                     });
                 } catch (e: unknown) {
-                    const error = e instanceof Error ? e : new Error(String(e));
-                    log.error('Product extractor failed to start', error);
+                    log.error('Product extractor failed to start', e instanceof Error ? e : new Error(String(e)));
                     return NextResponse.json({
                         success: false,
-                        message: `Product extractor failed: ${error.message}`,
+                        message: 'Product extractor failed to start. Check server logs for details.',
                     }, { status: 500 });
                 }
 
@@ -134,10 +139,10 @@ export async function POST(req: NextRequest) {
                         message: '📚 Catalog scraper started! Downloads ~700 pages. Check logs/ for output.',
                     });
                 } catch (e: unknown) {
-                    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                    log.error('Catalog scraper failed to start', e instanceof Error ? e : new Error(String(e)));
                     return NextResponse.json({
                         success: false,
-                        message: `Catalog scraper failed: ${errorMessage}`,
+                        message: 'Catalog scraper failed to start. Check server logs for details.',
                     }, { status: 500 });
                 }
 
@@ -151,13 +156,13 @@ export async function POST(req: NextRequest) {
 
                     return NextResponse.json({
                         success: true,
-                        message: '✨ Recipe generation started! Check database in a few minutes.',
+                        message: 'Recipe generation started! Check database in a few minutes.',
                     });
                 } catch (e: unknown) {
-                    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                    log.error('Recipe generation failed to start', e instanceof Error ? e : new Error(String(e)));
                     return NextResponse.json({
                         success: false,
-                        message: `Recipe generation failed: ${errorMessage}`,
+                        message: 'Recipe generation failed to start. Check server logs for details.',
                     }, { status: 500 });
                 }
 
@@ -194,13 +199,13 @@ export async function POST(req: NextRequest) {
 
                     return NextResponse.json({
                         success: true,
-                        message: '🖼️ Image generator started! Generating images for recipes. Check logs/ for output.',
+                        message: 'Image generator started! Generating images for recipes. Check logs/ for output.',
                     });
                 } catch (e: unknown) {
-                    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                    log.error('Image generator failed to start', e instanceof Error ? e : new Error(String(e)));
                     return NextResponse.json({
                         success: false,
-                        message: `Image generation failed: ${errorMessage}`,
+                        message: 'Image generation failed to start. Check server logs for details.',
                     }, { status: 500 });
                 }
 
@@ -209,11 +214,9 @@ export async function POST(req: NextRequest) {
         }
 
     } catch (error: unknown) {
-        console.error('Failed to run script:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        log.error('Failed to run script', error instanceof Error ? error : new Error(String(error)));
         return NextResponse.json({
-            error: 'Internal Error',
-            details: errorMessage
+            error: 'An internal error occurred',
         }, { status: 500 });
     }
 }

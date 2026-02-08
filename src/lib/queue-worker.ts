@@ -4,6 +4,7 @@ import path from 'path';
 import { logger } from '@/lib/logger';
 
 let isWorkerRunning = false;
+let checkQueueInProgress = false;
 let currentProcess: ChildProcess | null = null;
 let currentRunId: string | null = null;
 
@@ -25,11 +26,22 @@ export function startQueueWorker() {
   isWorkerRunning = true;
   console.log('[QueueWorker] Started');
 
+  // Guard against concurrent checkQueue executions
+  const checkQueueSafe = async () => {
+    if (checkQueueInProgress) return;
+    checkQueueInProgress = true;
+    try {
+      await checkQueue();
+    } finally {
+      checkQueueInProgress = false;
+    }
+  };
+
   // Check queue every 5 seconds
-  setInterval(checkQueue, 5000);
+  setInterval(checkQueueSafe, 5000);
 
   // Initial check
-  checkQueue();
+  checkQueueSafe();
 }
 
 /**

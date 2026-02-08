@@ -19,6 +19,8 @@ const monthNames = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie'
 const currentMonth = monthNames[now.getMonth()];
 const currentYear = now.getFullYear();
 
+export const revalidate = 300; // ISR: regenerate offers page every 5 minutes
+
 export const metadata: Metadata = {
   title: `Catalog Kaufland, Lidl, Profi Actual ${currentMonth} ${currentYear} | Oferte Săptămâna Aceasta`,
   description: `📢 Catalog Kaufland actual ${currentMonth} ${currentYear} - vezi ofertele valabile săptămâna aceasta! Reduceri la produse din Lidl, Profi, Penny. Cataloage actualizate zilnic ✓`,

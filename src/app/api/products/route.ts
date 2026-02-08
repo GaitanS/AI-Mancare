@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     // Parse query parameters
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '24', 10), 100);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    const pageSize = Math.min(Math.max(1, parseInt(searchParams.get('pageSize') || '24', 10) || 24), 100);
     const store = searchParams.get('store');
     const category = searchParams.get('category');
     const minPrice = searchParams.get('minPrice');
@@ -52,15 +52,18 @@ export async function GET(request: NextRequest) {
     }
 
     if (minPrice) {
-      where.price = { ...where.price, gte: parseFloat(minPrice) };
+      const val = parseFloat(minPrice);
+      if (!isNaN(val)) where.price = { ...where.price, gte: val };
     }
 
     if (maxPrice) {
-      where.price = { ...where.price, lte: parseFloat(maxPrice) };
+      const val = parseFloat(maxPrice);
+      if (!isNaN(val)) where.price = { ...where.price, lte: val };
     }
 
     if (minDiscount) {
-      where.discountPercentage = { gte: parseFloat(minDiscount) };
+      const val = parseFloat(minDiscount);
+      if (!isNaN(val)) where.discountPercentage = { gte: val };
     }
 
     if (search) {
@@ -95,6 +98,23 @@ export async function GET(request: NextRequest) {
         orderBy,
         skip,
         take: pageSize,
+        select: {
+          id: true,
+          name: true,
+          brand: true,
+          price: true,
+          originalPrice: true,
+          discountPercentage: true,
+          store: true,
+          category: true,
+          unit: true,
+          validFrom: true,
+          validUntil: true,
+          catalogPage: true,
+          catalogId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       }),
       prisma.product.count({ where }),
     ]);
@@ -108,8 +128,6 @@ export async function GET(request: NextRequest) {
         validUntil: p.validUntil.toISOString(),
         createdAt: p.createdAt.toISOString(),
         updatedAt: p.updatedAt.toISOString(),
-        nutritionalInfo: p.nutritionalInfo as Product['nutritionalInfo'],
-        allergens: p.allergens as string[] | null,
       })),
       total,
     };

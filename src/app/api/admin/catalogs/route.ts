@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { logAudit } from '@/lib/audit-logger';
+import { verifyRequestOrigin } from '@/lib/admin-auth';
 
 // GET /api/admin/catalogs - Paginated catalog list with filters
 export async function GET(request: NextRequest) {
@@ -66,6 +67,11 @@ export async function GET(request: NextRequest) {
 
 // DELETE /api/admin/catalogs - Bulk delete expired
 export async function DELETE(request: NextRequest) {
+  // CSRF protection
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get('mode');

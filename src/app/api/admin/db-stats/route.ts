@@ -59,7 +59,7 @@ export async function GET() {
             recipes: 0,
             stores: 0,
             categories: 0,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: 'Failed to load database stats'
         })
     }
 }

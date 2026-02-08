@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/confidentialitate',
   },
+  openGraph: {
+    title: 'Politica de Confidentialitate',
+    description: 'Cum colectam, utilizam si protejam datele personale pe CatalogSmart.',
+    type: 'website',
+    url: '/confidentialitate',
+  },
   robots: {
     index: true,
     follow: true,

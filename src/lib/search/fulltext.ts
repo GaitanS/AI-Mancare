@@ -11,6 +11,14 @@
 import prisma from '@/lib/db';
 import { logger } from '@/lib/logger';
 
+/**
+ * Sanitize FULLTEXT search query by removing operators that could be abused.
+ * Strips: +, -, <, >, (, ), ~, *, ", @ to prevent FULLTEXT injection.
+ */
+function sanitizeFulltextQuery(query: string): string {
+  return query.replace(/[+\-<>()~*"@]/g, ' ').trim();
+}
+
 interface FulltextProductResult {
   id: string;
   name: string;
@@ -52,6 +60,11 @@ export async function fulltextSearchProducts(
   limit: number = 30
 ): Promise<FulltextProductResult[]> {
   const now = new Date();
+  const sanitizedQuery = sanitizeFulltextQuery(query);
+
+  if (!sanitizedQuery) {
+    return [];
+  }
 
   try {
     // MySQL FULLTEXT search with NATURAL LANGUAGE MODE
@@ -62,11 +75,11 @@ export async function fulltextSearchProducts(
         discount_percentage as discountPercentage,
         store, unit, image_url as imageUrl,
         valid_from as validFrom, valid_until as validUntil,
-        MATCH(name, brand, category) AGAINST(${query} IN NATURAL LANGUAGE MODE) as relevance
+        MATCH(name, brand, category) AGAINST(${sanitizedQuery} IN NATURAL LANGUAGE MODE) as relevance
       FROM products
       WHERE valid_from <= ${now}
         AND valid_until >= ${now}
-        AND MATCH(name, brand, category) AGAINST(${query} IN NATURAL LANGUAGE MODE)
+        AND MATCH(name, brand, category) AGAINST(${sanitizedQuery} IN NATURAL LANGUAGE MODE)
       ORDER BY relevance DESC, discount_percentage DESC
       LIMIT ${limit}
     `;
@@ -96,6 +109,12 @@ export async function fulltextSearchRecipes(
   query: string,
   limit: number = 20
 ): Promise<FulltextRecipeResult[]> {
+  const sanitizedQuery = sanitizeFulltextQuery(query);
+
+  if (!sanitizedQuery) {
+    return [];
+  }
+
   try {
     const results = await prisma.$queryRaw<FulltextRecipeResult[]>`
       SELECT
@@ -106,9 +125,9 @@ export async function fulltextSearchRecipes(
         image_url as imageUrl,
         view_count as viewCount,
         created_at as createdAt,
-        MATCH(title, description) AGAINST(${query} IN NATURAL LANGUAGE MODE) as relevance
+        MATCH(title, description) AGAINST(${sanitizedQuery} IN NATURAL LANGUAGE MODE) as relevance
       FROM recipes
-      WHERE MATCH(title, description) AGAINST(${query} IN NATURAL LANGUAGE MODE)
+      WHERE MATCH(title, description) AGAINST(${sanitizedQuery} IN NATURAL LANGUAGE MODE)
       ORDER BY relevance DESC, view_count DESC
       LIMIT ${limit}
     `;

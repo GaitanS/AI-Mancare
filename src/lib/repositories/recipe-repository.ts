@@ -1,5 +1,35 @@
 import { Recipe, Prisma } from '@prisma/client'
+import prisma from '@/lib/db'
 import { BaseRepository, PaginatedResponse, PaginationParams, SortParams } from './base'
+
+// In-memory buffer for batching view count writes
+const viewBuffer = new Map<string, number>();
+let flushTimeout: NodeJS.Timeout | null = null;
+
+async function flushViewCounts() {
+  if (viewBuffer.size === 0) return;
+  const entries = Array.from(viewBuffer.entries());
+  viewBuffer.clear();
+  flushTimeout = null;
+
+  for (const [id, count] of entries) {
+    try {
+      await prisma.recipe.update({
+        where: { id },
+        data: { viewCount: { increment: count } },
+      });
+    } catch (error) {
+      console.error(`[ViewCount] Failed to flush view counts:`, error);
+    }
+  }
+}
+
+// Flush view counts on process exit to prevent data loss
+if (typeof process !== 'undefined') {
+  process.on('beforeExit', () => {
+    flushViewCounts().catch(() => {});
+  });
+}
 
 /**
  * Recipe filter parameters
@@ -133,15 +163,13 @@ export class RecipeRepository extends BaseRepository<Recipe, Prisma.RecipeCreate
     }
 
     /**
-     * Increment recipe view count (fire-and-forget)
+     * Increment recipe view count (batched, flushes every 30s)
      */
     async incrementViews(id: string): Promise<void> {
-        await this.executeWithLogging('incrementViews', () =>
-            this.db.recipe.update({
-                where: { id },
-                data: { viewCount: { increment: 1 } }
-            })
-        )
+        viewBuffer.set(id, (viewBuffer.get(id) || 0) + 1);
+        if (!flushTimeout) {
+            flushTimeout = setTimeout(flushViewCounts, 30000);
+        }
     }
 
     /**

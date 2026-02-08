@@ -28,7 +28,7 @@ export async function GET() {
         logger.error('Failed to get scraper status', { error }, 'AdminStatus');
         return NextResponse.json({
             running: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: 'Failed to read scraper status'
         });
     }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { verifyTokenFromRequest, unauthorizedResponse } from '@/lib/admin-auth';
+import { verifyTokenFromRequest, unauthorizedResponse, verifyRequestOrigin } from '@/lib/admin-auth';
 import { generateSlug } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -86,6 +86,11 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/articles - Create new article
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+  }
+
   try {
     const isAuthed = await verifyTokenFromRequest(request);
     if (!isAuthed) return unauthorizedResponse();

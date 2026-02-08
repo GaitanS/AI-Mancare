@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '6', 10), 20);
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '6', 10) || 6), 20);
     const type = searchParams.get('type') || 'recipes'; // 'recipes' or 'products'
 
     if (!sessionId) {

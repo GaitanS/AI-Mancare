@@ -80,8 +80,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: false,
-            error: 'Processing failed',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: 'Processing failed. Check server logs for details.',
         }, { status: 500 });
     }
 }
@@ -120,10 +119,10 @@ export async function GET() {
         });
 
     } catch (error) {
+        logger.error('[TRIGGER] Failed to get status:', error);
         return NextResponse.json({
             success: false,
-            error: 'Failed to get status',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: 'Failed to get processing status',
         }, { status: 500 });
     }
 }

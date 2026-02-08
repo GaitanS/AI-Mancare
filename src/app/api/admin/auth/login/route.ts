@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPassword, createToken, setTokenCookie } from '@/lib/admin-auth';
+import { verifyPassword, createToken, setTokenCookie, verifyRequestOrigin } from '@/lib/admin-auth';
 import { withRateLimit, RateLimitPresets } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 
@@ -10,7 +10,15 @@ const checkRateLimit = withRateLimit({
 });
 
 export async function POST(request: NextRequest) {
-  // Check rate limit first
+  // CSRF check - verify request comes from same origin
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json(
+      { error: 'Invalid request origin' },
+      { status: 403 }
+    );
+  }
+
+  // Check rate limit
   const rateLimitResponse = await checkRateLimit(request);
   if (rateLimitResponse) {
     return rateLimitResponse;

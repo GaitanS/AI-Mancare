@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/cookies',
   },
+  openGraph: {
+    title: 'Politica de Cookies',
+    description: 'Informatii despre cookie-urile utilizate pe CatalogSmart.',
+    type: 'website',
+    url: '/cookies',
+  },
   robots: {
     index: true,
     follow: true,

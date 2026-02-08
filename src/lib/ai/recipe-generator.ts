@@ -284,7 +284,9 @@ function groupProductsByCategory(products: Product[]): Record<string, Product[]>
 }
 
 /**
- * Format products into a concise categorized list for the AI prompt
+ * Format products into a compact categorized list for the AI prompt
+ * Uses compressed format: CATEGORY: Name price discount #id | ...
+ * Saves ~30% tokens compared to verbose multi-line format
  */
 function formatProductsForPrompt(products: Product[]): string {
   // Deduplicate by name
@@ -302,14 +304,30 @@ function formatProductsForPrompt(products: Product[]): string {
 
   const grouped = groupProductsByCategory(limited);
 
+  // Map category names to short ALL CAPS labels
+  const categoryShortNames: Record<string, string> = {
+    'Carne & Mezeluri': 'CARNE',
+    'Pește & Fructe de mare': 'PESTE',
+    'Lactate & Ouă': 'LACTATE',
+    'Legume & Fructe': 'LEGUME',
+    'Pâine & Panificație': 'PAINE',
+    'Paste, Orez & Cereale': 'PASTE/CEREALE',
+    'Conserve & Sosuri': 'CONSERVE',
+    'Condimente & Uleiuri': 'CONDIMENTE',
+    'Dulciuri & Deserturi': 'DULCIURI',
+    'Băuturi (pt gătit)': 'BAUTURI',
+    'Altele': 'ALTELE',
+  };
+
   let text = '';
   for (const [category, items] of Object.entries(grouped)) {
     if (items.length === 0) continue;
-    text += `\n${category}:\n`;
-    for (const p of items) {
-      const discount = p.discountPercentage ? ` (-${p.discountPercentage}%)` : '';
-      text += `  - ${p.name} — ${Number(p.price).toFixed(2)} lei${discount} [ID: ${p.id}]\n`;
-    }
+    const shortName = categoryShortNames[category] || category.toUpperCase();
+    const itemStrs = items.map(p => {
+      const discount = p.discountPercentage ? ` -${p.discountPercentage}%` : '';
+      return `${p.name} ${Number(p.price).toFixed(2)}lei${discount} #${p.id}`;
+    });
+    text += `\n${shortName}: ${itemStrs.join(' | ')}`;
   }
 
   return text;
@@ -413,7 +431,7 @@ REGULI OBLIGATORII:
    - RĂU: "Salată fusion de ton cu biscuiți", "Pui descompus tropical", "Mix exotic de cereale"
 2. Folosește CÂT MAI MULTE ingrediente din lista de oferte de mai sus.
 3. Dacă rețeta are nevoie de ingrediente de bază care NU sunt în oferte (sare, piper, apă, ulei), include-le cu product_id: "pantry".
-4. Referențiază produsele prin ID-ul lor exact din lista de mai sus.
+4. Referențiază produsele prin ID-ul lor exact din lista de mai sus (marcat cu #id).
 5. Instrucțiunile trebuie să fie DETALIATE: temperaturi exacte, cantități, timpi de gătit.
 6. Returnează DOAR JSON valid!`;
 
@@ -425,7 +443,7 @@ REGULI OBLIGATORII:
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
-      max_tokens: 4000,
+      max_tokens: 2500,
     });
     const duration = Date.now() - startTime;
 
@@ -458,10 +476,11 @@ REGULI OBLIGATORII:
     const result = JSON.parse(jsonContent.trim());
     return result as GeneratedRecipe;
   } catch (error: any) {
-    // Retry once on failure (API timeout, JSON parse error, etc.)
-    if (retryCount < 1) {
-      console.warn(`[RECIPE GEN] Attempt ${retryCount + 1} failed: ${error.message}. Retrying...`);
-      await sleep(2000);
+    if (retryCount < 2) {
+      const isRateLimit = error.status === 429 || error.message?.includes('rate');
+      const delay = isRateLimit ? 5000 * (retryCount + 1) : 2000 * Math.pow(2, retryCount);
+      console.warn(`[RECIPE GEN] Attempt ${retryCount + 1} failed: ${error.message}. Retrying in ${delay}ms...`);
+      await sleep(delay);
       return generateRecipe(availableProducts, constraints, retryCount + 1);
     }
     console.error('Error generating recipe:', error);
@@ -490,10 +509,14 @@ async function updateStatus(status: RecipeStatus) {
     const statusPath = path.join(storagePath, 'recipes-status.json');
 
     await fs.mkdir(storagePath, { recursive: true });
-    await fs.writeFile(statusPath, JSON.stringify({
+
+    // Atomic write: write to temp file, then rename
+    const tempPath = path.join(storagePath, `.recipes-status.tmp.${Date.now()}`);
+    await fs.writeFile(tempPath, JSON.stringify({
       ...status,
       updatedAt: new Date().toISOString()
     }, null, 2));
+    await fs.rename(tempPath, statusPath);
   } catch (e) {
     console.error('Failed to update recipe status file:', e);
   }
@@ -519,6 +542,7 @@ async function getCookingProductsOnSale(preferredStores?: string[]): Promise<Pro
       { discountPercentage: 'desc' },
       { price: 'asc' },
     ],
+    take: 2000, // Cap memory usage
   });
 
   // Filter to cooking ingredients only
@@ -636,162 +660,196 @@ export async function generateWeeklyRecipes(count: number = 10): Promise<string[
         console.log(`[RECIPE GEN] Reactivated ${reactivated} archived recipes, generating ${remainingCount} new ones`);
       }
     } catch (archiveError) {
-      console.warn('[RECIPE GEN] Archive reuse failed, continuing with full generation:', archiveError);
+      console.warn('[RECIPE GEN] Archive reuse failed:', archiveError);
+      remainingCount = count; // Explicitly reset to full count on failure
     }
 
-    for (let i = 0; i < remainingCount; i++) {
-      const overallIdx = count - remainingCount + i + 1;
-      await updateStatus({
-        running: true,
-        current: overallIdx,
-        total: count,
-        message: `Generating recipe ${overallIdx}/${count}...`,
-        generatedCount: recipeIds.length
-      });
+    // Helper function to generate and save a single recipe
+    const generateAndSaveRecipe = async (
+      index: number,
+      products: Product[],
+      allExistingTitles: string[],
+      seasonCategories: string[],
+      recipeConstraints: { count: number; remainingCount: number }
+    ): Promise<{ id: string; title: string } | null> => {
+      const categoryHint = seasonCategories[index % seasonCategories.length];
+      console.log(`[RECIPE GEN] Generating recipe ${index + 1}/${recipeConstraints.remainingCount} (${categoryHint})`);
 
-      try {
-        // Use seasonal categories for variety
-        const seasonCategories = getSeasonalCategories();
-        const categoryHint = seasonCategories[i % seasonCategories.length];
-        console.log(`[RECIPE GEN] Generating recipe ${i + 1}/${count} (${categoryHint})`);
+      const constraints: RecipeConstraints = {
+        maxCost: 20 + index * 5,
+        maxTime: 60,
+        dietary: index % 4 === 0 ? ['vegetarian'] : [],
+        categoryHint,
+        existingTitles: allExistingTitles,
+      };
 
-        const constraints: RecipeConstraints = {
-          maxCost: 20 + i * 5,
-          maxTime: 60,
-          dietary: i % 4 === 0 ? ['vegetarian'] : [],
-          categoryHint,
-          existingTitles: [...existingTitles, ...newTitles],
-        };
+      let recipe = await generateRecipe(products, constraints);
 
-        let recipe = await generateRecipe(typedProducts, constraints);
-        const allTitles = [...existingTitles, ...newTitles];
+      // Quality validation before saving
+      if (!validateRecipeQuality(recipe)) {
+        console.log(`[RECIPE GEN] Recipe "${recipe.title}" failed quality check, skipping`);
+        return null;
+      }
 
-        // Quality validation before saving
-        if (!validateRecipeQuality(recipe)) {
-          console.log(`[RECIPE GEN] Recipe "${recipe.title}" failed quality check, skipping`);
-          continue;
+      // Create slug
+      let slug = generateSlug(recipe.title);
+
+      // Check if recipe with this slug already exists or title is too similar
+      const existing = await prisma.recipe.findUnique({ where: { slug } });
+      const tooSimilar = isSimilarTitle(recipe.title, allExistingTitles);
+
+      if (existing || tooSimilar) {
+        console.log(`[RECIPE GEN] Recipe "${recipe.title}" collided (${existing ? 'slug exists' : 'similar title'}), retrying...`);
+        const retryCategory = seasonCategories[(index + 5) % seasonCategories.length];
+        await sleep(2000);
+        try {
+          const retryRecipe = await generateRecipe(products, { ...constraints, categoryHint: retryCategory, existingTitles: allExistingTitles });
+          if (!validateRecipeQuality(retryRecipe)) return null;
+          const retrySlug = generateSlug(retryRecipe.title);
+          const retryExists = await prisma.recipe.findUnique({ where: { slug: retrySlug } });
+          if (retryExists || isSimilarTitle(retryRecipe.title, allExistingTitles)) return null;
+          recipe = retryRecipe;
+          slug = retrySlug;
+        } catch {
+          return null;
         }
+      }
 
-        // Create slug
-        let slug = generateSlug(recipe.title);
-
-        // Check if recipe with this slug already exists or title is too similar
-        const existing = await prisma.recipe.findUnique({ where: { slug } });
-        const tooSimilar = isSimilarTitle(recipe.title, allTitles);
-
-        if (existing || tooSimilar) {
-          console.log(`[RECIPE GEN] Recipe "${recipe.title}" collided (${existing ? 'slug exists' : 'similar title'}), retrying...`);
-          // Retry once with a different category
-          const retryCategory = seasonCategories[(i + 5) % seasonCategories.length];
-          await sleep(2000);
-          try {
-            const retryRecipe = await generateRecipe(typedProducts, { ...constraints, categoryHint: retryCategory, existingTitles: allTitles });
-            if (!validateRecipeQuality(retryRecipe)) continue;
-            const retrySlug = generateSlug(retryRecipe.title);
-            const retryExists = await prisma.recipe.findUnique({ where: { slug: retrySlug } });
-            if (retryExists || isSimilarTitle(retryRecipe.title, allTitles)) continue;
-            recipe = retryRecipe;
-            slug = retrySlug;
-          } catch {
-            continue;
-          }
-        }
-
-        // Match AI ingredients to real product data
-        const matchedIngredients = (recipe.ingredients || []).map((ing) => {
-          // If product_id is "pantry", it's a basic ingredient not from the store
-          if (ing.product_id === 'pantry') {
-            return {
-              name: ing.notes || ing.quantity || 'ingredient de bază',
-              quantity: ing.quantity,
-              unit: 'buc',
-            };
-          }
-
-          // Try to find the product by ID
-          const matchedProduct = typedProducts.find(p => p.id === ing.product_id);
-          if (matchedProduct) {
-            return {
-              id: matchedProduct.id,
-              name: matchedProduct.name,
-              quantity: ing.quantity,
-              unit: matchedProduct.unit || 'buc',
-            };
-          }
-
-          // Fallback: try fuzzy name matching
-          const ingName = (ing.notes || ing.product_id || '').toLowerCase();
-          const fuzzyMatch = typedProducts.find(p =>
-            p.name.toLowerCase().includes(ingName) || ingName.includes(p.name.toLowerCase())
-          );
-
-          if (fuzzyMatch) {
-            return {
-              id: fuzzyMatch.id,
-              name: fuzzyMatch.name,
-              quantity: ing.quantity,
-              unit: fuzzyMatch.unit || 'buc',
-            };
-          }
-
-          // No match - keep as plain ingredient
+      // Match AI ingredients to real product data
+      const matchedIngredients = (recipe.ingredients || []).map((ing) => {
+        if (ing.product_id === 'pantry') {
           return {
-            name: ing.notes || ing.product_id || 'ingredient',
+            name: ing.notes || ing.quantity || 'ingredient de baza',
             quantity: ing.quantity,
             unit: 'buc',
           };
-        });
-
-        // Build dietary text for flag calculation
-        const instructionTexts = (recipe.instructions || []).map((s: any) =>
-          typeof s === 'string' ? s : s.text || ''
-        );
-        const dietaryText = recipe.title + ' ' +
-          instructionTexts.join(' ') + ' ' +
-          matchedIngredients.map(i => i.name).join(' ');
-
-        const prepTime = recipe.prep_time || 0;
-        const cookTime = recipe.cook_time || 0;
-
-        // Calculate real cost from matched product prices (fallback to AI estimate)
-        const realCost = calculateRealCost(matchedIngredients, typedProducts);
-        const finalCost = realCost > 0 ? realCost : (recipe.estimated_cost || 0);
-        if (realCost > 0) {
-          console.log(`[RECIPE GEN] Real cost: ${realCost} lei (AI estimated: ${recipe.estimated_cost || '?'} lei)`);
         }
 
-        // Save to database
-        const saved = await prisma.recipe.create({
-          data: {
-            title: recipe.title,
-            description: recipe.description || '',
-            servings: recipe.servings || 4,
-            prepTime,
-            cookTime,
-            totalTime: prepTime + cookTime,
-            difficulty: normalizeDifficulty(recipe.difficulty || 'mediu'),
-            isPublished: true,
-            instructions: JSON.stringify(recipe.instructions || []),
-            tips: JSON.stringify(recipe.tips || []),
-            ingredientIds: JSON.stringify(matchedIngredients),
-            estimatedCost: finalCost,
-            slug,
-            metaDescription: (recipe.description || '').substring(0, 160),
-            tags: JSON.stringify(generateSmartTags(recipe)),
-            nutritionPerServing: recipe.nutritionalInfo ? JSON.stringify(recipe.nutritionalInfo) : null,
-            calories: recipe.nutritionalInfo?.calories || null,
-            ...calculateDietaryFlags(dietaryText),
-          },
-        });
+        const matchedProduct = products.find(p => p.id === ing.product_id);
+        if (matchedProduct) {
+          return {
+            id: matchedProduct.id,
+            name: matchedProduct.name,
+            quantity: ing.quantity,
+            unit: matchedProduct.unit || 'buc',
+          };
+        }
 
-        recipeIds.push(saved.id);
-        newTitles.push(recipe.title);
-        console.log(`[RECIPE GEN] Created recipe: ${recipe.title} (ID: ${saved.id})`);
+        const ingName = (ing.notes || ing.product_id || '').toLowerCase();
+        const fuzzyMatch = products.find(p =>
+          p.name.toLowerCase().includes(ingName) || ingName.includes(p.name.toLowerCase())
+        );
 
-        // Rate limiting
+        if (fuzzyMatch) {
+          return {
+            id: fuzzyMatch.id,
+            name: fuzzyMatch.name,
+            quantity: ing.quantity,
+            unit: fuzzyMatch.unit || 'buc',
+          };
+        }
+
+        return {
+          name: ing.notes || ing.product_id || 'ingredient',
+          quantity: ing.quantity,
+          unit: 'buc',
+        };
+      });
+
+      // Build dietary text for flag calculation
+      const instructionTexts = (recipe.instructions || []).map((s: any) =>
+        typeof s === 'string' ? s : s.text || ''
+      );
+      const dietaryText = recipe.title + ' ' +
+        instructionTexts.join(' ') + ' ' +
+        matchedIngredients.map(i => i.name).join(' ');
+
+      const prepTime = recipe.prep_time || 0;
+      const cookTime = recipe.cook_time || 0;
+
+      // Calculate real cost from matched product prices (fallback to AI estimate)
+      const realCost = calculateRealCost(matchedIngredients, products);
+      const finalCost = realCost > 0 ? realCost : (recipe.estimated_cost || 0);
+      if (realCost > 0) {
+        console.log(`[RECIPE GEN] Real cost: ${realCost} lei (AI estimated: ${recipe.estimated_cost || '?'} lei)`);
+      }
+
+      // Save to database
+      const saved = await prisma.recipe.create({
+        data: {
+          title: recipe.title,
+          description: recipe.description || '',
+          servings: recipe.servings || 4,
+          prepTime,
+          cookTime,
+          totalTime: prepTime + cookTime,
+          difficulty: normalizeDifficulty(recipe.difficulty || 'mediu'),
+          isPublished: true,
+          instructions: JSON.stringify(recipe.instructions || []),
+          tips: JSON.stringify(recipe.tips || []),
+          ingredientIds: JSON.stringify(matchedIngredients),
+          estimatedCost: finalCost,
+          slug,
+          metaDescription: (recipe.description || '').substring(0, 160),
+          tags: JSON.stringify(generateSmartTags(recipe)),
+          nutritionPerServing: recipe.nutritionalInfo ? JSON.stringify(recipe.nutritionalInfo) : null,
+          calories: recipe.nutritionalInfo?.calories || null,
+          ...calculateDietaryFlags(dietaryText),
+        },
+      });
+
+      console.log(`[RECIPE GEN] Created recipe: ${recipe.title} (ID: ${saved.id})`);
+      return { id: saved.id, title: recipe.title };
+    };
+
+    // Process in batches of 3 for parallel generation
+    const BATCH_SIZE = 3;
+    const seasonCategories = getSeasonalCategories();
+
+    for (let batchStart = 0; batchStart < remainingCount; batchStart += BATCH_SIZE) {
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, remainingCount);
+      const overallBase = count - remainingCount;
+
+      await updateStatus({
+        running: true,
+        current: overallBase + batchStart + 1,
+        total: count,
+        message: `Generating recipes ${overallBase + batchStart + 1}-${overallBase + batchEnd}/${count}...`,
+        generatedCount: recipeIds.length
+      });
+
+      // Snapshot current titles for this batch (shared read, collect after)
+      const batchTitles = [...existingTitles, ...newTitles];
+
+      const batchPromises = [];
+      for (let i = batchStart; i < batchEnd; i++) {
+        batchPromises.push(
+          generateAndSaveRecipe(
+            i,
+            typedProducts,
+            batchTitles,
+            seasonCategories,
+            { count, remainingCount }
+          ).catch(error => {
+            console.error(`[RECIPE GEN] Error generating recipe ${i + 1}:`, error);
+            return null;
+          })
+        );
+      }
+
+      const results = await Promise.allSettled(batchPromises);
+
+      // Collect successful results and update shared title list
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value) {
+          recipeIds.push(result.value.id);
+          newTitles.push(result.value.title);
+        }
+      }
+
+      // Rate limit between batches, not between individual recipes
+      if (batchStart + BATCH_SIZE < remainingCount) {
         await sleep(3000);
-      } catch (error) {
-        console.error(`[RECIPE GEN] Error generating recipe ${i + 1}:`, error);
       }
     }
 

@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { logger } from '@/lib/logger';
 import { withRateLimit, RateLimitPresets } from '@/lib/rate-limit';
+import { verifyRequestOrigin } from '@/lib/admin-auth';
 
 export async function POST(req: NextRequest) {
     const log = logger.child('AdminKillScript');
+
+    // CSRF protection
+    if (!verifyRequestOrigin(req)) {
+        return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+    }
 
     // Rate limit to prevent abuse
     const rateLimitResult = await withRateLimit({
@@ -33,14 +39,12 @@ export async function POST(req: NextRequest) {
 
         const processName = allowedScripts[script];
 
-        // Command to kill the specific node process
-        // We use pkill -f to match the command line arguments
-        const command = `pkill -f "${processName}"`;
-
-        log.info(`Killing script: ${script} (cmd: ${command})`);
+        log.info(`Killing script: ${script} (process: ${processName})`);
 
         return new Promise<NextResponse>((resolve) => {
-            exec(command, (error, stdout, stderr) => {
+            // Use execFile instead of exec to prevent shell injection
+            // execFile does not spawn a shell, so metacharacters are harmless
+            execFile('pkill', ['-f', processName], (error, stdout, stderr) => {
                 // pkill returns exit code 1 if no process found, which is fine
                 // we treat "process not found" as "already stopped" success for UI purposes
 
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
                     log.error('Failed to kill process', error);
                     resolve(NextResponse.json({
                         success: false,
-                        message: `Failed to stop script: ${error.message}`
+                        message: 'Failed to stop script. Check server logs for details.'
                     }, { status: 500 }));
                     return;
                 }
@@ -62,10 +66,9 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error: unknown) {
-        console.error('Failed to kill script:', error);
+        log.error('Failed to kill script', error instanceof Error ? error : new Error(String(error)));
         return NextResponse.json({
-            error: 'Internal Error',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            error: 'An internal error occurred',
         }, { status: 500 });
     }
 }

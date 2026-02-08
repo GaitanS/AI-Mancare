@@ -50,6 +50,8 @@ model Product {
   @@index([catalogId])
   @@index([store, validFrom, validUntil])
   @@index([category, validFrom, validUntil])
+  @@index([store, validUntil])
+  @@index([category, validUntil])
 
   @@map("products")
 }
@@ -597,6 +599,8 @@ model UserInteraction {
   @@index([productId])
   @@index([createdAt])
   @@index([sessionId, recipeId])
+  @@index([type, createdAt])
+  @@index([sessionId])
 
   @@map("user_interactions")
 }

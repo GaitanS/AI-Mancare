@@ -127,17 +127,20 @@ export const viewport: Viewport = {
 };
 
 // JSON-LD structured data for the website
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro';
+
 const websiteJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'CatalogSmart',
-  url: process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro',
+  url: SITE_URL,
   description: 'Cataloage online Kaufland, Lidl, Profi cu oferte si reduceri. Retete ieftine cu produse la promotie.',
+  inLanguage: 'ro',
   potentialAction: {
     '@type': 'SearchAction',
     target: {
       '@type': 'EntryPoint',
-      urlTemplate: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/oferte?search={search_term_string}`,
+      urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
     },
     'query-input': 'required name=search_term_string',
   },
@@ -147,9 +150,20 @@ const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'CatalogSmart',
-  url: process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro',
-  logo: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/logo.png`,
+  url: SITE_URL,
+  logo: {
+    '@type': 'ImageObject',
+    url: `${SITE_URL}/icon.png`,
+    width: 512,
+    height: 512,
+  },
   description: 'Cataloage online Kaufland, Lidl, Profi - Toate ofertele si promotiile actualizate saptamanal',
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer service',
+    email: 'contact@catalogsmart.ro',
+    availableLanguage: 'Romanian',
+  },
   sameAs: [],
 };
 
@@ -183,17 +197,13 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
 
-        {/* JSON-LD Structured Data - Safe: using JSON.stringify on controlled objects */}
-        <Script
-          id="website-jsonld"
+        {/* JSON-LD Structured Data - Safe: using JSON.stringify on controlled static objects, rendered inline for immediate crawler access */}
+        <script
           type="application/ld+json"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
-        <Script
-          id="organization-jsonld"
+        <script
           type="application/ld+json"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
 

@@ -47,10 +47,10 @@ export async function GET() {
             timestamp: new Date().toISOString()
         })
     } catch (error) {
+        console.error('AI budget GET error:', error)
         return NextResponse.json({
             success: false,
             error: 'Failed to get AI budget status',
-            details: error instanceof Error ? error.message : 'Unknown error'
         }, { status: 500 })
     }
 }
@@ -89,10 +89,10 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
 
     } catch (error) {
+        console.error('AI budget POST error:', error)
         return NextResponse.json({
             success: false,
             error: 'Failed to control AI operations',
-            details: error instanceof Error ? error.message : 'Unknown error'
         }, { status: 500 })
     }
 }

@@ -30,10 +30,12 @@ export function hashIngredients(ingredients: string[]): string {
 export async function findRecipeByIngredients(ingredients: string[]): Promise<any | null> {
     if (!ingredients || ingredients.length === 0) return null;
 
-    // Search for recipes with matching ingredientIds
+    // Build AND conditions for all ingredients
     const recipe = await prisma.recipe.findFirst({
         where: {
-            ingredientIds: { contains: ingredients[0] }
+            AND: ingredients.map(ing => ({
+                ingredientIds: { contains: ing }
+            }))
         },
     });
 
@@ -88,9 +90,11 @@ export async function getOrCreateRecipe(
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
 
-    // Ensure unique slug
+    // Ensure unique slug (add random chars to prevent same-millisecond collisions)
     const existingSlug = await prisma.recipe.findUnique({ where: { slug } });
-    const finalSlug = existingSlug ? `${slug}-${Date.now()}` : slug;
+    const finalSlug = existingSlug
+        ? `${slug}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+        : slug;
 
     // Save to database
     const newRecipe = await prisma.recipe.create({

@@ -253,7 +253,7 @@ export default function RecipeDetailModal({ recipe, isInPlan, onAddToPlan, onClo
                                                 )}
                                             </div>
                                             <span className="font-bold text-neutral-700">
-                                            {ing.quantity} {ing.unit}
+                                            {ing.quantity ? `${ing.quantity}${ing.unit ? ` ${ing.unit}` : ''}` : ''}
                                         </span>
                                         </li>
                                     ))}

@@ -1,9 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/rate-limit';
+import { verifyRequestOrigin } from '@/lib/admin-auth';
 
-export async function POST(req: Request) {
+const clearDbRateLimit = withRateLimit({
+  limit: 1,
+  windowMs: 60 * 60 * 1000, // 1 hour
+  keyPrefix: 'clear-db'
+});
+
+export async function POST(req: NextRequest) {
     try {
+        // CSRF protection
+        if (!verifyRequestOrigin(req)) {
+            return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+        }
+
+        // Strict rate limiting - 1 request per hour
+        const rateLimitResult = await clearDbRateLimit(req);
+        if (rateLimitResult) return rateLimitResult;
+
         // Middleware handles auth check via cookie.
 
         // Delete all data
@@ -32,8 +49,7 @@ export async function POST(req: Request) {
     } catch (error) {
         logger.error('Failed to clear database', { error }, 'AdminDB');
         return NextResponse.json({
-            error: 'Internal Database Error',
-            details: error instanceof Error ? error.message : String(error)
+            error: 'An internal error occurred while clearing the database',
         }, { status: 500 });
     }
 }

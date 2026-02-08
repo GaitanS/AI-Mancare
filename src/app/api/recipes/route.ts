@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     // Parse query parameters
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '12', 10), 50);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    const pageSize = Math.min(Math.max(1, parseInt(searchParams.get('pageSize') || '12', 10) || 12), 50);
     const difficulty = searchParams.get('difficulty');
     const maxCost = searchParams.get('maxCost');
     const maxTime = searchParams.get('maxTime');
@@ -51,11 +51,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (maxCost) {
-      where.estimatedCost = { lte: parseFloat(maxCost) };
+      const val = parseFloat(maxCost);
+      if (!isNaN(val)) where.estimatedCost = { lte: val };
     }
 
     if (maxTime) {
-      where.totalTime = { lte: parseInt(maxTime, 10) };
+      const val = parseInt(maxTime, 10);
+      if (!isNaN(val)) where.totalTime = { lte: val };
     }
 
     if (tags) {
@@ -102,6 +104,29 @@ export async function GET(request: NextRequest) {
         orderBy,
         skip,
         take: pageSize,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          servings: true,
+          prepTime: true,
+          cookTime: true,
+          totalTime: true,
+          difficulty: true,
+          isPublished: true,
+          ingredientIds: true,
+          estimatedCost: true,
+          imageUrl: true,
+          tags: true,
+          viewCount: true,
+          isVegetarian: true,
+          isVegan: true,
+          isGlutenFree: true,
+          isDairyFree: true,
+          calories: true,
+          createdAt: true,
+        },
       }),
       prisma.recipe.count({ where }),
     ]);
@@ -127,15 +152,18 @@ export async function GET(request: NextRequest) {
     });
 
     // Fetch products to get stores
-    const products = await prisma.product.findMany({
-      where: {
-        id: { in: Array.from(allIngredientIds) }
-      },
-      select: {
-        id: true,
-        store: true
-      }
-    });
+    const idsArray = Array.from(allIngredientIds);
+    const products = idsArray.length > 0
+      ? await prisma.product.findMany({
+          where: {
+            id: { in: idsArray }
+          },
+          select: {
+            id: true,
+            store: true
+          }
+        })
+      : [];
 
     // Map product ID to store
     const productStores = new Map(products.map(p => [p.id, p.store]));

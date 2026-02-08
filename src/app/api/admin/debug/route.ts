@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const log = logger.child('DebugAPI')
     log.info('Debug info requested')
 
-    // System metrics
+    // System metrics (redacted for security - no PID, version, platform info)
     const memoryUsage = process.memoryUsage()
     const systemMetrics = {
       memory: {
@@ -29,15 +29,17 @@ export async function GET(request: NextRequest) {
         rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
         external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB',
       },
-      uptime: process.uptime(),
-      nodeVersion: process.version,
-      platform: process.platform,
-      pid: process.pid,
+      uptime: Math.round(process.uptime()),
     }
 
-    // Error statistics
+    // Error statistics (without stack traces for security)
     const errorStats = logger.getErrorStats()
-    const recentErrors = logger.getRecentErrors(10)
+    const recentErrors = logger.getRecentErrors(10).map(err => ({
+      timestamp: err.timestamp,
+      message: err.message,
+      context: err.context,
+      // Omit stack traces to prevent information leakage
+    }))
 
     // Log files
     const logFiles = logger.getLogFiles()

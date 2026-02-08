@@ -34,21 +34,23 @@ export interface AdminPayload {
 }
 
 /**
- * Verify admin password using timing-safe comparison
+ * Verify admin password using timing-safe comparison with fixed 256-byte buffers
  */
-export function verifyPassword(password: string): boolean {
+export function verifyPassword(inputPassword: string, storedHash?: string): boolean {
   try {
-    const adminPassword = getAdminPassword();
-    const inputBuffer = Buffer.from(password);
-    const storedBuffer = Buffer.from(adminPassword);
+    const adminPassword = storedHash ?? getAdminPassword();
 
-    // Timing-safe comparison to prevent timing attacks
-    if (inputBuffer.length !== storedBuffer.length) {
-      // Still do a comparison to maintain constant time
-      timingSafeEqual(inputBuffer, inputBuffer);
-      return false;
-    }
-    return timingSafeEqual(inputBuffer, storedBuffer);
+    // Use fixed-length 256-byte buffers for constant-time comparison
+    const maxLen = 256;
+    const paddedInput = Buffer.alloc(maxLen);
+    const paddedStored = Buffer.alloc(maxLen);
+    Buffer.from(inputPassword).copy(paddedInput);
+    Buffer.from(adminPassword).copy(paddedStored);
+
+    const lengthMatch = inputPassword.length === adminPassword.length;
+    const contentMatch = timingSafeEqual(paddedInput, paddedStored);
+
+    return lengthMatch && contentMatch;
   } catch {
     return false;
   }
@@ -99,9 +101,9 @@ export async function setTokenCookie(token: string): Promise<void> {
   cookieStore.set(TOKEN_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict', // Strict to prevent CSRF (was 'lax')
     maxAge: 60 * 60 * 24, // 24 hours
-    path: '/',
+    path: '/',           // Must cover /admin and /api/admin paths
   });
 }
 
@@ -152,4 +154,21 @@ export function redirectToLogin(request: NextRequest): NextResponse {
   const loginUrl = new URL('/admin/login', request.url);
   loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
   return NextResponse.redirect(loginUrl);
+}
+
+/**
+ * Verify request origin for CSRF protection on mutation routes (POST/PUT/DELETE).
+ * Compares the Origin header against the Host header to ensure
+ * requests originate from the same site.
+ */
+export function verifyRequestOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin');
+  const host = request.headers.get('host');
+  if (!origin || !host) return false;
+  try {
+    const originUrl = new URL(origin);
+    return originUrl.host === host;
+  } catch {
+    return false;
+  }
 }

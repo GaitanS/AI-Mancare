@@ -82,27 +82,25 @@ function parseIngredients(raw: string): RecipeIngredient[] {
   return [];
 }
 
+// ─── Batch Product Cache ───
+
+interface CachedProduct {
+  id: string;
+  name: string;
+  nameLower: string;
+  price: number;
+  originalPrice: number | null;
+  discountPercentage: number | null;
+  store: string;
+}
+
 /**
- * Find the cheapest active product matching an ingredient name.
- * Uses case-insensitive contains matching.
+ * Fetch ALL active products once, sorted by price ascending.
+ * Returns a lightweight array for in-memory matching.
  */
-async function findCheapestProduct(
-  ingredientName: string,
-  now: Date,
-  storeFilter?: string
-): Promise<{ id: string; name: string; price: number; originalPrice: number | null; discountPercentage: number | null; store: string } | null> {
-  const where: any = {
-    validUntil: { gte: now },
-    name: { contains: ingredientName },
-  };
-
-  if (storeFilter) {
-    where.store = storeFilter;
-  }
-
-  const product = await prisma.product.findFirst({
-    where,
-    orderBy: { price: 'asc' },
+async function fetchAllActiveProducts(now: Date): Promise<CachedProduct[]> {
+  const products = await prisma.product.findMany({
+    where: { validUntil: { gte: now } },
     select: {
       id: true,
       name: true,
@@ -111,18 +109,39 @@ async function findCheapestProduct(
       discountPercentage: true,
       store: true,
     },
+    orderBy: { price: 'asc' },
   });
 
-  if (!product) return null;
+  return products.map(p => ({
+    id: p.id,
+    name: p.name,
+    nameLower: p.name.toLowerCase(),
+    price: Number(p.price),
+    originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+    discountPercentage: p.discountPercentage,
+    store: p.store,
+  }));
+}
 
-  return {
-    id: product.id,
-    name: product.name,
-    price: Number(product.price),
-    originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
-    discountPercentage: product.discountPercentage,
-    store: product.store,
-  };
+/**
+ * Find the cheapest product matching an ingredient name from a pre-fetched list.
+ * Uses case-insensitive includes matching. Products are already sorted by price asc,
+ * so the first match is the cheapest.
+ */
+function findCheapestProductLocal(
+  allProducts: CachedProduct[],
+  ingredientName: string,
+  storeFilter?: string
+): CachedProduct | null {
+  const nameLower = ingredientName.toLowerCase();
+
+  for (const product of allProducts) {
+    if (!product.nameLower.includes(nameLower)) continue;
+    if (storeFilter && product.store !== storeFilter) continue;
+    return product;
+  }
+
+  return null;
 }
 
 // ─── Core Functions ───
@@ -152,11 +171,12 @@ export async function recalculateRecipeCost(recipeId: string): Promise<number | 
   }
 
   const now = new Date();
+  const allProducts = await fetchAllActiveProducts(now);
   let totalCost = 0;
   let matchedCount = 0;
 
   for (const ingredient of ingredients) {
-    const product = await findCheapestProduct(ingredient.name, now);
+    const product = findCheapestProductLocal(allProducts, ingredient.name);
     if (product) {
       totalCost += product.price;
       matchedCount++;
@@ -249,6 +269,7 @@ export async function getBestValueRecipes(limit: number = 10): Promise<ValueReci
   });
 
   const now = new Date();
+  const allProducts = await fetchAllActiveProducts(now);
   const scored: ValueRecipe[] = [];
 
   for (const recipe of recipes) {
@@ -257,7 +278,7 @@ export async function getBestValueRecipes(limit: number = 10): Promise<ValueReci
 
     let matchedCount = 0;
     for (const ingredient of ingredients) {
-      const product = await findCheapestProduct(ingredient.name, now);
+      const product = findCheapestProductLocal(allProducts, ingredient.name);
       if (product) matchedCount++;
     }
 
@@ -299,8 +320,18 @@ export async function getBestValueRecipes(limit: number = 10): Promise<ValueReci
  * Returns per-ingredient breakdowns and store totals.
  */
 export async function getCrossStoreComparison(ingredientNames: string[]): Promise<CrossStoreResult> {
-  const stores = ['kaufland', 'lidl', 'profi'];
   const now = new Date();
+
+  // Dynamically fetch active stores instead of hardcoding
+  const storeResults = await prisma.product.groupBy({
+    by: ['store'],
+    where: { validUntil: { gte: now } },
+    _count: true,
+  });
+  const stores = storeResults.map(s => s.store);
+
+  // Batch-fetch all active products once
+  const allProducts = await fetchAllActiveProducts(now);
 
   const ingredientResults: IngredientComparison[] = [];
   const storeTotals: Record<string, number> = {};
@@ -316,7 +347,7 @@ export async function getCrossStoreComparison(ingredientNames: string[]): Promis
     let cheapestStore = '';
 
     for (const store of stores) {
-      const product = await findCheapestProduct(ingredientName, now, store);
+      const product = findCheapestProductLocal(allProducts, ingredientName, store);
 
       if (product) {
         storeResults.push({

@@ -18,7 +18,10 @@ interface AddToPlanModalProps {
 const DAYS = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
 
 export default function AddToPlanModal({ recipe, onConfirm, onClose }: AddToPlanModalProps) {
-    const [portions, setPortions] = useState(recipe.servings || 4);
+    const [portions, setPortions] = useState(() => {
+        const servings = recipe.servings || 4;
+        return Math.max(1, Math.min(20, servings));
+    });
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
     const scaledCost = recipe.estimatedCost && recipe.servings > 0

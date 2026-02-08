@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { logAudit } from '@/lib/audit-logger';
+import { verifyRequestOrigin } from '@/lib/admin-auth';
 
 // GET /api/admin/products - Paginated product list with filters
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '50', 10) || 50), 200);
     const search = searchParams.get('search') || '';
     const store = searchParams.get('store') || '';
     const category = searchParams.get('category') || '';
@@ -70,6 +71,11 @@ export async function GET(request: NextRequest) {
 
 // DELETE /api/admin/products - Bulk delete expired products
 export async function DELETE(request: NextRequest) {
+  // CSRF protection
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get('mode'); // 'expired'

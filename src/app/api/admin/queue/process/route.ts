@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { spawn } from 'child_process';
 import path from 'path';

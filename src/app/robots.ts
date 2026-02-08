@@ -17,16 +17,10 @@ export default function robots(): MetadataRoute.Robots {
           '/api/',
           '/admin/',
           '/_next/',
-          '/storage/temp/',
+          '/storage/',
         ],
-      },
-      {
-        userAgent: 'Googlebot',
-        allow: '/',
-        disallow: ['/api/', '/admin/'],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
   };
 }

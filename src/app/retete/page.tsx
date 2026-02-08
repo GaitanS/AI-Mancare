@@ -7,6 +7,7 @@ import RecipeCard, { RecipeCardSkeleton } from '@/components/RecipeCard';
 import FancyPageHeader from '@/components/FancyPageHeader';
 import type { Recipe } from '@/types';
 import type { Metadata } from 'next';
+import { generateBreadcrumbSchema } from '@/lib/seo/schema-generators';
 
 export const metadata: Metadata = {
     title: 'Rețete Economice',
@@ -74,8 +75,33 @@ export default async function RecipesPage() {
 
     const grouped = groupRecipesByDifficulty(recipes);
 
+    const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro';
+
+    const collectionSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: 'Rețete Economice',
+        description: 'Colecție de rețete economice create cu ingrediente din promoțiile supermarketurilor.',
+        url: `${SITE_URL}/retete`,
+        numberOfItems: recipes.length,
+        hasPart: recipes.slice(0, 10).map((r) => ({
+            '@type': 'Recipe',
+            name: r.title,
+            url: `${SITE_URL}/retete/${r.slug}`,
+        })),
+    };
+
+    const breadcrumbSchema = generateBreadcrumbSchema([
+        { name: 'Acasă', url: SITE_URL },
+        { name: 'Rețete', url: `${SITE_URL}/retete` },
+    ]);
+
     return (
         <>
+            {/* JSON-LD: Safe - JSON.stringify on controlled schema objects */}
+            <script type="application/ld+json">{JSON.stringify(collectionSchema)}</script>
+            <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
+
             {/* Fancy Desktop Header */}
             <FancyPageHeader
                 icon={

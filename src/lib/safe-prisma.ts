@@ -8,24 +8,26 @@ import { logger } from '@/lib/logger';
 
 // Flag to track if database is available
 let databaseAvailable: boolean | null = null;
+let lastCheckTime = 0;
+const CHECK_CACHE_TTL = 5000; // 5 seconds
 
 /**
  * Check if database connection is working
  */
 async function checkConnection(): Promise<boolean> {
-    if (databaseAvailable !== null) {
+    if (databaseAvailable !== null && Date.now() - lastCheckTime < CHECK_CACHE_TTL) {
         return databaseAvailable;
     }
 
     try {
         await prisma.$queryRaw`SELECT 1`;
         databaseAvailable = true;
+        lastCheckTime = Date.now();
         return true;
     } catch (error) {
         logger.error('Database connection failed', { error }, 'SafePrisma');
         databaseAvailable = false;
-        // Reset after 30 seconds to retry
-        setTimeout(() => { databaseAvailable = null; }, 30000);
+        lastCheckTime = Date.now();
         return false;
     }
 }

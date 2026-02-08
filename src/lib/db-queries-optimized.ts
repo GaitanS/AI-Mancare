@@ -282,7 +282,7 @@ export async function getCategoryStats() {
     return prisma.$queryRaw<any[]>`
       SELECT
         category,
-        CAST(COUNT(*) AS SIGNED) as productCount,
+        CAST(COUNT(*) AS INTEGER) as productCount,
         AVG(price) as avgPrice,
         MIN(price) as minPrice,
         MAX(price) as maxPrice,
@@ -306,9 +306,9 @@ export async function getStoreComparison() {
     return prisma.$queryRaw<any[]>`
       SELECT
         store,
-        CAST(COUNT(*) AS SIGNED) as activeOffers,
+        CAST(COUNT(*) AS INTEGER) as activeOffers,
         AVG(discount_percentage) as avgDiscount,
-        CAST(COUNT(CASE WHEN discount_percentage >= 30 THEN 1 END) AS SIGNED) as hotDeals
+        CAST(COUNT(CASE WHEN discount_percentage >= 30 THEN 1 END) AS INTEGER) as hotDeals
       FROM products
       WHERE valid_from <= ${now}
       AND valid_until >= ${now}

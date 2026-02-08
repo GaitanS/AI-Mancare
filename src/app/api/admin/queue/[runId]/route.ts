@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 
 // GET /api/admin/queue/[runId] - Get single run details
 export async function GET(

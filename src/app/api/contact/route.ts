@@ -36,6 +36,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate types and length BEFORE sanitization to catch oversized inputs
+    if (typeof name !== 'string' || typeof email !== 'string' || typeof subject !== 'string' || typeof message !== 'string') {
+      return NextResponse.json(
+        { error: 'Toate campurile trebuie sa fie text.' },
+        { status: 400 }
+      );
+    }
+
+    if (name.length > 100 || email.length > 254 || subject.length > 200 || message.length > 5000) {
+      return NextResponse.json(
+        { error: 'Textul depaseste limita maxima de caractere.' },
+        { status: 400 }
+      );
+    }
+
     const cleanName = sanitize(name);
     const cleanEmail = sanitize(email);
     const cleanSubject = sanitize(subject);

@@ -2,10 +2,16 @@ import { Metadata } from 'next';
 import CatalogList from '@/components/catalog/CatalogList';
 
 export const metadata: Metadata = {
-    title: 'Cataloage Digitale - Răsfoiește Toate Ofertele',
-    description: 'Vezi cataloagele complete din Kaufland, Lidl, Penny și alte magazine. Răsfoiește toate paginile ca într-o revistă digitală.',
+    title: 'Cataloage Digitale - Rasfoieste Toate Ofertele',
+    description: 'Vezi cataloagele complete din Kaufland, Lidl, Penny si alte magazine. Rasfoieste toate paginile ca intr-o revista digitala.',
     alternates: {
         canonical: '/cataloage-digitale',
+    },
+    openGraph: {
+        title: 'Cataloage Digitale - Rasfoieste Toate Ofertele',
+        description: 'Cataloage complete din Kaufland, Lidl, Penny actualizate saptamanal. Rasfoieste online ca intr-o revista.',
+        type: 'website',
+        url: '/cataloage-digitale',
     },
 };
 

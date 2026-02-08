@@ -8,6 +8,7 @@ import FilterSidebar, { ProductFilterConfig } from '@/components/FilterSidebar';
 import SortSelect from '@/components/SortSelect';
 import type { Product, ProductFilters } from '@/types';
 import type { Metadata } from 'next';
+import { generateBreadcrumbSchema } from '@/lib/seo/schema-generators';
 
 // Valid store slugs
 const validStores: Record<string, string> = {
@@ -45,15 +46,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
+  const monthYear = new Date().toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+
   return {
-    title: `Cataloage ${storeName} - Cele mai bune reduceri`,
-    description: `Descopera cele mai bune oferte si reduceri din ${storeName}. Actualizam zilnic cataloagele pentru tine!`,
+    title: `Catalog ${storeName} Actual - Oferte și Reduceri ${monthYear}`,
+    description: `Catalog ${storeName} actual cu cele mai bune oferte si reduceri. Promotii actualizate zilnic din cataloagele ${storeName} - ${monthYear}.`,
     alternates: {
       canonical: `/oferte/${store}`,
     },
     openGraph: {
-      title: `Cataloage ${storeName} - CatalogSmart`,
-      description: `Cele mai bune reduceri din ${storeName}, extrase din cataloagele actuale.`,
+      title: `Catalog ${storeName} Actual - Oferte ${monthYear}`,
+      description: `Cele mai bune reduceri din ${storeName}, extrase din cataloagele actuale - ${monthYear}.`,
       url: `/oferte/${store}`,
     },
   };
@@ -300,20 +303,33 @@ export default async function StorePage({ params, searchParams }: PageProps) {
 
   const info = storeInfo[storeName];
 
+  const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro';
+
   // JSON-LD structured data
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Store',
     name: storeName,
     description: info.description,
-    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro'}/oferte/${store}`,
+    url: `${SITE_URL}/oferte/${store}`,
   };
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Acasă', url: SITE_URL },
+    { name: 'Oferte', url: `${SITE_URL}/oferte` },
+    { name: storeName, url: `${SITE_URL}/oferte/${store}` },
+  ]);
 
   return (
     <>
+      {/* JSON-LD: Safe - using JSON.stringify on controlled static schema objects, no user input */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
 
       <div className="bg-gray-50 min-h-screen">
@@ -337,7 +353,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
                   <span className="text-white/80 text-xs font-semibold tracking-wide uppercase">Ofertă Specială</span>
                 </div>
                 <h1 className="font-display text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
-                  Cataloage {storeName}
+                  Catalog {storeName} Actual - Oferte și Reduceri
                 </h1>
                 <p className="text-neutral-400 text-sm md:text-base max-w-lg">
                   {info.description}

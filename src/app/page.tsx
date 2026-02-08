@@ -13,6 +13,8 @@ import heroSpices from '../../public/hero-spices.png';
 import heroPlate from '../../public/hero-plate.png';
 import FeaturedOffersSection from '@/components/FeaturedOffersSection';
 
+export const revalidate = 3600; // ISR: regenerate homepage every hour
+
 export const metadata: Metadata = {
   title: 'Oferte si Retete Economice pentru Toata Familia',
   description:
@@ -259,13 +261,13 @@ export default async function HomePage() {
 
             {/* Headline - CRITICAL PENTRU SEO */}
             <h1 className="font-display text-2xl sm:text-5xl md:text-7xl font-black mb-2 sm:mb-6 leading-[1.05] tracking-tight animate-fade-in-up drop-shadow-2xl" style={{ animationDelay: '100ms' }}>
-              <span className="text-white">Toate{' '}</span>
+              <span className="text-white">Cataloage{' '}</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-300 to-accent-300 relative">
-                cataloagele
+                Kaufland, Lidl, Profi
                 <span className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-[3px] sm:h-[6px] bg-primary-500/30 -rotate-2 rounded-full blur-sm"></span>
               </span>
               <br />
-              <span className="text-neutral-200 font-bold text-xl sm:text-4xl md:text-6xl block mt-1 sm:mt-2">dar inteligente</span>
+              <span className="text-neutral-200 font-bold text-xl sm:text-4xl md:text-6xl block mt-1 sm:mt-2">Oferte Actualizate Zilnic</span>
             </h1>
 
             {/* Subheadline - SEO + Features */}

@@ -4,7 +4,7 @@
  */
 
 import { MetadataRoute } from 'next';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://catalogsmart.ro';
@@ -31,39 +31,62 @@ const blogSlugs = [
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [];
+  const now = new Date();
 
-  // Static pages - Core
-  const staticPages = [
-    { url: '', priority: 1.0, changeFreq: 'daily' as const },
-    { url: '/retete', priority: 0.9, changeFreq: 'daily' as const },
-    { url: '/oferte', priority: 0.9, changeFreq: 'daily' as const },
-    { url: '/blog', priority: 0.8, changeFreq: 'daily' as const },
-    { url: '/plan', priority: 0.8, changeFreq: 'weekly' as const },
-    { url: '/despre-noi', priority: 0.6, changeFreq: 'monthly' as const },
-    { url: '/contact', priority: 0.5, changeFreq: 'monthly' as const },
-    { url: '/termeni', priority: 0.3, changeFreq: 'yearly' as const },
-    { url: '/confidentialitate', priority: 0.3, changeFreq: 'yearly' as const },
+  // ============================================
+  // STATIC PAGES
+  // ============================================
+  const staticPages: Array<{
+    url: string;
+    priority: number;
+    changeFreq: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+  }> = [
+    // Core pages - high priority, frequent updates
+    { url: '', priority: 1.0, changeFreq: 'daily' },
+    { url: '/oferte', priority: 0.9, changeFreq: 'daily' },
+    { url: '/retete', priority: 0.9, changeFreq: 'daily' },
+    { url: '/cataloage', priority: 0.8, changeFreq: 'daily' },
+    { url: '/cataloage-digitale', priority: 0.8, changeFreq: 'daily' },
+    { url: '/blog', priority: 0.8, changeFreq: 'daily' },
+    { url: '/plan', priority: 0.7, changeFreq: 'weekly' },
+    { url: '/cart', priority: 0.5, changeFreq: 'weekly' },
+    { url: '/search', priority: 0.5, changeFreq: 'weekly' },
+
+    // Informational pages - lower priority
+    { url: '/despre-noi', priority: 0.5, changeFreq: 'monthly' },
+    { url: '/contact', priority: 0.5, changeFreq: 'monthly' },
+    { url: '/faq', priority: 0.5, changeFreq: 'monthly' },
+
+    // Legal pages - lowest priority
+    { url: '/termeni', priority: 0.3, changeFreq: 'yearly' },
+    { url: '/confidentialitate', priority: 0.3, changeFreq: 'yearly' },
+    { url: '/cookies', priority: 0.3, changeFreq: 'yearly' },
   ];
 
   staticPages.forEach(page => {
     routes.push({
       url: `${SITE_URL}${page.url}`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: page.changeFreq,
       priority: page.priority,
     });
   });
 
-  // Blog article pages
+  // ============================================
+  // BLOG ARTICLE PAGES (static slugs)
+  // ============================================
   blogSlugs.forEach((slug) => {
     routes.push({
       url: `${SITE_URL}/blog/${slug}`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.7,
     });
   });
 
+  // ============================================
+  // DYNAMIC PAGES (from database)
+  // ============================================
   try {
     // Dynamic recipe pages
     const recipes = await prisma.recipe.findMany({
@@ -74,10 +97,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 1000, // Limit to prevent timeout
+      take: 2000,
     });
 
-    recipes.forEach((recipe: any) => {
+    recipes.forEach((recipe) => {
       routes.push({
         url: `${SITE_URL}/retete/${recipe.slug}`,
         lastModified: recipe.updatedAt,
@@ -86,38 +109,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       });
     });
 
-    // Store offer pages
-    const stores = ['Lidl', 'Kaufland', 'Carrefour', 'Mega Image', 'Penny'];
-
-    stores.forEach((store) => {
-      routes.push({
-        url: `${SITE_URL}/oferte/${store.toLowerCase().replace(' ', '-')}`,
-        lastModified: new Date(),
-        changeFrequency: 'daily',
-        priority: 0.7,
-      });
+    // Store offer pages (dynamic from active products)
+    const storeGroups = await prisma.product.groupBy({
+      by: ['store'],
+      where: {
+        validFrom: { lte: now },
+        validUntil: { gte: now },
+      },
+      _count: { store: true },
     });
 
-    // Category pages
-    const categories = [
-      'lactate',
-      'carne',
-      'fructe-legume',
-      'paine',
-      'bauturi',
-      'conserve',
-    ];
-
-    categories.forEach((category) => {
+    storeGroups.forEach((group) => {
+      const slug = group.store.toLowerCase().replace(/\s+/g, '-');
       routes.push({
-        url: `${SITE_URL}/oferte/categorie/${category}`,
-        lastModified: new Date(),
+        url: `${SITE_URL}/oferte/${slug}`,
+        lastModified: now,
         changeFrequency: 'daily',
-        priority: 0.7,
+        priority: 0.8,
       });
     });
   } catch (error) {
-    logger.error('Error generating sitemap', { error }, 'Sitemap');
+    logger.error('Error generating sitemap dynamic routes', { error }, 'Sitemap');
+
+    // Fallback: add known store pages even if DB fails
+    const fallbackStores = ['kaufland', 'lidl', 'penny', 'carrefour', 'mega-image', 'profi'];
+    fallbackStores.forEach((store) => {
+      routes.push({
+        url: `${SITE_URL}/oferte/${store}`,
+        lastModified: now,
+        changeFrequency: 'daily',
+        priority: 0.7,
+      });
+    });
   }
 
   return routes;

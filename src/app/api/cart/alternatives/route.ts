@@ -40,9 +40,17 @@ export async function GET(request: NextRequest) {
             },
         });
 
-        const searchTerms = mapping
-            ? JSON.parse(mapping.keywords)
-            : [ingredientName.toLowerCase()];
+        // Parse keywords safely
+        let searchTerms: string[];
+        if (mapping) {
+            try {
+                searchTerms = JSON.parse(mapping.keywords);
+            } catch {
+                searchTerms = [];
+            }
+        } else {
+            searchTerms = [ingredientName.toLowerCase()];
+        }
 
         // Build search conditions
         const orConditions = searchTerms.map((term: string) => ({

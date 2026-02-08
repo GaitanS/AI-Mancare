@@ -36,6 +36,136 @@ interface MultiStoreResult {
     savingsVsSingleStore: number;
 }
 
+// ========================================
+// Cached product type for in-memory matching
+// ========================================
+interface CachedProduct {
+    id: string;
+    name: string;
+    nameLower: string;
+    category: string | null;
+    categoryLower: string | null;
+    price: number;
+    originalPrice: number | null;
+    discountPercentage: number | null;
+    store: string;
+}
+
+/**
+ * Batch-fetch all active products with fields needed for matching.
+ * Sorted by discountPercentage desc, price asc to match original findBestProduct ordering.
+ */
+async function fetchAllActiveProducts(now: Date): Promise<CachedProduct[]> {
+    const products = await prisma.product.findMany({
+        where: {
+            validFrom: { lte: now },
+            validUntil: { gte: now },
+        },
+        select: {
+            id: true,
+            name: true,
+            category: true,
+            price: true,
+            originalPrice: true,
+            discountPercentage: true,
+            store: true,
+        },
+        orderBy: [
+            { discountPercentage: 'desc' },
+            { price: 'asc' },
+        ],
+    });
+
+    return products.map(p => ({
+        id: p.id,
+        name: p.name,
+        nameLower: p.name.toLowerCase(),
+        category: p.category,
+        categoryLower: p.category ? p.category.toLowerCase() : null,
+        price: Number(p.price),
+        originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
+        discountPercentage: p.discountPercentage ? Number(p.discountPercentage) : null,
+        store: p.store,
+    }));
+}
+
+interface CachedMapping {
+    ingredientName: string;
+    ingredientNameLower: string;
+    keywords: string[];
+    keywordsRaw: string;
+    keywordsRawLower: string;
+}
+
+/**
+ * Batch-fetch all ingredient mappings for in-memory lookup.
+ */
+async function fetchAllMappings(): Promise<CachedMapping[]> {
+    const mappings = await prisma.ingredientMapping.findMany({
+        select: {
+            ingredientName: true,
+            keywords: true,
+        },
+    });
+
+    return mappings.map(m => ({
+        ingredientName: m.ingredientName,
+        ingredientNameLower: m.ingredientName.toLowerCase(),
+        keywords: (() => { try { return JSON.parse(m.keywords); } catch { return []; } })(),
+        keywordsRaw: m.keywords,
+        keywordsRawLower: m.keywords.toLowerCase(),
+    }));
+}
+
+/**
+ * Find ingredient mapping from pre-fetched list.
+ * Uses case-insensitive contains matching (same as the original Prisma query).
+ */
+function findMappingLocal(
+    allMappings: CachedMapping[],
+    ingredientName: string
+): CachedMapping | null {
+    const nameLower = ingredientName.toLowerCase();
+
+    for (const mapping of allMappings) {
+        if (mapping.ingredientNameLower.includes(nameLower) ||
+            mapping.keywordsRawLower.includes(nameLower)) {
+            return mapping;
+        }
+    }
+    return null;
+}
+
+/**
+ * Find the best product for an ingredient at a specific store from pre-fetched list.
+ * Replicates the original findBestProduct() logic using in-memory search.
+ * Products are already sorted by discountPercentage desc, price asc.
+ */
+function findBestProductLocal(
+    allProducts: CachedProduct[],
+    allMappings: CachedMapping[],
+    ingredientName: string,
+    storeName: string
+): CachedProduct | null {
+    const mapping = findMappingLocal(allMappings, ingredientName);
+    const searchTerms: string[] = mapping ? mapping.keywords : [ingredientName];
+    const searchTermsLower = searchTerms.map(t => t.toLowerCase());
+
+    for (const product of allProducts) {
+        if (product.store !== storeName) continue;
+
+        // Check if any search term matches name or category (case-insensitive contains)
+        const matches = searchTermsLower.some(term =>
+            product.nameLower.includes(term) ||
+            (product.categoryLower && product.categoryLower.includes(term))
+        );
+
+        if (matches) return product;
+    }
+
+    return null;
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
@@ -59,19 +189,23 @@ export async function POST(request: NextRequest) {
 
         const now = new Date();
 
-        // Get all unique stores
-        const stores = await prisma.product.groupBy({
-            by: ['store'],
-            where: {
-                validFrom: { lte: now },
-                validUntil: { gte: now },
-            },
-        });
+        // Batch-fetch all data upfront: stores, products, and mappings in parallel
+        const [stores, allProducts, allMappings] = await Promise.all([
+            prisma.product.groupBy({
+                by: ['store'],
+                where: {
+                    validFrom: { lte: now },
+                    validUntil: { gte: now },
+                },
+            }),
+            fetchAllActiveProducts(now),
+            fetchAllMappings(),
+        ]);
 
         const storeNames = stores.map((s: { store: string }) => s.store);
 
         if (mode === 'multi') {
-            const result = await multiStoreOptimize(ingredientNames, storeNames, now);
+            const result = multiStoreOptimize(ingredientNames, storeNames, allProducts, allMappings);
             return NextResponse.json(result);
         }
 
@@ -87,13 +221,13 @@ export async function POST(request: NextRequest) {
             const missingItems: string[] = [];
 
             for (const ingredientName of ingredientNames) {
-                const product = await findBestProduct(ingredientName, storeName, now);
+                const product = findBestProductLocal(allProducts, allMappings, ingredientName, storeName);
 
                 if (product) {
                     availableItems++;
-                    storeTotal += Number(product.price);
-                    const originalPrice = product.originalPrice ? Number(product.originalPrice) : Number(product.price);
-                    storeSavings += originalPrice - Number(product.price);
+                    storeTotal += product.price;
+                    const originalPrice = product.originalPrice ?? product.price;
+                    storeSavings += originalPrice - product.price;
                 } else {
                     missingItems.push(ingredientName);
                     storeTotal += 10; // Default fallback price
@@ -131,12 +265,13 @@ export async function POST(request: NextRequest) {
 // ========================================
 // Multi-Store Optimization Algorithm
 // ========================================
-async function multiStoreOptimize(
+function multiStoreOptimize(
     ingredientNames: string[],
     storeNames: string[],
-    now: Date
-): Promise<MultiStoreResult> {
-    // Step 1: Build price matrix - ingredients x stores
+    allProducts: CachedProduct[],
+    allMappings: CachedMapping[]
+): MultiStoreResult {
+    // Step 1: Build price matrix - ingredients x stores (all in-memory now)
     const priceMatrix: Map<string, Map<string, {
         productId: string;
         productName: string;
@@ -149,14 +284,14 @@ async function multiStoreOptimize(
         const storeOptions = new Map<string, any>();
 
         for (const storeName of storeNames) {
-            const product = await findBestProduct(ingredientName, storeName, now);
+            const product = findBestProductLocal(allProducts, allMappings, ingredientName, storeName);
             if (product) {
                 storeOptions.set(storeName, {
                     productId: product.id,
                     productName: product.name,
-                    price: Number(product.price),
-                    originalPrice: product.originalPrice ? Number(product.originalPrice) : null,
-                    discount: product.discountPercentage ? Number(product.discountPercentage) : null,
+                    price: product.price,
+                    originalPrice: product.originalPrice,
+                    discount: product.discountPercentage,
                 });
             }
         }
@@ -297,7 +432,6 @@ async function multiStoreOptimize(
     let cheapestSingleStore = Infinity;
     for (const storeName of storeNames) {
         let storeTotal = 0;
-        let foundAll = true;
         for (const ingredientName of ingredientNames) {
             const options = priceMatrix.get(ingredientName);
             const storeOption = options?.get(storeName);
@@ -305,7 +439,6 @@ async function multiStoreOptimize(
                 storeTotal += storeOption.price;
             } else {
                 storeTotal += 10; // fallback price
-                foundAll = false;
             }
         }
         if (storeTotal < cheapestSingleStore) {
@@ -321,45 +454,4 @@ async function multiStoreOptimize(
         storeCount: Object.keys(storeBreakdown).length,
         savingsVsSingleStore: Math.round((cheapestSingleStore - totalCost) * 100) / 100,
     };
-}
-
-// ========================================
-// Shared: Find best product for ingredient at a store
-// ========================================
-async function findBestProduct(ingredientName: string, storeName: string, now: Date) {
-    // Find ingredient mapping for keywords
-    const mapping = await prisma.ingredientMapping.findFirst({
-        where: {
-            OR: [
-                { ingredientName: { contains: ingredientName } },
-                { keywords: { contains: ingredientName } },
-            ],
-        },
-    });
-
-    const searchTerms = mapping
-        ? JSON.parse(mapping.keywords)
-        : [ingredientName];
-
-    const orConditions = searchTerms.map((term: string) => ({
-        OR: [
-            { name: { contains: term } },
-            { category: { contains: term } },
-        ],
-    }));
-
-    return prisma.product.findFirst({
-        where: {
-            AND: [
-                { store: storeName },
-                { OR: orConditions },
-                { validFrom: { lte: now } },
-                { validUntil: { gte: now } },
-            ],
-        },
-        orderBy: [
-            { discountPercentage: 'desc' },
-            { price: 'asc' },
-        ],
-    });
 }

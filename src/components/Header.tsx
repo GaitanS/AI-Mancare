@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import SearchBar from './SearchBar';
@@ -32,6 +32,7 @@ export default function Header() {
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const pathname = usePathname();
   const router = useRouter();
+  const blurTimeoutRef = useRef<NodeJS.Timeout>(undefined);
 
   // Handle scroll effect
   useEffect(() => {
@@ -40,6 +41,13 @@ export default function Header() {
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    };
   }, []);
 
   // Close dropdown on route change
@@ -120,7 +128,9 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => setIsStoresDropdownOpen(!isStoresDropdownOpen)}
-                  onBlur={() => setTimeout(() => setIsStoresDropdownOpen(false), 200)}
+                  onBlur={() => {
+                    blurTimeoutRef.current = setTimeout(() => setIsStoresDropdownOpen(false), 200);
+                  }}
                   className={cn(
                     'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 focus-ring',
                     pathname.startsWith('/oferte/') && stores.some(s => pathname.includes(s.href))

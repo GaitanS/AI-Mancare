@@ -143,7 +143,7 @@ async function callAI(prompt, systemPrompt = '', retryCount = 0) {
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 2500,
       },
       {
         headers: {
@@ -255,7 +255,9 @@ function groupProductsByCategory(products) {
 }
 
 /**
- * Format products into a concise list for the AI prompt
+ * Format products into a compact categorized list for the AI prompt
+ * Uses compressed format: CATEGORY: Name price discount #id | ...
+ * Saves ~30% tokens compared to verbose multi-line format
  */
 function formatProductsForPrompt(products) {
   // Deduplicate by name
@@ -272,14 +274,30 @@ function formatProductsForPrompt(products) {
 
   const grouped = groupProductsByCategory(limited);
 
+  // Map category names to short ALL CAPS labels
+  const categoryShortNames = {
+    'Carne & Mezeluri': 'CARNE',
+    'Pește & Fructe de mare': 'PESTE',
+    'Lactate & Ouă': 'LACTATE',
+    'Legume & Fructe': 'LEGUME',
+    'Pâine & Panificație': 'PAINE',
+    'Paste, Orez & Cereale': 'PASTE/CEREALE',
+    'Conserve & Sosuri': 'CONSERVE',
+    'Condimente & Uleiuri': 'CONDIMENTE',
+    'Dulciuri & Deserturi': 'DULCIURI',
+    'Băuturi (pt gătit)': 'BAUTURI',
+    'Altele': 'ALTELE',
+  };
+
   let text = '';
   for (const [category, items] of Object.entries(grouped)) {
     if (items.length === 0) continue;
-    text += `\n📦 ${category}:\n`;
-    for (const p of items) {
-      const discount = p.discountPercentage ? ` (-${p.discountPercentage}%)` : '';
-      text += `  • ${p.name} — ${Number(p.price).toFixed(2)} lei${discount} [ID: ${p.id}]\n`;
-    }
+    const shortName = categoryShortNames[category] || category.toUpperCase();
+    const itemStrs = items.map(p => {
+      const discount = p.discountPercentage ? ` -${p.discountPercentage}%` : '';
+      return `${p.name} ${Number(p.price).toFixed(2)}lei${discount} #${p.id}`;
+    });
+    text += `\n${shortName}: ${itemStrs.join(' | ')}`;
   }
 
   return text;
@@ -543,7 +561,7 @@ FORMAT JSON STRICT:
   }
 }
 
-IMPORTANT: Referențiază produsele prin ID-ul lor exact din lista de oferte (marcat cu [ID: xxx]).
+IMPORTANT: Referențiază produsele prin ID-ul lor exact din lista de oferte (marcat cu #id).
 Dacă un ingredient NU e în lista de oferte (sare, piper, apă, ulei), pune product_id: "pantry".`;
 
   const response = await callAI(userPrompt, systemPrompt);

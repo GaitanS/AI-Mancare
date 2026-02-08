@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { verifyTokenFromRequest, unauthorizedResponse } from '@/lib/admin-auth';
+import { verifyTokenFromRequest, unauthorizedResponse, verifyRequestOrigin } from '@/lib/admin-auth';
 import { generateSlug } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +43,11 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF protection
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+  }
+
   try {
     const isAuthed = await verifyTokenFromRequest(request);
     if (!isAuthed) return unauthorizedResponse();
@@ -150,6 +155,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF protection
+  if (!verifyRequestOrigin(request)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+  }
+
   try {
     const isAuthed = await verifyTokenFromRequest(request);
     if (!isAuthed) return unauthorizedResponse();
