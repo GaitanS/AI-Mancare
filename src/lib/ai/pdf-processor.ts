@@ -10,6 +10,7 @@ import type { ExtractedProduct } from '@/types';
 import { retry, sleep } from '@/lib/utils';
 import puppeteer from 'puppeteer';
 import { logger } from '@/lib/logger';
+import { trackAiUsage } from '@/lib/ai/budget-tracker';
 
 // OpenRouter client (OpenAI-compatible API)
 const openrouter = new OpenAI({
@@ -148,6 +149,18 @@ REGULI IMPORTANTE:
       3, // max retries
       RATE_LIMIT_DELAY
     );
+
+    // Track AI budget
+    const usage = response.choices?.[0] ? (response as any).usage : null;
+    if (usage) {
+      trackAiUsage({
+        operation: 'pdf_processing',
+        model: VISION_MODEL,
+        inputTokens: usage.prompt_tokens || 0,
+        outputTokens: usage.completion_tokens || 0,
+        duration: 0,
+      }).catch(() => {}); // Fire and forget
+    }
 
     const content = response.choices[0].message.content;
     if (!content) {

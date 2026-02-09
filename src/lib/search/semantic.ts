@@ -7,6 +7,7 @@
  */
 
 import prisma from '@/lib/db';
+import { trackAiUsage } from '@/lib/ai/budget-tracker';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -69,6 +70,19 @@ export async function expandQueryWithAI(query: string): Promise<string[]> {
     }
 
     const data = await response.json();
+
+    // Track AI budget (even for free models, track usage)
+    const usage = data.usage;
+    if (usage) {
+      trackAiUsage({
+        operation: 'semantic_search',
+        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        inputTokens: usage.prompt_tokens || 0,
+        outputTokens: usage.completion_tokens || 0,
+        duration: 0,
+      }).catch(() => {});
+    }
+
     const content = data.choices?.[0]?.message?.content?.trim();
 
     if (!content) return ruleBasedExpansion(query);
