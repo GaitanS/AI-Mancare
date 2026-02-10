@@ -8,7 +8,7 @@ import FilterSidebar from '@/components/FilterSidebar';
 import SortSelect from '@/components/SortSelect';
 import CatalogViewer from '@/components/CatalogViewer';
 import AdSenseBanner from '@/components/AdSenseBanner';
-import type { Product, ProductFilters } from '@/types';
+import type { Product, ProductFilters, PriceTrend } from '@/types';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 const productSortOptions = [
@@ -24,13 +24,15 @@ interface OffersClientProps {
     initialTotal: number;
     initialFilters: ProductFilters;
     filterConfig: any;
+    initialTrends?: Record<string, PriceTrend>;
 }
 
 export default function OffersClient({
     initialProducts,
     initialTotal,
     initialFilters,
-    filterConfig
+    filterConfig,
+    initialTrends,
 }: OffersClientProps) {
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [catalogData, setCatalogData] = useState<any>(null);
@@ -245,6 +247,7 @@ export default function OffersClient({
                                     <ProductCard
                                         product={product}
                                         onClick={() => handleProductClick(product)}
+                                        trend={initialTrends?.[product.id]}
                                     />
                                     {/* In-Feed Ad - Mobile: after 4th product */}
                                     {index === 3 && (

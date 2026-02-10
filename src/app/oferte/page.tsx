@@ -2,6 +2,7 @@ import prisma from '@/lib/db';
 import type { Product, ProductFilters, ProductFilterConfig } from '@/types';
 import type { Metadata } from 'next';
 import OffersClient from '@/components/OffersClient';
+import { getPriceTrendsBatch } from '@/lib/price-history';
 
 // Sort options for products page
 const productSortOptions = [
@@ -298,6 +299,11 @@ export default async function OfertePage({ searchParams }: PageProps) {
     getFilterOptions(),
   ]);
 
+  // Compute price trends for all products on this page
+  const trends = await getPriceTrendsBatch(
+    products.map((p) => ({ id: p.id, name: p.name, brand: p.brand, price: p.price, store: p.store }))
+  );
+
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro';
 
   // Get store list from filter options for dynamic content
@@ -412,6 +418,7 @@ export default async function OfertePage({ searchParams }: PageProps) {
         initialTotal={total}
         initialFilters={filters}
         filterConfig={filterOptions}
+        initialTrends={trends}
       />
     </>
   );

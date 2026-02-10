@@ -109,9 +109,9 @@
       "Bash(wmic:*)",
       "Bash(del /f \"node_modules\\\\.prisma\\\\client\\\\query_engine-windows.dll.node\")",
       "Bash(del \"C:\\\\Users\\\\Silviu\\\\Downloads\\\\AI Mancare\\\\src\\\\components\\\\catalog\\\\CatalogViewer.tsx\")",
-      "Bash(git checkout:*)",
-      "Bash(git rebase:*)",
-      "Bash(GIT_EDITOR=true git rebase:*)"
+      "Bash(git status:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ]
   }
 }

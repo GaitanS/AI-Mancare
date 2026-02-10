@@ -5,7 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { cn, formatPrice, formatDate, isOfferValid } from '@/lib/utils';
 import { addProductToCart, removeProductFromCart, isProductInCart } from '@/lib/cart-utils';
-import type { Product } from '@/types';
+import type { Product, PriceTrend } from '@/types';
+import PriceTrendBadge from '@/components/PriceTrendBadge';
 
 // Calculate remaining days until offer expires
 function getRemainingDays(validUntil: Date | string): number {
@@ -88,6 +89,7 @@ function Countdown({ validUntil }: { validUntil: Date | string }) {
 
 interface ProductCardProps {
   product: Product;
+  trend?: PriceTrend | null;
   className?: string;
   showStore?: boolean;
   priority?: boolean;
@@ -107,6 +109,7 @@ const storeColors: Record<string, { gradient: string; solid: string; text: strin
 
 export default function ProductCard({
   product,
+  trend,
   className,
   showStore = true,
   priority = false,
@@ -293,6 +296,13 @@ export default function ProductCard({
           <p className="text-xs sm:text-sm text-neutral-500 mb-1 sm:mb-2 line-clamp-1" itemProp="brand">
             {product.brand}
           </p>
+        )}
+
+        {/* Price Trend Badge */}
+        {trend?.badge && (
+          <div className="mb-1 lg:mb-2">
+            <PriceTrendBadge trend={trend} compact />
+          </div>
         )}
 
         {/* Spacer */}

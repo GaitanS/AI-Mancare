@@ -624,6 +624,34 @@ model AuditLog {
 }
 
 // ==========================================
+// PRICE HISTORY TABLE (Price Tracking Over Time)
+// ==========================================
+model PriceHistory {
+  id              String   @id @default(uuid())
+  normalizedName  String   @map("normalized_name")
+  store           String
+  brand           String?
+  category        String?
+  originalName    String   @map("original_name")
+  price           Decimal
+  originalPrice   Decimal? @map("original_price")
+  discountPct     Int?     @map("discount_pct")
+  unit            String
+  validFrom       DateTime @map("valid_from")
+  validUntil      DateTime @map("valid_until")
+  catalogId       String?  @map("catalog_id")
+  sourceProductId String?  @map("source_product_id")
+  recordedAt      DateTime @default(now()) @map("recorded_at")
+
+  @@unique([normalizedName, store, catalogId], name: "unique_price_per_catalog")
+  @@index([normalizedName, store])
+  @@index([store, recordedAt])
+  @@index([recordedAt])
+
+  @@map("price_history")
+}
+
+// ==========================================
 // AI BUDGET TABLE (Cost Tracking)
 // ==========================================
 model AiBudget {

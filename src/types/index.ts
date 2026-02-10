@@ -269,6 +269,21 @@ export interface RecipeFilters {
 }
 
 // ==========================================
+// PRICE HISTORY TYPES
+// ==========================================
+export type PriceTrendBadge = 'best_price' | 'below_avg' | 'price_increased' | 'above_avg';
+
+export interface PriceTrend {
+  badge: PriceTrendBadge | null;
+  label: string | null;
+  avgPrice: number;
+  minPrice: number;
+  maxPrice: number;
+  previousPrice: number | null;
+  dataPoints: number;
+}
+
+// ==========================================
 // UTILITY TYPES
 // ==========================================
 export interface DateRange {

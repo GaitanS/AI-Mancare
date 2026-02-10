@@ -11,6 +11,7 @@ import { retry, sleep } from '@/lib/utils';
 import puppeteer from 'puppeteer';
 import { logger } from '@/lib/logger';
 import { trackAiUsage } from '@/lib/ai/budget-tracker';
+import { recordPriceSnapshotBatch } from '@/lib/price-history';
 
 // OpenRouter client (OpenAI-compatible API)
 const openrouter = new OpenAI({
@@ -363,6 +364,30 @@ export async function processCatalog(catalogId: string): Promise<{
             });
             productsExtracted += result.count;
             console.log(`[PROCESSOR] Inserted ${result.count} products from page ${i + 1}`);
+
+            // Record price history snapshots (non-blocking)
+            try {
+              const historyProducts = newProducts.map((product) => ({
+                id: '', // no ID available from createMany
+                name: product.name,
+                brand: product.brand || null,
+                category: product.category,
+                price: typeof product.price === 'number' ? product.price : parseFloat(String(product.price)),
+                originalPrice: product.original_price || null,
+                discountPercentage: product.discount_percentage || null,
+                unit: product.unit,
+                store: catalog.store,
+                validFrom: catalog.validFrom,
+                validUntil: catalog.validUntil,
+                catalogId: catalogId,
+              }));
+              const recorded = await recordPriceSnapshotBatch(historyProducts);
+              if (recorded > 0) {
+                console.log(`[PROCESSOR] Recorded ${recorded} price history entries from page ${i + 1}`);
+              }
+            } catch (historyError) {
+              console.warn(`[PROCESSOR] Price history recording failed for page ${i + 1}: ${(historyError as any).message}`);
+            }
           } catch (dbError) {
             console.error(`[PROCESSOR] Batch insert failed for page ${i + 1}: ${(dbError as any).message}`);
             errors.push(`DB insert failed on page ${i + 1}: ${(dbError as any).message}`);

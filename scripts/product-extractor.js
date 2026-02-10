@@ -82,6 +82,79 @@ function ensureDir(dirPath) {
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// ---- Price History Recording ----
+
+/**
+ * Normalize a product name for price history matching.
+ * Plain JS port of src/lib/search/dedup.ts normalizeProductName()
+ */
+function normalizeProductName(name, brand) {
+    let normalized = name.toLowerCase().trim();
+
+    // Strip brand from name if present
+    if (brand) {
+        const brandLower = brand.toLowerCase();
+        const escaped = brandLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        normalized = normalized.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), '');
+    }
+
+    // Strip store names
+    normalized = normalized.replace(
+        /\b(mega\s*image|lidl|kaufland|carrefour|penny|profi|auchan|cora|metro|selgros)\b/gi,
+        ''
+    );
+
+    // Strip diacritics
+    normalized = normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Normalize units
+    const unitMap = {
+        kilogram: 'kg', grame: 'g', gram: 'g', litru: 'l', litri: 'l',
+        mililitri: 'ml', mililitru: 'ml', bucata: 'buc', bucati: 'buc',
+    };
+    for (const [from, to] of Object.entries(unitMap)) {
+        normalized = normalized.replace(new RegExp(`\\b${from}\\b`, 'gi'), to);
+    }
+
+    // Collapse whitespace and strip edge punctuation
+    normalized = normalized.replace(/\s+/g, ' ').trim();
+    normalized = normalized.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+
+    return normalized;
+}
+
+/**
+ * Record price history for a single product after save.
+ */
+async function recordPriceHistory(product, storeName, catalogId, validFrom, validUntil) {
+    try {
+        const normalizedName = normalizeProductName(product.name, null);
+        if (!normalizedName) return;
+
+        await prisma.priceHistory.create({
+            data: {
+                normalizedName,
+                store: storeName,
+                brand: null,
+                category: product.category || null,
+                originalName: product.name,
+                price: parseFloat(product.price) || 0,
+                originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : null,
+                discountPct: product.discount ? parseInt(product.discount) : null,
+                unit: product.unit || 'buc',
+                validFrom: validFrom,
+                validUntil: validUntil,
+                catalogId: catalogId || null,
+                sourceProductId: null,
+            },
+        });
+    } catch (error) {
+        // P2002 = unique constraint violation (already recorded)
+        if (error?.code === 'P2002') return;
+        // Don't fail the main flow for history errors
+    }
+}
+
 // Convert image to base64
 function imageToBase64(imagePath) {
     const imageBuffer = fs.readFileSync(imagePath);
@@ -195,6 +268,9 @@ async function saveProductsToDb(products, storeName, catalogId, validFrom, valid
                 });
             }
             savedCount++;
+
+            // Record price history (non-blocking)
+            await recordPriceHistory(product, storeName, catalogId, validFrom, validUntil);
         } catch (error) {
             log(`  ❌ Error saving product ${product.name}: ${error.message}`);
         }

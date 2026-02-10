@@ -9,6 +9,7 @@ import SortSelect from '@/components/SortSelect';
 import type { Product, ProductFilters } from '@/types';
 import type { Metadata } from 'next';
 import { generateBreadcrumbSchema } from '@/lib/seo/schema-generators';
+import { getPriceTrendsBatch } from '@/lib/price-history';
 
 // Valid store slugs
 const validStores: Record<string, string> = {
@@ -301,6 +302,11 @@ export default async function StorePage({ params, searchParams }: PageProps) {
     getStoreFilterOptions(storeName),
   ]);
 
+  // Compute price trends for all products on this page
+  const trends = await getPriceTrendsBatch(
+    products.map((p: any) => ({ id: p.id, name: p.name, brand: p.brand, price: p.price, store: p.store }))
+  );
+
   const info = storeInfo[storeName];
 
   const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro';
@@ -430,6 +436,7 @@ export default async function StorePage({ params, searchParams }: PageProps) {
                         key={product.id}
                         product={product}
                         showStore={false}
+                        trend={trends[product.id]}
                       />
                     ))}
                   </div>
