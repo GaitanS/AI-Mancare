@@ -15,6 +15,7 @@ const navItems: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: '📊', description: 'Overview & Stats' },
   { href: '/admin/processes', label: 'Processes', icon: '⚙️', description: 'Manage Scrapers' },
   { href: '/admin/queue', label: 'Queue', icon: '📋', description: 'Running & History' },
+  { href: '/admin/schedule', label: 'Schedule', icon: '📅', description: 'Cron Jobs' },
   { href: '/admin/stores', label: 'Stores', icon: '🏪', description: 'Store Config' },
   { href: '/admin/products', label: 'Products', icon: '📦', description: 'Manage Products' },
   { href: '/admin/recipes', label: 'Recipes', icon: '🍳', description: 'Edit Recipes' },

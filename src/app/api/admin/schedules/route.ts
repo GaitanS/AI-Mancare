@@ -5,10 +5,11 @@ import { verifyRequestOrigin } from '@/lib/admin-auth';
 
 // Default schedules - used as fallback when DB is not available
 const DEFAULT_SCHEDULES = [
-    { id: '1', taskName: 'catalogs', enabled: true, dayOfWeek: 1, hour: 5, minute: 0 },  // Monday 5:00 - Download catalog images
-    { id: '2', taskName: 'products', enabled: true, dayOfWeek: 1, hour: 6, minute: 0 },  // Monday 6:00 - Extract products from images
-    { id: '3', taskName: 'recipes', enabled: true, dayOfWeek: 1, hour: 8, minute: 0 },   // Monday 8:00 - Generate recipes
-    { id: '4', taskName: 'images', enabled: true, dayOfWeek: 1, hour: 10, minute: 0 },   // Monday 10:00 - Generate images
+    { id: '1', taskName: 'catalogs', enabled: true, frequency: 'weekly', dayOfWeek: 1, daysOfWeek: null, hour: 5, minute: 0 },
+    { id: '2', taskName: 'products', enabled: true, frequency: 'weekly', dayOfWeek: 1, daysOfWeek: null, hour: 6, minute: 0 },
+    { id: '3', taskName: 'recipes', enabled: true, frequency: 'weekly', dayOfWeek: 1, daysOfWeek: null, hour: 8, minute: 0 },
+    { id: '4', taskName: 'images', enabled: true, frequency: 'weekly', dayOfWeek: 1, daysOfWeek: null, hour: 10, minute: 0 },
+    { id: '5', taskName: 'cleanup', enabled: true, frequency: 'weekly', dayOfWeek: 0, daysOfWeek: null, hour: 3, minute: 0 },
 ];
 
 /**
@@ -28,7 +29,9 @@ export async function GET() {
                     data: DEFAULT_SCHEDULES.map(s => ({
                         taskName: s.taskName,
                         enabled: s.enabled,
+                        frequency: s.frequency,
                         dayOfWeek: s.dayOfWeek,
+                        daysOfWeek: s.daysOfWeek,
                         hour: s.hour,
                         minute: s.minute,
                     })),
@@ -49,9 +52,12 @@ export async function GET() {
     }
 }
 
+const VALID_TASKS = ['catalogs', 'products', 'recipes', 'images', 'cleanup'];
+const VALID_FREQUENCIES = ['daily', 'weekly', 'custom'];
+
 /**
  * POST /api/admin/schedules - Update a schedule config
- * Body: { taskName: string, enabled?: boolean, dayOfWeek?: number, hour?: number, minute?: number }
+ * Body: { taskName, enabled?, frequency?, dayOfWeek?, daysOfWeek?, hour?, minute? }
  */
 export async function POST(req: NextRequest) {
     // CSRF protection
@@ -61,16 +67,50 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { taskName, enabled, dayOfWeek, hour, minute } = body;
+        const { taskName, enabled, frequency, dayOfWeek, daysOfWeek, hour, minute } = body;
 
-        if (!taskName) {
-            return NextResponse.json({ error: 'taskName is required' }, { status: 400 });
+        // Validate taskName against allowlist
+        if (!taskName || !VALID_TASKS.includes(taskName)) {
+            return NextResponse.json({ error: 'Invalid taskName' }, { status: 400 });
+        }
+
+        // Validate frequency
+        if (frequency !== undefined && !VALID_FREQUENCIES.includes(frequency)) {
+            return NextResponse.json({ error: 'frequency must be daily, weekly, or custom' }, { status: 400 });
+        }
+
+        // Validate numeric bounds
+        if (hour !== undefined && (!Number.isInteger(hour) || hour < 0 || hour > 23)) {
+            return NextResponse.json({ error: 'hour must be 0-23' }, { status: 400 });
+        }
+        if (minute !== undefined && (!Number.isInteger(minute) || minute < 0 || minute > 59)) {
+            return NextResponse.json({ error: 'minute must be 0-59' }, { status: 400 });
+        }
+        if (dayOfWeek !== undefined && (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6)) {
+            return NextResponse.json({ error: 'dayOfWeek must be 0-6' }, { status: 400 });
+        }
+
+        // Validate daysOfWeek JSON structure
+        if (daysOfWeek !== undefined && daysOfWeek !== null) {
+            if (typeof daysOfWeek !== 'string') {
+                return NextResponse.json({ error: 'daysOfWeek must be a JSON string or null' }, { status: 400 });
+            }
+            try {
+                const parsed = JSON.parse(daysOfWeek);
+                if (!Array.isArray(parsed) || !parsed.every((d: unknown) => Number.isInteger(d) && (d as number) >= 0 && (d as number) <= 6)) {
+                    return NextResponse.json({ error: 'daysOfWeek must be a JSON array of integers 0-6' }, { status: 400 });
+                }
+            } catch {
+                return NextResponse.json({ error: 'daysOfWeek must be valid JSON' }, { status: 400 });
+            }
         }
 
         try {
             const updateData: Record<string, unknown> = {};
             if (typeof enabled === 'boolean') updateData.enabled = enabled;
+            if (typeof frequency === 'string') updateData.frequency = frequency;
             if (typeof dayOfWeek === 'number') updateData.dayOfWeek = dayOfWeek;
+            if (typeof daysOfWeek === 'string' || daysOfWeek === null) updateData.daysOfWeek = daysOfWeek;
             if (typeof hour === 'number') updateData.hour = hour;
             if (typeof minute === 'number') updateData.minute = minute;
 
@@ -80,7 +120,9 @@ export async function POST(req: NextRequest) {
                 create: {
                     taskName,
                     enabled: enabled ?? true,
+                    frequency: frequency ?? 'weekly',
                     dayOfWeek: dayOfWeek ?? 1,
+                    daysOfWeek: daysOfWeek ?? null,
                     hour: hour ?? 6,
                     minute: minute ?? 0,
                 },
@@ -101,13 +143,10 @@ export async function POST(req: NextRequest) {
             });
         } catch (dbError) {
             console.error('DB error on POST:', dbError);
-            // Return success anyway - UI will work, changes just won't persist
             return NextResponse.json({
-                success: true,
-                message: `Schedule "${taskName}" updated (not persisted - DB unavailable)`,
-                schedule: { taskName, enabled, dayOfWeek, hour, minute },
+                error: 'Database unavailable - changes not saved',
                 _fallback: true
-            });
+            }, { status: 503 });
         }
     } catch (error: unknown) {
         console.error('Failed to update schedule:', error);

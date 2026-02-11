@@ -122,14 +122,29 @@ async function updateLastRun(taskName) {
     }
 }
 
-// Check if a task should run now
+// Check if a task should run now (supports daily, weekly, custom frequencies)
 function shouldRunNow(schedule, currentTime) {
-    return (
-        schedule.enabled &&
-        schedule.dayOfWeek === currentTime.dayOfWeek &&
-        schedule.hour === currentTime.hour &&
-        schedule.minute === currentTime.minute
-    );
+    if (!schedule.enabled) return false;
+    if (schedule.hour !== currentTime.hour || schedule.minute !== currentTime.minute) return false;
+
+    const frequency = schedule.frequency || 'weekly';
+
+    switch (frequency) {
+        case 'daily':
+            return true;
+        case 'custom': {
+            try {
+                const days = JSON.parse(schedule.daysOfWeek || '[]');
+                return Array.isArray(days) && days.includes(currentTime.dayOfWeek);
+            } catch {
+                log(`⚠️ Invalid daysOfWeek JSON for ${schedule.taskName}: ${schedule.daysOfWeek}`);
+                return false;
+            }
+        }
+        case 'weekly':
+        default:
+            return schedule.dayOfWeek === currentTime.dayOfWeek;
+    }
 }
 
 // Main execution
