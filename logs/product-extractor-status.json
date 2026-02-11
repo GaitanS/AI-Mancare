@@ -1,11 +1,11 @@
 {
   "running": false,
-  "startedAt": "2026-01-09T21:47:24.857Z",
-  "completedAt": null,
-  "totalCatalogs": 26,
-  "processedCatalogs": 8,
-  "totalPages": 238,
-  "totalProducts": 0,
+  "startedAt": "2026-02-10T18:40:13.922Z",
+  "completedAt": "2026-02-10T19:37:17.841Z",
+  "totalCatalogs": 22,
+  "processedCatalogs": 22,
+  "totalPages": 539,
+  "totalProducts": 3463,
   "stores": {
     "auchan": {
       "success": false,
@@ -64,13 +64,47 @@
     "Carrefour": {
       "success": true,
       "catalogs": 8,
-      "products": 0,
+      "products": 1177,
+      "error": null
+    },
+    "Kaufland": {
+      "success": true,
+      "catalogs": 3,
+      "products": 468,
+      "error": null
+    },
+    "Lidl": {
+      "success": true,
+      "catalogs": 1,
+      "products": 424,
+      "error": null
+    },
+    "Mega Image": {
+      "success": true,
+      "catalogs": 1,
+      "products": 169,
+      "error": null
+    },
+    "Profi": {
+      "success": true,
+      "catalogs": 4,
+      "products": 282,
+      "error": null
+    },
+    "Selgros": {
+      "success": true,
+      "catalogs": 3,
+      "products": 727,
+      "error": null
+    },
+    "Supeco": {
+      "success": true,
+      "catalogs": 2,
+      "products": 216,
       "error": null
     }
   },
-  "currentStore": "Carrefour",
-  "currentCatalog": "carrefour-08-01-26-27-01-26-gfudy",
-  "error": null,
-  "stoppedAt": "2026-01-09T22:14:23.123Z",
-  "stoppedByUser": true
+  "currentStore": null,
+  "currentCatalog": null,
+  "error": "saveLog is not defined"
 }

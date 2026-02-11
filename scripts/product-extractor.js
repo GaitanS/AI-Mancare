@@ -428,7 +428,6 @@ async function main() {
     }
     log('='.repeat(60));
 
-    saveLog();
     await prisma.$disconnect();
 }
 
@@ -438,7 +437,6 @@ main().catch(error => {
     status.error = error.message;
     status.completedAt = new Date().toISOString();
     saveStatus();
-    saveLog();
     prisma.$disconnect();
     process.exit(1);
 });

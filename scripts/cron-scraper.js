@@ -323,6 +323,18 @@ async function scrapeCatalogProducts(catalogUrl) {
 /**
  * Save catalog to database
  */
+function generateCatalogSlug(storeName, validFrom, validUntil) {
+  const fmt = (d) => {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}-${mm}-${yy}`;
+  };
+  const rand = Math.random().toString(36).substring(2, 7);
+  const storeSlug = storeName.toLowerCase().replace(/\s+/g, '-');
+  return `${storeSlug}-${fmt(validFrom)}-${fmt(validUntil)}-${rand}`;
+}
+
 async function saveCatalog(catalog) {
   try {
     // First check if catalog should be skipped
@@ -332,12 +344,10 @@ async function saveCatalog(catalog) {
       return { skipped: true, reason: skipCheck.reason };
     }
 
-    // Check if already exists
+    // Check if already exists by sourceUrl (most reliable unique identifier)
     const existing = await prisma.catalog.findFirst({
       where: {
-        store: catalog.storeName,
-        validFrom: catalog.validFrom,
-        validUntil: catalog.validUntil,
+        sourceUrl: catalog.url,
       }
     });
 
@@ -346,11 +356,14 @@ async function saveCatalog(catalog) {
       return existing;
     }
 
+    const slug = generateCatalogSlug(catalog.storeName, catalog.validFrom, catalog.validUntil);
+
     // Create new catalog
     const saved = await prisma.catalog.create({
       data: {
         store: catalog.storeName,
         title: catalog.title,
+        slug,
         sourceUrl: catalog.url,
         pdfUrl: catalog.pdfUrl || '',
         validFrom: catalog.validFrom,
@@ -359,7 +372,7 @@ async function saveCatalog(catalog) {
       }
     });
 
-    log.success(`Saved catalog: ${catalog.storeName} - ${catalog.title}`);
+    log.success(`Saved catalog: ${catalog.storeName} - ${catalog.title} (${slug})`);
     return saved;
 
   } catch (error) {

@@ -1,34 +1,34 @@
 {
   "running": false,
-  "startedAt": "2026-01-09T23:58:56.725Z",
-  "completedAt": "2026-01-09T23:59:22.947Z",
-  "totalCatalogs": 27,
-  "totalPages": 669,
+  "startedAt": "2026-02-10T18:36:48.653Z",
+  "completedAt": "2026-02-10T18:40:03.138Z",
+  "totalCatalogs": 34,
+  "totalPages": 962,
   "totalStores": 9,
   "processedStores": 9,
   "stores": {
     "Kaufland": {
       "success": true,
-      "catalogs": 3,
-      "pages": 114,
+      "catalogs": 5,
+      "pages": 210,
       "error": null
     },
     "Lidl": {
       "success": true,
       "catalogs": 1,
-      "pages": 62,
+      "pages": 80,
       "error": null
     },
     "Carrefour": {
       "success": true,
-      "catalogs": 10,
-      "pages": 270,
+      "catalogs": 14,
+      "pages": 441,
       "error": null
     },
     "Mega Image": {
       "success": true,
       "catalogs": 1,
-      "pages": 24,
+      "pages": 23,
       "error": null
     },
     "Penny": {
@@ -40,29 +40,29 @@
     "Profi": {
       "success": true,
       "catalogs": 4,
-      "pages": 41,
+      "pages": 49,
       "error": null
     },
     "Selgros": {
       "success": true,
-      "catalogs": 4,
-      "pages": 94,
+      "catalogs": 3,
+      "pages": 61,
       "error": null
     },
     "Supeco": {
       "success": true,
       "catalogs": 2,
-      "pages": 24,
+      "pages": 26,
       "error": null
     },
     "Auchan": {
       "success": true,
-      "catalogs": 1,
-      "pages": 20,
+      "catalogs": 3,
+      "pages": 52,
       "error": null
     }
   },
   "currentStore": null,
-  "currentCatalog": "auchan-01-01-26-27-01-26-gqygb",
+  "currentCatalog": "auchan-01-01-26-20-01-26-zxrgu",
   "error": null
 }
