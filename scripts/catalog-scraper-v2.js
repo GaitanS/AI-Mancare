@@ -1,28 +1,29 @@
 #!/usr/bin/env node
 /**
- * Catalog Scraper v2 - cataloagedeoferte.ro
- * 
+ * Catalog Scraper v2 - Multi-Source Cascading
+ *
  * Downloads catalog images locally and stores metadata in database.
- * Includes logging to file and status tracking for admin UI.
+ * Tries multiple source adapters per store in priority order:
+ *   1. cataloagedeoferte.ro (fast, cheerio)
+ *   2. ofertelecatalog.ro  (puppeteer, JS-rendered)
+ *
+ * If no source has current catalogs for a store, it's simply skipped.
  */
 
 const axios = require('axios');
-const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
+const registry = require('./sources/registry');
 
 const prisma = new PrismaClient();
 
 // Configuration
-const BASE_URL = 'https://cataloagedeoferte.ro';
-const IMAGE_CDN = 'https://app.cataloagedeoferte.ro';
 const CATALOGS_DIR = path.join(process.cwd(), 'public', 'catalogs');
 const LOGS_DIR = path.join(process.cwd(), 'logs');
-const STORAGE_DIR = process.env.STORAGE_PATH || path.join(process.cwd(), 'storage');
 const STATUS_FILE = path.join(LOGS_DIR, 'catalog-scraper-status.json');
 
-// Stores to scrape
+// Stores to scrape — slugs can differ per source
 const STORES = [
     { name: 'Kaufland', slug: 'kaufland' },
     { name: 'Lidl', slug: 'lidl' },
@@ -52,7 +53,7 @@ let status = {
 
 // Initialize store status
 STORES.forEach(store => {
-    status.stores[store.name] = { success: false, catalogs: 0, pages: 0, error: null };
+    status.stores[store.name] = { success: false, catalogs: 0, pages: 0, source: null, error: null };
 });
 
 // Logging
@@ -63,14 +64,8 @@ function log(message) {
     const timestamp = new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' });
     const line = `[${timestamp}] ${message}`;
     console.log(line);
-    fs.appendFileSync(LOG_FILE, line + '\n');
-}
-
-function saveLog() {
     ensureDir(LOGS_DIR);
-    // logBuffer is no longer used for saving the log file, as logs are appended directly.
-    // This function can be removed or adapted if there's a need to consolidate logs from other sources.
-    // For now, it's kept but its original purpose is superseded.
+    fs.appendFileSync(LOG_FILE, line + '\n');
 }
 
 function saveStatus() {
@@ -88,7 +83,7 @@ function ensureDir(dirPath) {
     }
 }
 
-// Utility: download image
+// Utility: download image from any URL
 async function downloadImage(url, filepath) {
     try {
         const response = await axios({
@@ -98,149 +93,47 @@ async function downloadImage(url, filepath) {
             timeout: 30000,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Referer': BASE_URL
             }
         });
         fs.writeFileSync(filepath, response.data);
         return true;
-    } catch (error) {
+    } catch {
         return false;
     }
 }
 
-// Parse catalog ID from URL to CDN path
-function getCatalogCdnPath(catalogSlug, storeSlug) {
-    const parts = catalogSlug.split('-');
-    if (parts.length < 8) return null;
+// ── Download & Save (unified for all sources) ────────────────────────────────
 
-    const uniqueId = parts[parts.length - 1];
-    const endYear = parts[parts.length - 2];
-    const endMonth = parts[parts.length - 3];
-    const endDay = parts[parts.length - 4];
-    const startYear = parts[parts.length - 5];
-    const startMonth = parts[parts.length - 6];
-    const startDay = parts[parts.length - 7];
-
-    const cdnPath = `${endYear}${endMonth}${endDay}_${startYear}${startMonth}${startDay}_${storeSlug}_${uniqueId}`;
-    return cdnPath;
-}
-
-// Get catalogs for a store
-async function getStoreCatalogs(store) {
-    log(`📦 Fetching catalogs for ${store.name}...`);
-    status.currentStore = store.name;
-    saveStatus();
-
-    try {
-        const response = await axios.get(`${BASE_URL}/magazine/${store.slug}`, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            timeout: 15000
-        });
-
-        const $ = cheerio.load(response.data);
-        const catalogs = [];
-
-        $('a[href*="/magazine/' + store.slug + '/"]').each((i, el) => {
-            const href = $(el).attr('href');
-            const match = href?.match(new RegExp(`/magazine/${store.slug}/([^/]+)/1$`));
-            if (match) {
-                const catalogSlug = match[1];
-                const title = $(el).text().trim() || catalogSlug;
-
-                if (!catalogs.find(c => c.slug === catalogSlug)) {
-                    catalogs.push({
-                        slug: catalogSlug,
-                        title: title,
-                        url: `${BASE_URL}${href}`,
-                        storeSlug: store.slug,
-                        storeName: store.name
-                    });
-                }
-            }
-        });
-
-        log(`  Found ${catalogs.length} catalogs`);
-        return catalogs;
-
-    } catch (error) {
-        log(`  ❌ Error fetching store: ${error.message}`);
-        status.stores[store.name].error = error.message;
-        saveStatus();
-        return [];
-    }
-}
-
-// Get total pages for a catalog
-async function getCatalogPageCount(catalogUrl) {
-    try {
-        const response = await axios.get(catalogUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            timeout: 15000
-        });
-
-        const $ = cheerio.load(response.data);
-        let maxPage = 1;
-        $('a').each((i, el) => {
-            const text = $(el).text().trim();
-            const pageNum = parseInt(text);
-            if (!isNaN(pageNum) && pageNum > maxPage) {
-                maxPage = pageNum;
-            }
-        });
-
-        return maxPage;
-    } catch (error) {
-        return 1;
-    }
-}
-
-// Parse validity dates from catalog slug
-function parseValidityDates(catalogSlug) {
-    const parts = catalogSlug.split('-');
-    if (parts.length < 8) {
-        return { validFrom: new Date(), validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) };
-    }
-
-    const endYear = parseInt('20' + parts[parts.length - 2]);
-    const endMonth = parseInt(parts[parts.length - 3]) - 1;
-    const endDay = parseInt(parts[parts.length - 4]);
-    const startYear = parseInt('20' + parts[parts.length - 5]);
-    const startMonth = parseInt(parts[parts.length - 6]) - 1;
-    const startDay = parseInt(parts[parts.length - 7]);
-
-    return {
-        validFrom: new Date(startYear, startMonth, startDay),
-        validUntil: new Date(endYear, endMonth, endDay)
-    };
-}
-
-// Download all pages for a catalog
-async function downloadCatalog(catalog, totalPages) {
-    const cdnPath = getCatalogCdnPath(catalog.slug, catalog.storeSlug);
-    if (!cdnPath) {
-        log(`  ❌ Could not parse CDN path for: ${catalog.slug}`);
-        return null;
-    }
-
+/**
+ * Download all page images for a catalog.
+ * imageUrls come from the source adapter — format: [{ page, url }]
+ */
+async function downloadCatalogImages(catalog, imageUrls) {
     const localDir = path.join(CATALOGS_DIR, catalog.storeSlug, catalog.slug);
     ensureDir(localDir);
 
     const downloadedImages = [];
     let successCount = 0;
 
-    for (let page = 1; page <= totalPages; page++) {
+    for (const { page, url } of imageUrls) {
         const pageNum = String(page).padStart(2, '0');
-        const imageUrl = `${IMAGE_CDN}/${cdnPath}/image${pageNum}.webp`;
-        const localFilename = `page-${pageNum}.webp`;
+        // Detect extension from source URL (.webp, .jpg, .png), default to .webp
+        const extMatch = url.match(/\.(webp|jpg|jpeg|png)(\?|$)/i);
+        const ext = extMatch ? extMatch[1].toLowerCase().replace('jpeg', 'jpg') : 'webp';
+        const localFilename = `page-${pageNum}.${ext}`;
         const localPath = path.join(localDir, localFilename);
 
-        if (fs.existsSync(localPath)) {
-            downloadedImages.push(localFilename);
+        // Check if already downloaded (any extension)
+        const existing = ['webp', 'jpg', 'png'].find(e =>
+            fs.existsSync(path.join(localDir, `page-${pageNum}.${e}`))
+        );
+        if (existing) {
+            downloadedImages.push(`page-${pageNum}.${existing}`);
             successCount++;
             continue;
         }
 
-        const success = await downloadImage(imageUrl, localPath);
+        const success = await downloadImage(url, localPath);
         if (success) {
             downloadedImages.push(localFilename);
             successCount++;
@@ -249,7 +142,7 @@ async function downloadCatalog(catalog, totalPages) {
         await delay(100);
     }
 
-    log(`  ✅ Downloaded ${successCount}/${totalPages} pages`);
+    log(`  Downloaded ${successCount}/${imageUrls.length} pages`);
 
     return {
         localImages: downloadedImages,
@@ -258,19 +151,26 @@ async function downloadCatalog(catalog, totalPages) {
     };
 }
 
-// Save catalog to database
+/**
+ * Save catalog metadata to database.
+ * Uses validFrom/validUntil from the catalog object (set by source adapter).
+ */
 async function saveCatalogToDb(catalog, pageCount, localData) {
-    const { validFrom, validUntil } = parseValidityDates(catalog.slug);
+    const validFrom = catalog.validFrom || new Date();
+    const validUntil = catalog.validUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     try {
         await prisma.catalog.upsert({
             where: { slug: catalog.slug },
             update: {
                 title: catalog.title,
+                validFrom,
+                validUntil,
                 totalPages: pageCount,
                 processedPages: localData.localImages.length,
                 localImages: JSON.stringify(localData.localImages),
                 imageBasePath: localData.imageBasePath,
+                sourceUrl: catalog.url,
                 status: 'COMPLETED',
                 processingCompletedAt: new Date(),
                 updatedAt: new Date()
@@ -293,14 +193,15 @@ async function saveCatalogToDb(catalog, pageCount, localData) {
         });
         return true;
     } catch (error) {
-        log(`  ❌ DB Error: ${error.message}`);
+        log(`  DB Error: ${error.message}`);
         return false;
     }
 }
 
-// Clean up expired catalogs
+// ── Cleanup ──────────────────────────────────────────────────────────────────
+
 async function cleanupExpiredCatalogs() {
-    log('🧹 Cleaning up expired catalogs...');
+    log('Cleaning up expired catalogs...');
 
     const expiredCatalogs = await prisma.catalog.findMany({
         where: { validUntil: { lt: new Date() } }
@@ -319,10 +220,11 @@ async function cleanupExpiredCatalogs() {
     log(`  Cleaned ${expiredCatalogs.length} expired catalogs`);
 }
 
-// Main execution
+// ── Main ─────────────────────────────────────────────────────────────────────
+
 async function main() {
     log('='.repeat(60));
-    log('🚀 Catalog Scraper v2 - cataloagedeoferte.ro');
+    log('Catalog Scraper v2 - Multi-Source Cascading');
     log('='.repeat(60));
 
     ensureDir(CATALOGS_DIR);
@@ -330,18 +232,33 @@ async function main() {
 
     for (const store of STORES) {
         try {
-            const catalogs = await getStoreCatalogs(store);
+            log(`Processing store: ${store.name}`);
+            status.currentStore = store.name;
+            saveStatus();
+
+            // Cascading discovery: try each source in priority order
+            const { catalogs, source } = await registry.discoverCatalogsForStore(store, log);
+
+            status.stores[store.name].source = source;
             let storePages = 0;
 
             for (const catalog of catalogs) {
                 status.currentCatalog = catalog.title;
                 saveStatus();
-                log(`📖 Processing: ${catalog.title}`);
+                log(`  Processing catalog: ${catalog.title} [${catalog.source}]`);
 
-                const pageCount = await getCatalogPageCount(catalog.url);
-                const localData = await downloadCatalog(catalog, pageCount);
+                // Get page image URLs from the source adapter
+                const { pageCount, imageUrls } = await registry.getPageImageUrls(catalog);
 
-                if (localData) {
+                if (imageUrls.length === 0) {
+                    log(`  No page images found for: ${catalog.slug}`);
+                    continue;
+                }
+
+                // Download images (unified for all sources)
+                const localData = await downloadCatalogImages(catalog, imageUrls);
+
+                if (localData.pagesDownloaded > 0) {
                     await saveCatalogToDb(catalog, pageCount, localData);
                     status.totalCatalogs++;
                     status.totalPages += localData.pagesDownloaded;
@@ -358,7 +275,7 @@ async function main() {
             saveStatus();
 
         } catch (error) {
-            log(`❌ Store ${store.name} failed: ${error.message}`);
+            log(`Store ${store.name} failed: ${error.message}`);
             status.stores[store.name].error = error.message;
             status.stores[store.name].success = false;
             saveStatus();
@@ -367,35 +284,38 @@ async function main() {
 
     await cleanupExpiredCatalogs();
 
+    // Close all source adapters (puppeteer browser, etc.)
+    await registry.closeAll();
+
     status.running = false;
     status.completedAt = new Date().toISOString();
     status.currentStore = null;
+    status.currentCatalog = null;
     saveStatus();
 
     log('');
     log('='.repeat(60));
-    log('✅ SCRAPING COMPLETE');
+    log('SCRAPING COMPLETE');
     log(`  Total catalogs: ${status.totalCatalogs}`);
     log(`  Total pages: ${status.totalPages}`);
     log('  Store Results:');
     for (const [name, data] of Object.entries(status.stores)) {
-        const icon = data.success ? '✅' : '❌';
-        log(`    ${icon} ${name}: ${data.catalogs} catalogs, ${data.pages} pages`);
+        const icon = data.success ? '+' : '-';
+        const src = data.source ? ` [${data.source}]` : '';
+        log(`    ${icon} ${name}: ${data.catalogs} catalogs, ${data.pages} pages${src}`);
     }
     log('='.repeat(60));
 
-    saveLog();
     await prisma.$disconnect();
 }
 
-main().catch(error => {
+main().catch(async error => {
     log(`Fatal error: ${error.message}`);
     status.running = false;
     status.error = error.message;
     status.completedAt = new Date().toISOString();
     saveStatus();
-    saveLog();
-    prisma.$disconnect();
+    await registry.closeAll().catch(() => {});
+    await prisma.$disconnect();
     process.exit(1);
 });
-

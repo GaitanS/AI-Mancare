@@ -1,68 +1,77 @@
 {
   "running": false,
-  "startedAt": "2026-02-10T18:36:48.653Z",
-  "completedAt": "2026-02-10T18:40:03.138Z",
-  "totalCatalogs": 34,
-  "totalPages": 962,
+  "startedAt": "2026-02-11T17:41:22.488Z",
+  "completedAt": "2026-02-11T17:42:02.367Z",
+  "totalCatalogs": 26,
+  "totalPages": 695,
   "totalStores": 9,
   "processedStores": 9,
   "stores": {
     "Kaufland": {
       "success": true,
-      "catalogs": 5,
-      "pages": 210,
+      "catalogs": 3,
+      "pages": 116,
+      "source": "cataloagedeoferte.ro",
       "error": null
     },
     "Lidl": {
       "success": true,
       "catalogs": 1,
       "pages": 80,
+      "source": "cataloagedeoferte.ro",
       "error": null
     },
     "Carrefour": {
       "success": true,
-      "catalogs": 14,
-      "pages": 441,
+      "catalogs": 10,
+      "pages": 252,
+      "source": "cataloagedeoferte.ro",
       "error": null
     },
     "Mega Image": {
       "success": true,
       "catalogs": 1,
-      "pages": 23,
+      "pages": 24,
+      "source": "cataloagedeoferte.ro",
       "error": null
     },
     "Penny": {
       "success": true,
       "catalogs": 1,
-      "pages": 20,
+      "pages": 24,
+      "source": "cataloagedeoferte.ro",
       "error": null
     },
     "Profi": {
       "success": true,
       "catalogs": 4,
       "pages": 49,
+      "source": "cataloagedeoferte.ro",
       "error": null
     },
     "Selgros": {
       "success": true,
       "catalogs": 3,
       "pages": 61,
+      "source": "cataloagedeoferte.ro",
       "error": null
     },
     "Supeco": {
       "success": true,
       "catalogs": 2,
       "pages": 26,
+      "source": "cataloagedeoferte.ro",
       "error": null
     },
     "Auchan": {
       "success": true,
-      "catalogs": 3,
-      "pages": 52,
+      "catalogs": 1,
+      "pages": 63,
+      "source": "ofertelecatalog.ro",
       "error": null
     }
   },
   "currentStore": null,
-  "currentCatalog": "auchan-01-01-26-20-01-26-zxrgu",
+  "currentCatalog": null,
   "error": null
 }
