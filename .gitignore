@@ -29,6 +29,7 @@ yarn-error.log*
 .env
 .env*.local
 .env.production
+.env.vps
 
 # Vercel
 .vercel
@@ -56,6 +57,15 @@ yarn-error.log*
 
 # OS
 Thumbs.db
+
+# Build cache
+.swc/
+
+# Deployment artifacts
+deploy.tar.gz
+
+# Testing
+.playwright-mcp/
 
 # Prisma
 prisma/migrations/*_migration.sql

@@ -1,276 +1,517 @@
-# 🍽️ Rețete Ieftine - Platformă Smart pentru Oferte & Rețete
+# CatalogSmart - Oferte & Retete Inteligente
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.1-black?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.1-2D3748?logo=prisma)](https://www.prisma.io/)
-[![License](https://img.shields.io/badge/License-Proprietary-red)]()
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 
-> 🇷🇴 Platformă web românească care agregă cataloage de oferte de la supermarketuri și generează rețete economice folosind inteligență artificială.
+Platforma web romaneasca care agregate cataloage de oferte de la supermarketuri si genereaza retete economice folosind inteligenta artificiala.
 
-## ✨ Status: ALPHA COMPLETE
+## Arhitectura Sistem
 
-Toate funcționalitățile de bază sunt implementate și funcționale.
+```mermaid
+graph TB
+    subgraph Client["Browser / Mobile"]
+        UI[Next.js Frontend<br/>React 19 + Tailwind]
+    end
 
-## 🌟 Caracteristici Principale
+    subgraph Server["Next.js Server - PM2 Cluster"]
+        API[API Routes]
+        SSR[Server Components]
+        MW[Middleware<br/>Auth + Security + Rate Limit]
+    end
 
-- **📥 Scraping Automat**: Colectare săptămânală de cataloage PDF de la 6+ supermarketuri (Kaufland, Lidl, Penny, Profi, Mega Image, Carrefour)
-- **🤖 Extracție AI**: Procesare cataloage cu GPT-4o Vision / Gemini pentru identificare produse și prețuri
-- **🍳 Generare Rețete**: Crearea automată de rețete economice bazate pe ofertele curente
-- **📅 Meniuri Săptămânale**: Planificare meniuri personalizate în funcție de buget și preferințe
-- **🛒 Coș Inteligent**: Completare automată cu cele mai ieftine alternative din magazine
-- **💰 Optimizare Multi-Store**: Găsește cele mai bune prețuri comparând toate magazinele
+    subgraph Data["Data Layer"]
+        DB[(Neon PostgreSQL<br/>via Prisma 6.1)]
+        Cache[NodeCache<br/>In-Memory]
+        LS[localStorage<br/>Cart / Plan]
+    end
 
-## 🏗️ Stack Tehnologic
+    subgraph AI["AI Services"]
+        OR[OpenRouter API<br/>Gemini 2.5 Flash]
+        GV[Gemini Vision<br/>Catalog OCR]
+    end
+
+    subgraph Cron["Cron Jobs - PM2 / System Crontab"]
+        CS[Catalog Scraper<br/>Kimbino + Fallbacks]
+        PE[Product Extractor<br/>Vision AI]
+        RG[Recipe Generator]
+        IG[Image Generator]
+    end
+
+    UI -->|HTTPS| MW --> API
+    UI --> SSR
+    UI <-->|persist| LS
+    API --> Cache --> DB
+    SSR --> Cache
+    CS -->|scrape catalogs| DB
+    PE -->|extract products| GV
+    PE --> DB
+    RG -->|generate recipes| OR
+    RG --> DB
+    IG -->|generate images| OR
+    IG --> DB
+```
+
+## Fluxul de Date
+
+```mermaid
+flowchart LR
+    subgraph Sources["Surse Cataloage"]
+        K[Kimbino.ro]
+        CO[CataloageDeOferte.ro]
+        OC[OferteLeCatalog.ro]
+    end
+
+    subgraph Processing["Pipeline Procesare"]
+        S[Scraper<br/>Catalog URLs + Images]
+        E[Extractor<br/>Gemini Vision OCR]
+        R[Recipe Generator<br/>AI cu oferte curente]
+        I[Image Generator<br/>Gemini Imagen 3]
+    end
+
+    subgraph Storage["Stocare"]
+        DB[(PostgreSQL)]
+        FS[/Public Files<br/>Catalog Pages/]
+    end
+
+    subgraph Frontend["Aplicatie Web"]
+        OF[Pagina Oferte]
+        RE[Pagina Retete]
+        PL[Planificare Meniuri]
+        CA[Cos Cumparaturi]
+    end
+
+    K & CO & OC --> S
+    S --> FS
+    S --> DB
+    DB --> E
+    E --> DB
+    DB --> R
+    R --> DB
+    DB --> I
+    I --> DB
+    DB --> OF & RE & PL & CA
+```
+
+## Schema Bazei de Date
+
+```mermaid
+erDiagram
+    Store ||--o{ Catalog : has
+    Store ||--o{ Product : sells
+    Catalog ||--o{ Product : contains
+    Product ||--o{ PriceHistory : tracks
+    Product ||--o{ UserInteraction : receives
+    Recipe ||--o{ RecipeArchive : archived_as
+    User ||--o{ UserPantry : owns
+    User ||--o{ ShoppingCart : has
+    User ||--o{ UserInteraction : makes
+
+    Store {
+        int id PK
+        string name
+        string slug
+        string logo
+        string scraperUrl
+        json config
+    }
+
+    Catalog {
+        int id PK
+        int storeId FK
+        string title
+        date validFrom
+        date validTo
+        string imageBasePath
+        string status
+    }
+
+    Product {
+        int id PK
+        int storeId FK
+        int catalogId FK
+        string name
+        float price
+        float oldPrice
+        string category
+        int catalogPage
+        date validFrom
+        date validTo
+    }
+
+    Recipe {
+        int id PK
+        string title
+        string slug
+        json ingredients
+        json instructions
+        float estimatedCost
+        int prepTime
+        int cookTime
+        string difficulty
+        json dietaryFlags
+        string imageUrl
+    }
+
+    PriceHistory {
+        int id PK
+        int productId FK
+        float price
+        datetime recordedAt
+    }
+
+    User {
+        int id PK
+        string sessionId
+        json preferences
+    }
+
+    AiBudget {
+        int id PK
+        string model
+        string operation
+        int tokensUsed
+        float cost
+        datetime createdAt
+    }
+
+    ProcessRun {
+        int id PK
+        string processType
+        string status
+        json result
+        datetime startedAt
+        datetime completedAt
+    }
+
+    ScheduleConfig {
+        int id PK
+        string processType
+        string frequency
+        json config
+        boolean enabled
+    }
+```
+
+## Deployment pe Hostinger VPS
+
+```mermaid
+flowchart TB
+    subgraph VPS["Hostinger VPS"]
+        subgraph Nginx["Nginx Reverse Proxy"]
+            SSL[SSL Termination<br/>Let's Encrypt]
+            PROXY[Proxy Pass :3001]
+        end
+
+        subgraph PM2["PM2 Process Manager"]
+            I1[Next.js Instance 1]
+            I2[Next.js Instance 2]
+        end
+
+        subgraph Crontab["System Crontab"]
+            C1["Luni 02:00 - Scraper"]
+            C2["Luni 04:00 - Extractor"]
+            C3["Luni 06:00 - Retete"]
+            C4["Luni 08:00 - Imagini"]
+        end
+
+        DB[(Neon PostgreSQL<br/>Cloud Hosted)]
+    end
+
+    User((User)) -->|HTTPS :443| SSL --> PROXY
+    PROXY --> I1 & I2
+    I1 & I2 --> DB
+    C1 & C2 & C3 & C4 --> DB
+```
+
+## Caracteristici
+
+- **Scraping Automat** - Colectare saptamanala cataloage de la 6+ supermarketuri (Kaufland, Lidl, Penny, Profi, Mega Image, Auchan) cu fallback multi-sursa
+- **Extractie AI** - Procesare imagini catalog cu Gemini Vision pentru identificare produse si preturi
+- **Generare Retete** - Creare automata retete economice bazate pe ofertele curente
+- **Planificare Meniuri** - Meniuri saptamanale personalizate in functie de buget si preferinte
+- **Cos Inteligent** - Completare automata cu cele mai ieftine alternative, comparatie multi-store
+- **Istoric Preturi** - Tracking evolutie preturi cu badge-uri trend (scade/creste/stabil)
+- **Cautare 3-tier** - Fulltext, fuzzy si semantic AI search
+- **Admin Panel** - Dashboard complet: cataloage, produse, retete, procese, loguri, buget AI
+- **SEO Optimizat** - Metadata auto-generata, JSON-LD schema, sitemap
+
+## Stack Tehnologic
 
 | Layer | Tehnologii |
 |-------|-----------|
-| **Frontend** | React 19, Next.js 15.1, TypeScript 5.x, Tailwind CSS 3.4, Radix UI |
-| **Backend** | Next.js API Routes, Prisma ORM 6.1, MySQL 8.0 |
-| **AI** | OpenRouter API, GPT-4o Vision, Gemini Vision, LangChain |
-| **Infrastructure** | Hostinger Cloud, PM2, node-cache, node-cron |
-| **Processing** | Cheerio (scraping), pdf-lib, Sharp (images) |
+| **Frontend** | React 19, Next.js 15.5, TypeScript, Tailwind CSS 3.4 |
+| **Backend** | Next.js API Routes, Prisma 6.1, jose JWT |
+| **Database** | Neon PostgreSQL (cloud), Prisma Adapter |
+| **AI** | OpenRouter API (Gemini 2.5 Flash), Gemini Vision, Imagen 3 |
+| **Infra** | Hostinger VPS, PM2 Cluster, Nginx, Let's Encrypt |
+| **Scraping** | Cheerio, Puppeteer, multi-source cascading |
+| **Cache** | NodeCache (in-memory), HTTP cache headers |
 
-## 📋 Cerințe Sistem
+## Cerinte Sistem
 
-- Node.js ≥ 20.0.0
-- npm ≥ 10.0.0
-- MySQL 8.0+
+- Node.js >= 20.0.0
+- npm >= 10.0.0
+- 2+ CPU cores (PM2 cluster mode)
 - 4GB RAM minimum
 - 10GB storage
 
-## 🚀 Instalare & Setup
+## Instalare
 
-### 1. Instalare Dependențe
+### 1. Clone & Install
 
 ```bash
+git clone https://github.com/GaitanS/AI-Mancare.git
+cd AI-Mancare
 npm install
 ```
 
-### 2. Configurare Environment Variables
+### 2. Environment Variables
 
 ```bash
-cp .env.example .env.production
+cp .env.example .env
 ```
 
-Editează `.env.production` cu datele tale:
+Editeaza `.env`:
 
 ```env
-# Database
-DATABASE_URL="mysql://user:password@localhost:3306/oferte_retete_db"
+# Database (Neon PostgreSQL)
+DATABASE_URL="postgresql://user:pass@host/dbname?sslmode=require"
+
+# Site
+NEXT_PUBLIC_SITE_URL=https://catalogsmart.ro
 
 # AI APIs
-OPENAI_API_KEY=sk-xxxxxxxxxxxxx
-ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxx
+OPENROUTER_API_KEY=sk-or-v1-...
+GEMINI_API_KEY=AIza...
 
-# Application
-NEXT_PUBLIC_SITE_URL=https://retete-ieftine.ro
-STORAGE_PATH=/path/to/storage
+# Admin Auth
+ADMIN_PASSWORD=parola_admin_min_8_chars
+JWT_SECRET=secret_minim_32_caractere
+ADMIN_SECRET=cheie_api_pentru_cron_jobs
 
-# Security
-JWT_SECRET=your_secret_here
-SESSION_SECRET=another_secret_here
+# Optional
+UNSPLASH_ACCESS_KEY=...
+STORAGE_PATH=./storage
 ```
 
 ### 3. Database Setup
 
 ```bash
-# Generate Prisma Client
 npx prisma generate
-
-# Run migrations
 npx prisma migrate deploy
-
-# (Optional) Seed data
-npx prisma db seed
 ```
 
-### 4. Build pentru Production
+### 4. Build & Start (Development)
 
 ```bash
-# Build Next.js standalone
-npm run build
-
-# Rezultatul va fi în .next/standalone/
+npm run dev
 ```
 
-### 5. Start cu PM2
+### 5. Build & Start (Production)
 
 ```bash
-# Start all processes
-pm2 start ecosystem.config.js --env production
-
-# Save PM2 config
+npm run build:prod
+pm2 start pm2.config.js
 pm2 save
-
-# Setup PM2 startup script
 pm2 startup
 ```
 
-## 📁 Structură Proiect
+## Deploy pe Hostinger VPS
 
-```
-retete-ieftine/
-├── src/
-│   ├── app/                    # Next.js App Router
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   ├── oferte/            # Offers pages
-│   │   ├── retete/            # Recipes pages
-│   │   └── api/               # API routes
-│   ├── components/            # React components
-│   ├── lib/                   # Utilities & libs
-│   │   ├── ai/               # AI processors
-│   │   ├── db.ts             # Prisma client
-│   │   ├── cache.ts          # Caching
-│   │   └── utils.ts          # Utilities
-│   └── types/                # TypeScript types
-├── scripts/                   # Cron jobs & scripts
-│   ├── cron-scraper.js       # Weekly scraping
-│   ├── catalog-processor.js   # PDF processing
-│   └── cron-recipe-generator.js
-├── prisma/
-│   └── schema.prisma         # Database schema
-├── storage/                   # Local file storage
-│   ├── catalogs/             # Downloaded PDFs
-│   ├── images/               # Processed images
-│   └── temp/                 # Temporary files
-├── logs/                      # Application logs
-├── ecosystem.config.js        # PM2 configuration
-├── next.config.js            # Next.js config
-└── package.json
-```
-
-## 🔄 Cron Jobs
-
-### Scraping (Luni, 02:00)
-```bash
-npm run scrape
-```
-
-### PDF Processing (Luni, 04:00)
-```bash
-node scripts/catalog-processor.js
-```
-
-### Recipe Generation (Luni, 06:00)
-```bash
-npm run generate-recipes
-```
-
-## 🧪 Testing
+### Setup Initial
 
 ```bash
-# Run all tests
-npm test
+# Pe VPS
+sudo apt update && sudo apt install -y nodejs npm nginx certbot python3-certbot-nginx
 
-# Run tests in watch mode
-npm run test:watch
+# Install PM2 global
+sudo npm install -g pm2
 
-# Generate coverage report
-npm run test:coverage
+# Clone repo
+cd /var/www
+git clone https://github.com/GaitanS/AI-Mancare.git catalogsmart.ro
+cd catalogsmart.ro
+
+# Install & build
+npm ci --production=false
+npm run build:prod
+
+# Start cu PM2
+pm2 start pm2.config.js
+pm2 save
+pm2 startup
 ```
 
-## 📊 Monitoring
+### Nginx Config
+
+```nginx
+server {
+    server_name catalogsmart.ro www.catalogsmart.ro;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /_next/static {
+        proxy_pass http://127.0.0.1:3001;
+        expires 365d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/catalogsmart.ro/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/catalogsmart.ro/privkey.pem;
+}
+
+server {
+    listen 80;
+    server_name catalogsmart.ro www.catalogsmart.ro;
+    return 301 https://$host$request_uri;
+}
+```
 
 ```bash
-# View PM2 processes
-pm2 list
-
-# Monitor resources
-pm2 monit
-
-# View logs
-pm2 logs retete-ieftine-web
-
-# View specific log
-pm2 logs cron-scraper
+# SSL
+sudo certbot --nginx -d catalogsmart.ro -d www.catalogsmart.ro
 ```
 
-## 🐛 Debugging
+### Crontab Setup
 
-### Check Application Status
 ```bash
-pm2 status
+crontab -e
 ```
 
-### View Recent Logs
-```bash
-pm2 logs --lines 100
+```cron
+# Scraping cataloage - Luni 02:00
+0 2 * * 1 cd /var/www/catalogsmart.ro && node scripts/cron-scraper.js >> logs/catalog-scraper.log 2>&1
+
+# Extractie produse - Luni 04:00
+0 4 * * 1 cd /var/www/catalogsmart.ro && node scripts/product-extractor.js >> logs/product-extractor.log 2>&1
+
+# Generare retete - Luni 06:00
+0 6 * * 1 cd /var/www/catalogsmart.ro && node scripts/cron-recipe-generator.js >> logs/recipe-generator.log 2>&1
+
+# Generare imagini - Luni 08:00
+0 8 * * 1 cd /var/www/catalogsmart.ro && node scripts/cron-image-generator.js >> logs/image-generator.log 2>&1
 ```
-
-### Restart Application
-```bash
-pm2 restart retete-ieftine-web
-```
-
-### Clear Cache
-```bash
-pm2 restart retete-ieftine-web
-```
-
-## 🔒 Security
-
-- **HTTPS**: SSL certificate via Let's Encrypt (automatic Hostinger)
-- **Headers**: Security headers configured in next.config.js
-- **Validation**: Input validation with Zod
-- **Rate Limiting**: API rate limiting implemented
-- **SQL Injection**: Prisma ORM prevents SQL injection
-- **XSS**: React escapes output by default
-
-## 📈 Performance
-
-- **CDN**: Hostinger CDN included
-- **Caching**: Multi-layer caching (node-cache + HTTP cache)
-- **Image Optimization**: Next.js Image component
-- **Code Splitting**: Automatic with Next.js
-- **Compression**: Gzip enabled
-
-## 💰 Cost Estimation
-
-- **Hosting**: 7.99€/month (Hostinger Cloud Startup)
-- **Domain**: ~50 RON/year (.ro domain)
-- **OpenAI API**: ~20 USD/month (~500 PDF pages)
-- **Total**: ~130 RON/month (~26€)
-
-## 🚢 Deployment pe Hostinger Cloud
-
-### Variabile de Mediu Necesare
-
-```env
-HOSTNAME=0.0.0.0          # OBLIGATORIU pentru Hostinger
-DATABASE_URL=mysql://...   # Connection string MySQL
-OPENAI_API_KEY=sk-...      # Pentru AI processing
-NEXT_PUBLIC_SITE_URL=https://retete-ieftine.ro
-```
-
-### Deployment via GitHub Integration
-
-1. **Conectează repo-ul** în Hostinger → Implementări
-2. **Build Settings**:
-   - Build Command: `npm run build:prod`
-   - Start Command: `npm start`
-   - Output Directory: `.next`
-3. **Setează variabilele de mediu** în panoul Hostinger
-4. **Deploy!**
-
-> 📖 Vezi [DEPLOY_HOSTINGER.md](DEPLOY_HOSTINGER.md) pentru ghid complet.
 
 ### Update Deployment
 
 ```bash
-git add . && git commit -m "update" && git push
-# Hostinger va face auto-deploy din branch main
+cd /var/www/catalogsmart.ro
+git pull origin main
+npm ci --production=false
+npm run build:prod
+pm2 reload catalogsmart
 ```
 
-## 📝 Licență
+## Structura Proiect
 
-Proprietar - Toate drepturile rezervate © 2024-2025
+```
+catalogsmart/
+├── src/
+│   ├── app/                     # Next.js App Router
+│   │   ├── page.tsx             # Homepage
+│   │   ├── oferte/              # Oferte (cu filtru per magazin)
+│   │   ├── retete/              # Retete (listing + [slug])
+│   │   ├── cataloage/           # Vizualizator cataloage
+│   │   ├── cart/                # Cos cumparaturi
+│   │   ├── plan/                # Planificare meniuri
+│   │   ├── search/              # Cautare
+│   │   ├── blog/                # Blog / articole
+│   │   ├── admin/               # Admin panel (16 pagini)
+│   │   └── api/                 # ~60 API routes
+│   ├── components/              # React components
+│   │   ├── Header.tsx           # Header global sticky
+│   │   ├── BottomNav.tsx        # Nav mobil fixed
+│   │   ├── ProductCard.tsx      # Card produs
+│   │   ├── RecipeCard.tsx       # Card reteta
+│   │   ├── CatalogViewer.tsx    # Vizualizator cataloage
+│   │   ├── FilterSidebar.tsx    # Filtre oferte
+│   │   └── admin/               # Componente admin
+│   └── lib/                     # Business logic
+│       ├── db.ts                # Prisma singleton
+│       ├── ai/                  # AI services (recipe gen, vision, RAG)
+│       ├── search/              # Cautare 3-tier
+│       ├── security/            # Auth, rate limit, validation
+│       ├── repositories/        # Data access layer
+│       ├── cache.ts             # Cache in-memory
+│       └── utils.ts             # Utilitare
+├── scripts/                     # Cron jobs productie
+│   ├── cron-scraper.js          # Scraping cataloage
+│   ├── product-extractor.js     # Extractie produse (Vision AI)
+│   ├── cron-recipe-generator.js # Generare retete
+│   ├── cron-image-generator.js  # Generare imagini
+│   └── sources/                 # Surse scraping
+├── prisma/
+│   └── schema.prisma            # Schema DB (20 modele)
+├── public/
+│   └── catalogs/                # Imagini cataloage (webp)
+├── pm2.config.js                # Config PM2 (cluster x2)
+├── middleware.ts                 # Security middleware
+└── package.json
+```
 
-## 👤 Author
+## API Overview
 
-Dezvoltat pentru optimizarea cheltuielilor familiale prin agregarea ofertelor și generarea automată de rețete economice.
+| Grup | Endpoint | Descriere |
+|------|----------|-----------|
+| **Oferte** | `GET /api/v2/oferte` | Lista oferte cu filtre, paginare |
+| **Oferte** | `GET /api/v2/oferte/trending` | Oferte trending |
+| **Produse** | `GET /api/products/:id/price-history` | Istoric preturi |
+| **Retete** | `GET /api/recipes` | Lista retete |
+| **Retete** | `POST /api/recipes/generate` | Generare reteta AI |
+| **Cart** | `POST /api/cart/auto-fill` | Completare automata cos |
+| **Cart** | `POST /api/cart/alternatives` | Alternative produse |
+| **Cart** | `GET /api/cart/export` | Export lista cumparaturi |
+| **Plan** | `POST /api/plan/generate` | Generare meniu saptamanal |
+| **Cautare** | `GET /api/search` | Cautare produse + retete |
+| **Cataloage** | `GET /api/catalogs` | Lista cataloage active |
+| **Admin** | `POST /api/admin/auth/login` | Login admin (JWT) |
+| **Admin** | `GET /api/admin/analytics` | Dashboard analytics |
+| **Admin** | `POST /api/admin/run-script` | Executare script |
+| **Health** | `GET /api/health` | Health check |
+
+## Securitate
+
+- **Middleware** - Blocheaza paths sensibile, rate limiting, validare input
+- **Auth** - JWT cookies cu jose, timing-safe password comparison
+- **Headers** - X-Content-Type-Options, X-Frame-Options, CSP, Referrer-Policy
+- **SQL** - Prisma ORM previne SQL injection
+- **XSS** - React escapes output by default
+- **HTTPS** - SSL via Let's Encrypt + Nginx
+
+## Monitoring
+
+```bash
+# PM2 status
+pm2 list
+pm2 monit
+
+# Logs
+pm2 logs catalogsmart --lines 100
+
+# Restart
+pm2 reload catalogsmart
+
+# Admin panel
+https://catalogsmart.ro/admin
+```
+
+## Licenta
+
+Proprietar - Toate drepturile rezervate 2024-2026
 
 ---
 
-**Version**: 1.0.0 (Alpha)
-**Last Updated**: 2025-01-05
+**Version**: 2.0.0 | **Last Updated**: 2026-02-22
