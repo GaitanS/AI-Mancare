@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { cn, normalizeDifficulty } from '@/lib/utils';
 import AddToPlanModal from '@/components/plan/AddToPlanModal';
 import RecipeDetailModal from '@/components/plan/RecipeDetailModal';
@@ -69,7 +68,7 @@ interface MealPlan {
 const STORAGE_KEY = 'mealPlan';
 
 export default function PlanPage() {
-    const router = useRouter();
+
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [loading, setLoading] = useState(true);
     const [mealPlan, setMealPlan] = useState<MealPlan>({ recipes: [], updatedAt: '' });
@@ -219,22 +218,6 @@ export default function PlanPage() {
         saveMealPlan({ recipes: [], updatedAt: '' });
     };
 
-    // Send ingredients to cart
-    const sendToCart = () => {
-        // Extract ingredients with their quantities
-        const ingredientsForCart = totalIngredients.map(ing => ({
-            name: ing.name,
-            quantity: ing.quantity,
-            unit: ing.unit
-        }));
-
-        // Store in localStorage for cart page to pick up
-        localStorage.setItem('cart_pending_ingredients', JSON.stringify(ingredientsForCart));
-
-        // Navigate to cart
-        router.push('/cart');
-    };
-
     // Get difficulty label
     const getDifficultyLabel = (d: string) => {
         switch (normalizeDifficulty(d)) {
@@ -291,27 +274,6 @@ export default function PlanPage() {
         return true;
     });
 
-    // Calculate total ingredients
-    const totalIngredients = mealPlan.recipes.reduce((acc, r) => {
-        r.ingredients.forEach(ing => {
-            const existing = acc.find(a => a.name === ing.name);
-            if (existing) {
-                existing.quantity += ing.scaledQuantity;
-                existing.totalPrice += ing.price;
-            } else {
-                acc.push({
-                    name: ing.name,
-                    quantity: ing.scaledQuantity,
-                    unit: ing.unit,
-                    totalPrice: ing.price,
-                });
-            }
-        });
-        return acc;
-    }, [] as { name: string; quantity: number; unit: string; totalPrice: number }[]);
-
-    const totalCost = totalIngredients.reduce((sum, ing) => sum + ing.totalPrice, 0);
-
     // Get all unique tags
     const allTags = [...new Set(recipes.flatMap(r => r.tags))].slice(0, 8);
 
@@ -321,30 +283,6 @@ export default function PlanPage() {
             <header className="lg:hidden bg-white sticky top-16 z-40 border-b border-neutral-200">
                 <div className="container mx-auto px-3 h-10 flex items-center justify-between">
                     <h1 className="text-base font-bold text-neutral-900">Planifică Mesele</h1>
-                    {mealPlan.recipes.length > 0 && (
-                        <div className="relative flex items-center gap-1">
-                            <span className="text-xs font-semibold text-emerald-600">{totalCost.toFixed(0)} RON</span>
-                            <button
-                                onClick={clearPlan}
-                                className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-red-500 rounded-lg active:bg-neutral-100 touch-manipulation"
-                                title="Șterge planul"
-                            >
-                                <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                            <button
-                                onClick={sendToCart}
-                                className="relative w-10 h-10 flex items-center justify-center text-primary-600 rounded-lg active:bg-neutral-100 touch-manipulation"
-                                title="Trimite la coș"
-                            >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                                <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 border border-white rounded-full"></span>
-                            </button>
-                        </div>
-                    )}
                 </div>
             </header>
 
@@ -378,49 +316,6 @@ export default function PlanPage() {
                             </p>
                         </div>
 
-                        {/* Plan Summary */}
-                        {mealPlan.recipes.length > 0 && (
-                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                                <div className="flex items-center gap-4">
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-white">{mealPlan.recipes.length}</div>
-                                        <div className="text-xs text-white/60">Rețete</div>
-                                    </div>
-                                    <div className="w-px self-stretch bg-white/20" />
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-emerald-400">{totalCost.toFixed(0)}</div>
-                                        <div className="text-xs text-white/60">RON</div>
-                                    </div>
-                                    <div className="w-px self-stretch bg-white/20" />
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-white">{totalIngredients.length}</div>
-                                        <div className="text-xs text-white/60">Ingrediente</div>
-                                    </div>
-                                    <div className="w-px self-stretch bg-white/20" />
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={sendToCart}
-                                            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
-                                        >
-                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            </svg>
-                                            Vezi Lista
-                                        </button>
-                                        <button
-                                            onClick={clearPlan}
-                                            className="px-3 py-2 bg-white/10 hover:bg-red-500/80 text-white/70 hover:text-white rounded-lg text-sm transition-colors flex items-center gap-1.5"
-                                            title="Șterge planul"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                            Șterge
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

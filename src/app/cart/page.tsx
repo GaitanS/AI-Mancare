@@ -52,42 +52,17 @@ interface AlternativeProduct {
 // Empty ingredients - cart starts empty
 
 export default function CartPage() {
-    // Read cart from localStorage DURING RENDER (synchronous, before any effects).
-    // This ensures state is initialized with correct data and prevents race conditions.
-    const initialCartRef = useRef<CartItem[] | null>(null);
-    const hasPendingIngredients = useRef(false);
-    // Track if we've completed initialization (set synchronously during render)
+    // Track if we've completed initialization from localStorage
     const hasLoadedFromStorage = useRef(false);
     // Track if persistCart has been called at least once (to allow legitimate clears)
     const hasPersisted = useRef(false);
 
-    if (initialCartRef.current === null && typeof window !== 'undefined') {
-        const pending = localStorage.getItem('cart_pending_ingredients');
-        if (pending) {
-            hasPendingIngredients.current = true;
-            initialCartRef.current = [];
-        } else {
-            const saved = localStorage.getItem('cart_items');
-            if (saved) {
-                try {
-                    initialCartRef.current = JSON.parse(saved);
-                } catch {
-                    initialCartRef.current = [];
-                }
-            } else {
-                initialCartRef.current = [];
-            }
-        }
-        // Mark as loaded SYNCHRONOUSLY during first render
-        hasLoadedFromStorage.current = true;
-    }
-
-    const [cartItems, setCartItems] = useState<CartItem[]>(() => initialCartRef.current || []);
+    const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [storeComparison, setStoreComparison] = useState<StoreComparison[]>([]);
     const [selectedStore, setSelectedStore] = useState<string>('');
     const [showStoreComparison, setShowStoreComparison] = useState(false);
-    // Only show loading if we have pending ingredients to fetch
-    const [loading, setLoading] = useState(() => hasPendingIngredients.current);
+    // Start loading until useEffect loads cart from localStorage (avoids hydration flash)
+    const [loading, setLoading] = useState(true);
     const [totalCost, setTotalCost] = useState(0);
     const [ownedItems, setOwnedItems] = useState<Set<string>>(new Set());
 
@@ -119,10 +94,6 @@ export default function CartPage() {
     const persistCart = useCallback((items: CartItem[]) => {
         // Guard: never write to localStorage before we've loaded from it
         if (!hasLoadedFromStorage.current) {
-            return;
-        }
-        // Guard against React StrictMode phantom writes on first render only
-        if (!hasPersisted.current && items.length === 0 && initialCartRef.current && initialCartRef.current.length > 0) {
             return;
         }
         hasPersisted.current = true;
@@ -243,7 +214,8 @@ export default function CartPage() {
     const removeCartItem = (ingredientName: string) => {
         setCartItems(prev => {
             const next = prev.filter(item => item.ingredientName !== ingredientName);
-            persistCart(next);
+            // Persist outside updater — React 19 updaters must be pure
+            queueMicrotask(() => persistCart(next));
             return next;
         });
     };
@@ -322,20 +294,22 @@ export default function CartPage() {
     }, []);
 
     useEffect(() => {
-        // Cart items are already initialized from localStorage during render.
-        // Only handle pending ingredients from meal plan here.
-        if (hasPendingIngredients.current) {
-            const pendingIngredients = localStorage.getItem('cart_pending_ingredients');
-            if (pendingIngredients) {
-                try {
-                    const ingredients = JSON.parse(pendingIngredients);
-                    localStorage.removeItem('cart_pending_ingredients');
-                    fetchCartItems(undefined, ingredients);
-                } catch (e) {
-                    console.error('Failed to parse pending ingredients:', e);
-                    setLoading(false);
-                }
+        // Check for pending ingredients from meal plan flow
+        const pendingIngredients = localStorage.getItem('cart_pending_ingredients');
+        if (pendingIngredients) {
+            try {
+                const ingredients = JSON.parse(pendingIngredients);
+                localStorage.removeItem('cart_pending_ingredients');
+                fetchCartItems(undefined, ingredients);
+            } catch (e) {
+                console.error('Failed to parse pending ingredients:', e);
+                setLoading(false);
             }
+        } else {
+            // Load cart from localStorage and stop loading spinner
+            reloadCartFromStorage();
+            hasLoadedFromStorage.current = true;
+            setLoading(false);
         }
 
         fetchPantryItems();
@@ -877,7 +851,7 @@ export default function CartPage() {
                                                         }
                                                         return item;
                                                     });
-                                                    persistCart(next);
+                                                    queueMicrotask(() => persistCart(next));
                                                     return next;
                                                 });
                                                 setSwapModalOpen(false);
