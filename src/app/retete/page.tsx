@@ -10,17 +10,30 @@ import type { Metadata } from 'next';
 import { generateBreadcrumbSchema } from '@/lib/seo/schema-generators';
 
 export const metadata: Metadata = {
-    title: 'Rețete Economice',
+    title: 'Rețete Economice din Ingrediente la Reducere - Idei de Mese Ieftine 2026',
     description:
-        'Descoperă rețete delicioase și economice bazate pe ingredientele aflate în promoție. Gătește gustos și economisește bani cu CatalogSmart!',
+        'Rețete economice ieftine pentru toată familia. Mese delicioase cu ingrediente de la Lidl, Kaufland, Penny, Carrefour la reducere. Gătești bine și cheltuiești puțin cu CatalogSmart!',
+    keywords: [
+        'retete ieftine', 'retete economice', 'mese ieftine', 'retete ieftine pentru studenti',
+        'retete economice pentru familie', 'mancare ieftina si buna', 'idei mese ieftine',
+        'retete cu ingrediente la reducere', 'cumparaturi ieftine', 'foietaj cu crenvursti',
+        'chec pufos cu iaurt', 'paste cu sos de rosii', 'retete simple',
+    ].join(', '),
     alternates: {
         canonical: '/retete',
     },
     openGraph: {
-        title: 'Rețete Economice',
-        description: 'Rețete delicioase create cu ingrediente la reducere. Economisește până la 30%!',
+        title: 'Rețete Economice - Mese Delicioase cu Ingrediente la Reducere',
+        description: 'Rețete ieftine create cu ingrediente din promoțiile supermarketurilor. Economisește până la 30% și gătește mese gustoase pentru toată familia!',
         type: 'website',
         url: '/retete',
+        locale: 'ro_RO',
+        siteName: 'CatalogSmart',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Rețete Economice - Ingrediente la Reducere din Supermarketuri',
+        description: 'Rețete ieftine și delicioase cu ingrediente din Lidl, Kaufland, Penny, Carrefour. Actualizate cu ofertele active!',
     },
 };
 

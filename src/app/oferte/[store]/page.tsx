@@ -37,8 +37,46 @@ interface PageProps {
   }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+// Store-specific keywords from GSC data
+const storeKeywords: Record<string, string[]> = {
+  kaufland: [
+    'catalog kaufland actual', 'catalog kaufland', 'catalog kaufland saptamana aceasta',
+    'oferte kaufland', 'kaufland catalog actual', 'kaufland preturi la zi',
+    'catalog kaufland online actual', 'kaufland oferte azi',
+  ],
+  lidl: [
+    'catalog lidl actual', 'catalog lidl', 'lidl catalog actual', 'pliant lidl actual',
+    'revista lidl actuala', 'oferte lidl', 'lidl oferte', 'catalog lidl saptamana aceasta',
+    'catalog saptamanal lidl', 'lidl ro catalog',
+  ],
+  penny: [
+    'catalog penny actual', 'catalog penny', 'oferte penny', 'penny catalog',
+    'promotii penny', 'catalog penny saptamana aceasta',
+  ],
+  carrefour: [
+    'catalog carrefour actual', 'catalog carrefour', 'oferte carrefour',
+    'promotii carrefour', 'carrefour oferta', 'carrefour catalog nou', 'reduceri carrefour',
+  ],
+  'mega-image': [
+    'catalog mega image actual', 'catalog mega image', 'mega image catalog',
+    'oferte mega image', 'mega image catalog actual', 'oferte mega image azi',
+    'mega image catalog nou',
+  ],
+  auchan: [
+    'catalog auchan actual', 'catalog auchan', 'auchan catalog', 'oferte auchan',
+    'auchan catalog nou', 'auchan catalog oferte',
+  ],
+  profi: [
+    'catalog profi actual', 'oferte profi', 'profi catalog', 'profi piept de pui',
+  ],
+  selgros: [
+    'catalog selgros', 'oferte selgros', 'selgros catalog',
+  ],
+};
+
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { store } = await params;
+  const resolvedSearchParams = await searchParams;
   const storeName = validStores[store];
 
   if (!storeName) {
@@ -48,18 +86,37 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const monthYear = new Date().toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+  const pageNum = parseInt(resolvedSearchParams.page || '1', 10);
+  const isPaginated = pageNum > 1;
+  const keywords = storeKeywords[store] || [];
 
   return {
-    title: `Catalog ${storeName} Actual - Oferte și Reduceri ${monthYear}`,
-    description: `Catalog ${storeName} actual cu cele mai bune oferte si reduceri. Promotii actualizate zilnic din cataloagele ${storeName} - ${monthYear}.`,
+    title: `Catalog ${storeName} Actual ${monthYear} - Oferte și Reduceri Săptămâna Aceasta`,
+    description: `Catalog ${storeName} ${monthYear} actualizat zilnic cu toate ofertele și reducerile săptămânii. Descoperă promoțiile active și economisește până la 50% la ${storeName}!`,
+    keywords: keywords.join(', '),
     alternates: {
       canonical: `/oferte/${store}`,
     },
     openGraph: {
-      title: `Catalog ${storeName} Actual - Oferte ${monthYear}`,
-      description: `Cele mai bune reduceri din ${storeName}, extrase din cataloagele actuale - ${monthYear}.`,
+      title: `Catalog ${storeName} Actual ${monthYear} - Oferte Săptămâna Aceasta`,
+      description: `Toate ofertele din catalogul ${storeName} pentru ${monthYear}. Prețuri actualizate zilnic. Economisește la ${storeName}!`,
       url: `/oferte/${store}`,
+      type: 'website',
+      locale: 'ro_RO',
+      siteName: 'CatalogSmart',
     },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Catalog ${storeName} Actual ${monthYear}`,
+      description: `Ofertele și reducerile din catalogul ${storeName} pentru ${monthYear}. Actualizat zilnic!`,
+    },
+    // Noindex paginated pages to prevent crawl budget waste
+    ...(isPaginated && {
+      robots: {
+        index: false,
+        follow: true,
+      },
+    }),
   };
 }
 
@@ -311,6 +368,8 @@ export default async function StorePage({ params, searchParams }: PageProps) {
 
   const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://catalogsmart.ro';
 
+  const monthYear = new Date().toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+
   // JSON-LD structured data
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -323,8 +382,56 @@ export default async function StorePage({ params, searchParams }: PageProps) {
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: 'Acasă', url: SITE_URL },
     { name: 'Oferte', url: `${SITE_URL}/oferte` },
-    { name: storeName, url: `${SITE_URL}/oferte/${store}` },
+    { name: `Catalog ${storeName} Actual`, url: `${SITE_URL}/oferte/${store}` },
   ]);
+
+  // FAQ Schema per store - targeting real GSC queries
+  const storeFaqMap: Record<string, Array<{ q: string; a: string }>> = {
+    Lidl: [
+      { q: `Când se schimbă catalogul Lidl?`, a: `Catalogul Lidl se schimbă de două ori pe săptămână: lunea pentru produse non-alimentare și joia pentru produsele principale. Pe CatalogSmart găsești mereu cel mai nou pliant Lidl actualizat.` },
+      { q: `Cum văd ofertele Lidl săptămâna aceasta?`, a: `Pe CatalogSmart poți vedea toate ofertele Lidl pentru ${monthYear} actualizate zilnic. Folosește filtrele pentru a găsi rapid ce te interesează.` },
+      { q: `Unde găsesc revista Lidl actuală?`, a: `Revista Lidl actuală pentru ${monthYear} este disponibilă pe CatalogSmart cu toate ofertele săptămânii, inclusiv bazarul de mijloc de săptămână.` },
+    ],
+    Kaufland: [
+      { q: `Când se schimbă catalogul Kaufland?`, a: `Catalogul Kaufland se schimbă de obicei miercurea. Pe CatalogSmart actualizăm automat ofertele imediat ce apare noul catalog Kaufland pentru ${monthYear}.` },
+      { q: `Cum văd ofertele Kaufland azi?`, a: `Pe CatalogSmart găsești toate ofertele Kaufland din ${monthYear} actualizate zilnic, cu prețurile la zi pentru carne, fructe, legume și nenumărate alte categorii.` },
+    ],
+    Penny: [
+      { q: `Când apare catalogul Penny actual?`, a: `Catalogul Penny actual se schimbă lunea. Pe CatalogSmart găsești toate promoțiile Penny pentru ${monthYear} actualizate imediat ce apar.` },
+      { q: `Care sunt ofertele Penny săptămâna aceasta?`, a: `Pe CatalogSmart poți vedea toate ofertele din catalogul Penny pentru ${monthYear}, inclusiv reducerile la produse alimentare și non-alimentare.` },
+    ],
+    Carrefour: [
+      { q: `Unde văd catalogul Carrefour actual?`, a: `Catalogul Carrefour actual pentru ${monthYear} este disponibil pe CatalogSmart cu toate ofertele și reducerile actualizate zilnic.` },
+      { q: `Cum văd reducerile Carrefour azi?`, a: `Pe CatalogSmart poți filtra ofertele Carrefour după categorie, preț sau reducere pentru a găsi rapid cele mai bune promoții din ${monthYear}.` },
+    ],
+    'Mega Image': [
+      { q: `Unde găsesc catalogul Mega Image actual?`, a: `Catalogul Mega Image actual pentru ${monthYear} este disponibil pe CatalogSmart. Mega Image actualizează ofertele frecvent, iar noi le preluăm automat.` },
+      { q: `Care sunt ofertele Mega Image azi?`, a: `Pe CatalogSmart găsești toate ofertele Mega Image pentru ${monthYear}, de la produse proaspete până la produse de uz casnic.` },
+    ],
+    Auchan: [
+      { q: `Când apare catalogul Auchan nou?`, a: `Catalogul Auchan nou pentru ${monthYear} este disponibil pe CatalogSmart imediat după lansare. Verifică zilnic pentru cele mai noi oferte.` },
+    ],
+    Profi: [
+      { q: `Unde văd ofertele Profi actuale?`, a: `Ofertele Profi pentru ${monthYear} sunt disponibile pe CatalogSmart, actualizate regulat cu toate promoțiile active.` },
+    ],
+    Selgros: [
+      { q: `Unde găsesc ofertele Selgros actuale?`, a: `Catalogul Selgros pentru ${monthYear} este disponibil pe CatalogSmart, cu toate ofertele pentru profesionști și cumpărători en-gros.` },
+    ],
+  };
+
+  const storeFaqs = storeFaqMap[storeName] || [
+    { q: `Unde văd catalogul ${storeName} actual?`, a: `Catalogul ${storeName} actual pentru ${monthYear} este disponibil pe CatalogSmart, actualizat zilnic cu toate ofertele și reducerile active.` },
+  ];
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: storeFaqs.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  };
 
   return (
     <>
@@ -336,6 +443,10 @@ export default async function StorePage({ params, searchParams }: PageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
       <div className="bg-gray-50 min-h-screen">

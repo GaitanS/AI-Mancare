@@ -11,6 +11,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://catalogsmart.ro';
 
 // Static blog article slugs
 const blogSlugs = [
+  'cel-mai-ieftin-supermarket-romania-2026',
   'cum-sa-economisesti-la-cumparaturi-ghid-complet-2026',
   'top-5-supermarketuri-romania-comparatie-preturi',
   'retete-studenti-mese-sub-20-lei',
@@ -48,9 +49,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: '/cataloage', priority: 0.8, changeFreq: 'daily' },
     { url: '/cataloage-digitale', priority: 0.8, changeFreq: 'daily' },
     { url: '/blog', priority: 0.8, changeFreq: 'daily' },
-    { url: '/plan', priority: 0.7, changeFreq: 'weekly' },
-    { url: '/cart', priority: 0.5, changeFreq: 'weekly' },
-    { url: '/search', priority: 0.5, changeFreq: 'weekly' },
+
+    // Dedicated catalog landing pages (compete direct cu kimbino.ro, catalomat.ro etc.)
+    { url: '/catalog-lidl', priority: 1.0, changeFreq: 'daily' },
+    { url: '/catalog-kaufland', priority: 1.0, changeFreq: 'daily' },
+    { url: '/catalog-profi', priority: 0.9, changeFreq: 'daily' },
+
+    // Store-specific catalog pages (high traffic potential from GSC)
+    { url: '/oferte/lidl', priority: 0.9, changeFreq: 'daily' },
+    { url: '/oferte/kaufland', priority: 0.9, changeFreq: 'daily' },
+    { url: '/oferte/penny', priority: 0.9, changeFreq: 'daily' },
+    { url: '/oferte/carrefour', priority: 0.9, changeFreq: 'daily' },
+    { url: '/oferte/mega-image', priority: 0.85, changeFreq: 'daily' },
+    { url: '/oferte/auchan', priority: 0.85, changeFreq: 'daily' },
+    { url: '/oferte/profi', priority: 0.8, changeFreq: 'daily' },
+    { url: '/oferte/selgros', priority: 0.75, changeFreq: 'daily' },
+
+    // Catalog pages per store
+    { url: '/cataloage/lidl', priority: 0.7, changeFreq: 'daily' },
+    { url: '/cataloage/kaufland', priority: 0.7, changeFreq: 'daily' },
+    { url: '/cataloage/penny', priority: 0.7, changeFreq: 'daily' },
+    { url: '/cataloage/carrefour', priority: 0.7, changeFreq: 'daily' },
+    { url: '/cataloage/mega-image', priority: 0.7, changeFreq: 'daily' },
+    { url: '/cataloage/auchan', priority: 0.7, changeFreq: 'daily' },
+    // /plan, /cart, /search excluded - user-specific pages, noindex
 
     // Informational pages - lower priority
     { url: '/despre-noi', priority: 0.5, changeFreq: 'monthly' },
@@ -132,7 +154,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     logger.error('Error generating sitemap dynamic routes', { error }, 'Sitemap');
 
     // Fallback: add known store pages even if DB fails
-    const fallbackStores = ['kaufland', 'lidl', 'penny', 'carrefour', 'mega-image', 'profi'];
+    const fallbackStores = ['kaufland', 'lidl', 'penny', 'carrefour', 'mega-image', 'profi', 'auchan', 'selgros'];
     fallbackStores.forEach((store) => {
       routes.push({
         url: `${SITE_URL}/oferte/${store}`,
