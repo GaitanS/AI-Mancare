@@ -32,12 +32,27 @@ export const STANDARD_BASKET: readonly string[] = [
   'branza',
 ] as const;
 
+export interface BasketMatch {
+  /** Ingredient from STANDARD_BASKET that this product was matched to */
+  ingredient: string;
+  /** Actual product name from the catalog */
+  productName: string;
+  /** Price in lei */
+  price: number;
+  /** Unit as stored in the catalog (e.g. "kg", "L", "buc", "500g") */
+  unit: string;
+  /** Discount percentage, if any */
+  discount: number | null;
+}
+
 export interface StorePriceIndex {
   store: string;
   slug: string;
   total: number;
   itemsFound: number;
   missingItems: string[];
+  /** The actual products that were summed to reach `total` — one per ingredient found */
+  matches: BasketMatch[];
 }
 
 export interface PriceIndexResult {
@@ -56,6 +71,8 @@ interface CachedProduct {
   category: string | null;
   categoryLower: string | null;
   price: number;
+  unit: string;
+  discountPercentage: number | null;
   store: string;
 }
 
@@ -79,6 +96,8 @@ async function fetchActiveProducts(now: Date): Promise<CachedProduct[]> {
       name: true,
       category: true,
       price: true,
+      unit: true,
+      discountPercentage: true,
       store: true,
     },
     orderBy: [{ price: 'asc' }],
@@ -90,6 +109,8 @@ async function fetchActiveProducts(now: Date): Promise<CachedProduct[]> {
     category: p.category,
     categoryLower: p.category ? p.category.toLowerCase() : null,
     price: Number(p.price),
+    unit: p.unit,
+    discountPercentage: p.discountPercentage ? Number(p.discountPercentage) : null,
     store: p.store,
   }));
 }
@@ -119,7 +140,7 @@ function findCheapestForIngredient(
   mappings: CachedMapping[],
   ingredientName: string,
   store: string
-): number | null {
+): CachedProduct | null {
   const nameLower = ingredientName.toLowerCase();
 
   // Build search terms: use mapping keywords if available, else the ingredient name itself
@@ -131,7 +152,7 @@ function findCheapestForIngredient(
     searchTerms = mapping.keywords.map(k => k.toLowerCase());
   }
 
-  let bestPrice: number | null = null;
+  let best: CachedProduct | null = null;
 
   for (const product of products) {
     if (product.store !== store) continue;
@@ -141,12 +162,12 @@ function findCheapestForIngredient(
               (product.categoryLower && product.categoryLower.includes(term))
     );
 
-    if (matches && (bestPrice === null || product.price < bestPrice)) {
-      bestPrice = product.price;
+    if (matches && (best === null || product.price < best.price)) {
+      best = product;
     }
   }
 
-  return bestPrice;
+  return best;
 }
 
 async function computePriceIndex(): Promise<PriceIndexResult> {
@@ -170,12 +191,20 @@ async function computePriceIndex(): Promise<PriceIndexResult> {
     let total = 0;
     let itemsFound = 0;
     const missingItems: string[] = [];
+    const matches: BasketMatch[] = [];
 
     for (const ingredient of STANDARD_BASKET) {
-      const price = findCheapestForIngredient(products, mappings, ingredient, store);
-      if (price !== null) {
-        total += price;
+      const product = findCheapestForIngredient(products, mappings, ingredient, store);
+      if (product) {
+        total += product.price;
         itemsFound++;
+        matches.push({
+          ingredient,
+          productName: product.name,
+          price: Math.round(product.price * 100) / 100,
+          unit: product.unit,
+          discount: product.discountPercentage,
+        });
       } else {
         missingItems.push(ingredient);
       }
@@ -190,6 +219,7 @@ async function computePriceIndex(): Promise<PriceIndexResult> {
       total: Math.round(total * 100) / 100,
       itemsFound,
       missingItems,
+      matches,
     });
   }
 

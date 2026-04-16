@@ -79,55 +79,101 @@ export default function PriceIndexWidget({ data }: Props) {
             </div>
           </div>
 
-          {/* Ranking of all stores */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+          {/* Ranking of all stores with expandable basket breakdown */}
+          <div className="space-y-2 md:space-y-3">
             {stores.map((store, idx) => {
               const isCheapest = idx === 0;
               const diff = store.total - cheapest.total;
               return (
-                <Link
+                <details
                   key={store.slug}
-                  href={`/oferte/${store.slug}`}
-                  className={`group flex items-center justify-between rounded-xl border p-3 md:p-4 transition-all hover:shadow-md ${
+                  className={`group rounded-xl border transition-all ${
                     isCheapest
                       ? 'bg-primary-50 border-primary-300'
                       : 'bg-white border-neutral-200 hover:border-neutral-300'
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
-                      isCheapest ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-700'
-                    }`}>
-                      {idx + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-neutral-900 capitalize truncate">
-                        {store.store}
-                      </div>
-                      {diff > 0 && (
-                        <div className="text-xs text-neutral-500">
-                          +{formatPrice(diff)} lei
+                  <summary className="flex items-center justify-between p-3 md:p-4 cursor-pointer list-none">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+                        isCheapest ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-700'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-neutral-900 capitalize truncate">
+                          {store.store}
                         </div>
-                      )}
-                      {isCheapest && (
-                        <div className="text-xs text-primary-700 font-medium">Recomandat</div>
-                      )}
+                        <div className="text-xs text-neutral-500">
+                          {store.itemsFound}/{data.basket.length} produse găsite
+                          {diff > 0 && <span className="ml-1">· +{formatPrice(diff)} lei</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0 ml-2">
+                      <div className="text-right">
+                        <div className="font-display font-bold text-lg text-neutral-900 leading-none">
+                          {formatPrice(store.total)}
+                        </div>
+                        <div className="text-xs text-neutral-500">lei</div>
+                      </div>
+                      <svg className="w-4 h-4 text-neutral-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </summary>
+
+                  {/* Basket breakdown */}
+                  <div className="border-t border-neutral-200 bg-white/60 rounded-b-xl">
+                    {store.matches.length > 0 ? (
+                      <ul className="divide-y divide-neutral-100">
+                        {store.matches.map((m) => (
+                          <li key={`${store.slug}-${m.ingredient}`} className="flex items-center justify-between gap-3 px-3 md:px-4 py-2.5 text-sm">
+                            <div className="min-w-0">
+                              <div className="font-medium text-neutral-900 capitalize truncate">{m.ingredient}</div>
+                              <div className="text-xs text-neutral-500 truncate">
+                                {m.productName}
+                                {m.unit && <span className="text-neutral-400"> · {m.unit}</span>}
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <div className="font-semibold text-neutral-900">{formatPrice(m.price)} lei</div>
+                              {m.discount != null && m.discount > 0 && (
+                                <div className="text-[10px] font-bold text-red-600">-{m.discount}%</div>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="px-4 py-3 text-sm text-neutral-500">Nu am găsit produse din coșul standard.</p>
+                    )}
+
+                    {store.missingItems.length > 0 && (
+                      <div className="px-3 md:px-4 py-2.5 bg-amber-50 border-t border-amber-100 text-xs text-amber-800">
+                        <span className="font-semibold">Lipsă:</span>{' '}
+                        <span className="capitalize">{store.missingItems.join(', ')}</span>
+                      </div>
+                    )}
+
+                    <div className="px-3 md:px-4 py-2.5 border-t border-neutral-100">
+                      <Link
+                        href={`/oferte/${store.slug}`}
+                        className="text-xs font-semibold text-primary-700 hover:underline"
+                      >
+                        Vezi toate ofertele din {store.store} →
+                      </Link>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0 ml-2">
-                    <div className="font-display font-bold text-lg text-neutral-900">
-                      {formatPrice(store.total)}
-                    </div>
-                    <div className="text-xs text-neutral-500">lei</div>
-                  </div>
-                </Link>
+                </details>
               );
             })}
           </div>
 
           {/* Footer note */}
           <p className="text-xs text-neutral-500 text-center mt-4 max-w-3xl mx-auto">
-            * Prețurile sunt calculate automat pe baza celor mai ieftine produse disponibile din cataloagele active în fiecare magazin.
+            * Prețurile sunt produsele celor mai ieftine din cataloagele active ale fiecărui magazin.
+            Atenție: unitățile pot diferi între magazine (ex. 500g vs 1kg) — verifică detaliile din listă.
             Actualizat la fiecare oră.
           </p>
         </div>
