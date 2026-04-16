@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { saveCartItems } from '@/lib/cart-utils';
+import MultiStoreBreakdown, { type MultiStoreResult } from '@/components/MultiStoreBreakdown';
 
 interface MatchedProduct {
     id: string;
@@ -71,6 +72,11 @@ export default function CartPage() {
     const [swapIngredient, setSwapIngredient] = useState<string>('');
     const [alternatives, setAlternatives] = useState<AlternativeProduct[]>([]);
     const [loadingAlternatives, setLoadingAlternatives] = useState(false);
+
+    // Multi-store breakdown state
+    const [multiStoreData, setMultiStoreData] = useState<MultiStoreResult | null>(null);
+    const [showMultiStore, setShowMultiStore] = useState(false);
+    const [loadingMultiStore, setLoadingMultiStore] = useState(false);
 
     // Flag to skip our own cart-updated events (prevent infinite loop)
     const isInternalUpdate = useRef(false);
@@ -220,6 +226,82 @@ export default function CartPage() {
         });
     };
 
+    // Fetch multi-store optimization
+    const fetchMultiStore = async () => {
+        const currentIngredients = cartItems.map(i => i.ingredientName);
+        if (currentIngredients.length === 0) return;
+
+        setLoadingMultiStore(true);
+        setShowMultiStore(true);
+        try {
+            const response = await fetch('/api/cart/optimize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ingredients: currentIngredients, mode: 'multi' }),
+            });
+            if (response.ok) {
+                const data: MultiStoreResult = await response.json();
+                setMultiStoreData(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch multi-store optimization:', error);
+        } finally {
+            setLoadingMultiStore(false);
+        }
+    };
+
+    // Export multi-store list as text (client-side, grouped by store)
+    const exportMultiStoreList = async () => {
+        if (!multiStoreData) return;
+
+        const byStore = new Map<string, typeof multiStoreData.assignments>();
+        for (const a of multiStoreData.assignments) {
+            if (!byStore.has(a.store)) byStore.set(a.store, []);
+            byStore.get(a.store)!.push(a);
+        }
+
+        let text = `LISTA DE CUMPĂRĂTURI — ÎMPĂRȚITĂ PE MAGAZINE\n`;
+        text += `${'='.repeat(45)}\n\n`;
+
+        const sorted = Array.from(byStore.entries()).sort((a, b) => {
+            const sa = multiStoreData.storeBreakdown[a[0]]?.subtotal ?? 0;
+            const sb = multiStoreData.storeBreakdown[b[0]]?.subtotal ?? 0;
+            return sb - sa;
+        });
+
+        for (const [store, items] of sorted) {
+            const subtotal = multiStoreData.storeBreakdown[store]?.subtotal ?? 0;
+            text += `📍 ${store.toUpperCase()} — ${subtotal.toFixed(2)} lei\n`;
+            for (const item of items) {
+                text += `  □ ${item.productName} — ${item.price.toFixed(2)} lei\n`;
+            }
+            text += '\n';
+        }
+
+        text += `${'='.repeat(45)}\n`;
+        text += `TOTAL: ${multiStoreData.totalCost.toFixed(2)} lei\n`;
+        if (multiStoreData.savingsVsSingleStore > 0) {
+            text += `Economii față de un singur magazin: ${multiStoreData.savingsVsSingleStore.toFixed(2)} lei\n`;
+        }
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ text })) {
+            try {
+                await navigator.share({ title: 'Lista pe magazine - CatalogSmart', text });
+                return;
+            } catch {
+                /* fall through */
+            }
+        }
+
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'lista-pe-magazine.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     // Fetch alternatives for swap
     const fetchAlternatives = async (ingredientName: string, currentPrice: number) => {
         setLoadingAlternatives(true);
@@ -338,7 +420,7 @@ export default function CartPage() {
 
     // Lock body scroll when modal is open
     useEffect(() => {
-        if (swapModalOpen || showStoreComparison) {
+        if (swapModalOpen || showStoreComparison || showMultiStore) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -346,7 +428,7 @@ export default function CartPage() {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [swapModalOpen, showStoreComparison]);
+    }, [swapModalOpen, showStoreComparison, showMultiStore]);
 
     // Calculate totals and counts considering owned items and filtered cart
     const lowerCaseOwned = new Set(Array.from(ownedItems).map(i => i.toLowerCase()));
@@ -477,6 +559,31 @@ export default function CartPage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Multi-Store Split Banner - Mobile */}
+                            {cartItems.length > 0 && (
+                                <button
+                                    onClick={fetchMultiStore}
+                                    className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl p-3 text-white text-left active:scale-[0.99] transition-transform touch-manipulation"
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-1.5 mb-0.5">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M3 12h18M3 17h18" />
+                                                </svg>
+                                                <p className="font-bold text-sm">Împarte pe magazine</p>
+                                            </div>
+                                            <p className="text-xs text-violet-100">
+                                                Cel mai ieftin produs, magazin cu magazin
+                                            </p>
+                                        </div>
+                                        <div className="flex-shrink-0 px-3 py-2 bg-white/20 rounded-lg text-xs font-bold uppercase tracking-wider">
+                                            Optimizează
+                                        </div>
+                                    </div>
+                                </button>
+                            )}
                         </div>
 
                         {/* Cart Items List */}
@@ -711,6 +818,18 @@ export default function CartPage() {
                             >
                                 Exportă lista
                             </button>
+
+                            {cartItems.length > 0 && (
+                                <button
+                                    onClick={fetchMultiStore}
+                                    className="w-full mt-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M3 12h18M3 17h18" />
+                                    </svg>
+                                    Împarte coșul pe magazine
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -881,6 +1000,28 @@ export default function CartPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Multi-Store Breakdown Modal */}
+            {showMultiStore && (
+                loadingMultiStore || !multiStoreData ? (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <div
+                            className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm"
+                            onClick={() => setShowMultiStore(false)}
+                        />
+                        <div className="relative bg-white rounded-2xl p-8 shadow-2xl text-center">
+                            <div className="w-10 h-10 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin mx-auto mb-3" />
+                            <p className="text-sm text-neutral-600">Calculăm cea mai ieftină combinație…</p>
+                        </div>
+                    </div>
+                ) : (
+                    <MultiStoreBreakdown
+                        data={multiStoreData}
+                        onClose={() => setShowMultiStore(false)}
+                        onExport={exportMultiStoreList}
+                    />
+                )
             )}
 
             {/* Total & Checkout - Mobile Only Fixed Bottom */}
