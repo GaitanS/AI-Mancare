@@ -42,6 +42,14 @@ async function verifyToken(token: string): Promise<boolean> {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hostname = request.headers.get('host') || '';
+
+  // 0a. Redirect www → non-www (canonical domain)
+  if (hostname.startsWith('www.')) {
+    const newUrl = request.nextUrl.clone();
+    newUrl.host = hostname.replace(/^www\./, '');
+    return NextResponse.redirect(newUrl, 301);
+  }
 
   // 0. Block sensitive paths to prevent API key / source exposure
   if (BLOCKED_PATHS.some(p => pathname.startsWith(p))) {

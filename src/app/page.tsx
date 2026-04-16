@@ -12,13 +12,15 @@ import heroVegetables from '../../public/hero-vegetables.png';
 import heroSpices from '../../public/hero-spices.png';
 import heroPlate from '../../public/hero-plate.png';
 import FeaturedOffersSection from '@/components/FeaturedOffersSection';
+import PriceIndexWidget from '@/components/PriceIndexWidget';
+import { getPriceIndex, type PriceIndexResult } from '@/lib/price-index';
 
 export const revalidate = 3600; // ISR: regenerate homepage every hour
 
 export const metadata: Metadata = {
-  title: 'Oferte si Retete Economice pentru Toata Familia',
+  title: 'Oferte Supermarketuri si Retete Economice - Compara Preturi',
   description:
-    'Descopera cele mai bune oferte din supermarketuri si retete delicioase la preturi mici. Economiseste bani gatind acasa cu ingrediente la reducere!',
+    'Cele mai bune oferte din Kaufland, Lidl, Penny, Carrefour, Mega Image si Auchan. Compara preturi, descopera retete ieftine si economiseste la cumparaturi!',
   alternates: {
     canonical: '/',
   },
@@ -196,13 +198,15 @@ export default async function HomePage() {
   let featuredRecipes: Recipe[] = [];
   let stats = { products: 0, recipes: 0 };
   let stores: { name: string; slug: string; gradient: string }[] = [];
+  let priceIndex: PriceIndexResult | null = null;
 
   try {
-    [featuredOffers, featuredRecipes, stats, stores] = await Promise.all([
+    [featuredOffers, featuredRecipes, stats, stores, priceIndex] = await Promise.all([
       getFeaturedOffers(),
       getFeaturedRecipes(),
       getStats(),
       getActiveStores(),
+      getPriceIndex(),
     ]);
   } catch (error) {
     console.error('HomePage data fetch failed:', error);
@@ -346,6 +350,9 @@ export default async function HomePage() {
         {/* Bottom gradient fade */}
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-neutral-50 to-transparent" />
       </section>
+
+      {/* Price Index - Cel mai ieftin supermarket azi */}
+      {priceIndex && <PriceIndexWidget data={priceIndex} />}
 
       {/* Stores Section */}
       <section className="py-10 sm:py-14 bg-neutral-50">

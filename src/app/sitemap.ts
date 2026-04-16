@@ -45,6 +45,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Core pages - high priority, frequent updates
     { url: '', priority: 1.0, changeFreq: 'daily' },
     { url: '/oferte', priority: 0.9, changeFreq: 'daily' },
+    { url: '/cel-mai-ieftin-supermarket', priority: 0.95, changeFreq: 'daily' },
     { url: '/retete', priority: 0.9, changeFreq: 'daily' },
     { url: '/cataloage', priority: 0.8, changeFreq: 'daily' },
     { url: '/cataloage-digitale', priority: 0.8, changeFreq: 'daily' },

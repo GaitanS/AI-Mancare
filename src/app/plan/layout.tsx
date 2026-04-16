@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     url: '/plan',
   },
   robots: {
-    index: true,
+    index: false,
     follow: true,
   },
 };

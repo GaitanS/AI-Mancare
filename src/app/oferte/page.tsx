@@ -22,64 +22,6 @@ const currentYear = now.getFullYear();
 
 export const revalidate = 300; // ISR: regenerate offers page every 5 minutes
 
-export const metadata: Metadata = {
-  title: `Catalog Kaufland, Lidl, Profi Actual ${currentMonth} ${currentYear} | Oferte Săptămâna Aceasta`,
-  description: `📢 Catalog Kaufland actual ${currentMonth} ${currentYear} - vezi ofertele valabile săptămâna aceasta! Reduceri la produse din Lidl, Profi, Penny. Cataloage actualizate zilnic ✓`,
-  keywords: [
-    // Primary keywords (high volume from research)
-    'catalog kaufland actual',
-    'catalog lidl actual',
-    'catalog profi actual',
-    'catalog profi online',
-    'catalog profi loco',
-    'catalog kaufland nou',
-    'catalog lidl saptamana viitoare',
-    // Base keywords
-    'catalog kaufland',
-    'catalog lidl',
-    'catalog profi',
-    'oferte kaufland',
-    'oferte lidl',
-    'oferte profi',
-    // Long-tail (weekly/daily)
-    'catalog kaufland saptamana aceasta',
-    'catalog kaufland azi',
-    'catalog lidl saptamana aceasta',
-    'catalog lidl nou',
-    'oferte supermarket saptamana aceasta',
-    // Date-specific
-    `catalog kaufland ${currentMonth.toLowerCase()} ${currentYear}`,
-    `catalog lidl ${currentMonth.toLowerCase()} ${currentYear}`,
-    `catalog profi ${currentMonth.toLowerCase()} ${currentYear}`,
-    // Action-based
-    'catalog kaufland online',
-    'catalog lidl online',
-    'cataloage supermarket romania',
-    'reduceri supermarket azi',
-  ].join(', '),
-  alternates: {
-    canonical: '/oferte',
-  },
-  openGraph: {
-    title: `Catalog Kaufland, Lidl, Profi Actual - Oferte ${currentMonth} ${currentYear}`,
-    description: `Cele mai bune reduceri din supermarketuri săptămâna aceasta. Catalog Kaufland, Lidl, Profi actual actualizat zilnic. Economisește până la 50%!`,
-    url: '/oferte',
-    type: 'website',
-    locale: 'ro_RO',
-    siteName: 'CatalogSmart',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: `Catalog Kaufland, Lidl, Profi Actual ${currentMonth} ${currentYear}`,
-    description: 'Vezi cataloagele și reducerile actual din Kaufland, Lidl, Profi. Actualizat zilnic!',
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
-
-
 interface PageProps {
   searchParams: Promise<{
     page?: string;
@@ -92,6 +34,69 @@ interface PageProps {
     sortBy?: string;
     sortOrder?: string;
   }>;
+}
+
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const resolvedParams = await searchParams;
+  const pageNum = parseInt(resolvedParams.page || '1', 10);
+  const isPaginated = pageNum > 1;
+
+  return {
+    title: `Catalog Kaufland, Lidl, Penny, Carrefour Actual ${currentMonth} ${currentYear} - Oferte Săptămâna Aceasta`,
+    description: `Cataloage actuale ${currentMonth} ${currentYear} din Kaufland, Lidl, Penny, Carrefour, Mega Image si Auchan. Toate ofertele saptamanii intr-un singur loc. Actualizat zilnic!`,
+    keywords: [
+      'catalog kaufland actual',
+      'catalog lidl actual',
+      'catalog penny actual',
+      'catalog carrefour actual',
+      'catalog mega image actual',
+      'catalog auchan actual',
+      'catalog kaufland',
+      'catalog lidl',
+      'catalog penny',
+      'catalog carrefour',
+      'catalog mega image',
+      'catalog auchan',
+      'oferte kaufland',
+      'oferte lidl',
+      'oferte penny',
+      'oferte carrefour',
+      'oferte mega image',
+      'oferte auchan',
+      'catalog kaufland saptamana aceasta',
+      'catalog lidl saptamana aceasta',
+      'oferte supermarket saptamana aceasta',
+      'cel mai ieftin supermarket',
+      'cel mai ieftin supermarket din romania',
+      'comparatie preturi supermarketuri',
+      `catalog kaufland ${currentMonth.toLowerCase()} ${currentYear}`,
+      `catalog lidl ${currentMonth.toLowerCase()} ${currentYear}`,
+      `catalog penny ${currentMonth.toLowerCase()} ${currentYear}`,
+      `catalog carrefour ${currentMonth.toLowerCase()} ${currentYear}`,
+      'cataloage supermarket romania',
+      'toate ofertele',
+      'reduceri supermarket azi',
+    ].join(', '),
+    alternates: {
+      canonical: '/oferte',
+    },
+    openGraph: {
+      title: `Cataloage Kaufland, Lidl, Penny, Carrefour - Oferte ${currentMonth} ${currentYear}`,
+      description: `Toate cataloagele actuale din Kaufland, Lidl, Penny, Carrefour, Mega Image si Auchan. Actualizat zilnic - economiseste pana la 50%!`,
+      url: '/oferte',
+      type: 'website',
+      locale: 'ro_RO',
+      siteName: 'CatalogSmart',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Cataloage Kaufland, Lidl, Penny, Carrefour ${currentMonth} ${currentYear}`,
+      description: 'Toate ofertele din Kaufland, Lidl, Penny, Carrefour, Mega Image si Auchan. Actualizat zilnic!',
+    },
+    robots: isPaginated
+      ? { index: false, follow: true }
+      : { index: true, follow: true },
+  };
 }
 
 // Fetch products with filters
