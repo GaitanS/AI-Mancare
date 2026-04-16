@@ -159,6 +159,15 @@ export default function OffersClient({
                                 Vezi toate <strong className="text-white/80">cataloagele online</strong> din Kaufland, Lidl, Penny și Carrefour.
                                 Compară <strong className="text-white/80">prețurile și reducerile</strong> din supermarketuri — actualizat zilnic cu ofertele valabile!
                             </p>
+                            <Link
+                                href="/cel-mai-ieftin-supermarket"
+                                className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold transition-colors"
+                            >
+                                <span>🏆 Vezi care e cel mai ieftin supermarket azi</span>
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -206,6 +215,20 @@ export default function OffersClient({
                         />
                     </div>
                 </div>
+
+                {/* Mobile CTA: link to price index */}
+                <Link
+                    href="/cel-mai-ieftin-supermarket"
+                    className="lg:hidden mx-3 mt-2 flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-neutral-900 to-neutral-800 text-white text-sm font-semibold shadow-md active:scale-[0.98] transition-transform"
+                >
+                    <span className="flex items-center gap-2">
+                        <span>🏆</span>
+                        <span>Cel mai ieftin supermarket azi</span>
+                    </span>
+                    <svg className="w-4 h-4 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </Link>
 
                 {/* 3. ADSENSE BANNER - OPTION 1 (Top) - Mobile placement */}
                 <div className="px-2 pt-2 lg:hidden">

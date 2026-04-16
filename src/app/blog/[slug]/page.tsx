@@ -1,6 +1,19 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { getPriceIndex } from '@/lib/price-index';
+import PriceIndexWidget from '@/components/PriceIndexWidget';
+
+// ISR: regenerate the article page every hour so the embedded widget stays fresh
+export const revalidate = 3600;
+
+// Slugs that get the live Price Index widget injected at the top of the article
+const PRICE_INDEX_SLUGS = new Set<string>([
+    'top-5-supermarketuri-romania-comparatie-preturi',
+    'cel-mai-ieftin-supermarket-romania-2026',
+    'comparatie-preturi-lidl-kaufland-penny-carrefour-2026',
+    'cum-sa-economisesti-la-cumparaturi-ghid-complet-2026',
+]);
 
 // Static articles content
 const articlesContent: Record<string, {
@@ -1282,6 +1295,9 @@ export default async function ArticlePage({ params }: PageProps) {
         notFound();
     }
 
+    // For comparison-focused articles, fetch live price data to embed at the top
+    const priceIndex = PRICE_INDEX_SLUGS.has(slug) ? await getPriceIndex() : null;
+
     const formattedDate = new Date(article.publishedAt).toLocaleDateString('ro-RO', {
         day: 'numeric',
         month: 'long',
@@ -1403,6 +1419,13 @@ export default async function ArticlePage({ params }: PageProps) {
                     </div>
                 </header>
 
+                {/* Live Price Index — shown on comparison-focused articles */}
+                {priceIndex && priceIndex.cheapest && (
+                    <div className="bg-neutral-50">
+                        <PriceIndexWidget data={priceIndex} />
+                    </div>
+                )}
+
                 {/* Content */}
                 <div className="container-custom py-12 md:py-16">
                     <div className="max-w-3xl mx-auto">
@@ -1429,16 +1452,16 @@ export default async function ArticlePage({ params }: PageProps) {
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3 justify-center">
                                 <Link
-                                    href="/cataloage"
+                                    href="/cel-mai-ieftin-supermarket"
                                     className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors"
                                 >
-                                    Vezi Ofertele
+                                    Vezi cel mai ieftin supermarket azi
                                 </Link>
                                 <Link
-                                    href="/blog"
+                                    href="/cataloage"
                                     className="px-6 py-3 bg-white text-primary-600 font-semibold rounded-xl border-2 border-primary-200 hover:border-primary-400 transition-colors"
                                 >
-                                    Mai multe articole
+                                    Vezi Ofertele
                                 </Link>
                             </div>
                         </div>
