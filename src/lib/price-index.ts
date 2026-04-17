@@ -13,6 +13,7 @@
 import prisma from '@/lib/db';
 import { cache } from '@/lib/cache';
 import { logger } from '@/lib/logger';
+import { pricePerBaseUnit, type BaseUnit } from '@/lib/unit-normalize';
 
 /**
  * Cosul standard CatalogSmart.
@@ -43,6 +44,10 @@ export interface BasketMatch {
   unit: string;
   /** Discount percentage, if any */
   discount: number | null;
+  /** Price per normalized base unit (lei/kg, lei/L, lei/buc). Null when unit can't be parsed. */
+  pricePerBase: number | null;
+  /** Canonical base unit for pricePerBase — 'kg' | 'L' | 'buc' | null */
+  baseUnit: BaseUnit;
 }
 
 export interface StorePriceIndex {
@@ -152,22 +157,38 @@ function findCheapestForIngredient(
     searchTerms = mapping.keywords.map(k => k.toLowerCase());
   }
 
-  let best: CachedProduct | null = null;
-
+  // Collect all matching products for this store+ingredient
+  const matching: CachedProduct[] = [];
   for (const product of products) {
     if (product.store !== store) continue;
-
-    const matches = searchTerms.some(
+    const hit = searchTerms.some(
       term => product.nameLower.includes(term) ||
               (product.categoryLower && product.categoryLower.includes(term))
     );
+    if (hit) matching.push(product);
+  }
 
-    if (matches && (best === null || product.price < best.price)) {
-      best = product;
+  if (matching.length === 0) return null;
+
+  // Try per-unit ranking: only valid when every candidate has a parseable unit
+  // AND they all share the same base unit (can't compare lei/kg against lei/L).
+  const withNorm = matching.map(p => ({
+    product: p,
+    norm: pricePerBaseUnit(p.price, p.unit),
+  }));
+
+  const allParseable = withNorm.every(x => x.norm !== null);
+  if (allParseable) {
+    const baseUnits = new Set(withNorm.map(x => x.norm!.baseUnit));
+    if (baseUnits.size === 1) {
+      withNorm.sort((a, b) => a.norm!.value - b.norm!.value);
+      return withNorm[0].product;
     }
   }
 
-  return best;
+  // Fallback: absolute cheapest (units are inconsistent or unparseable)
+  matching.sort((a, b) => a.price - b.price);
+  return matching[0];
 }
 
 async function computePriceIndex(): Promise<PriceIndexResult> {
@@ -198,12 +219,15 @@ async function computePriceIndex(): Promise<PriceIndexResult> {
       if (product) {
         total += product.price;
         itemsFound++;
+        const norm = pricePerBaseUnit(product.price, product.unit);
         matches.push({
           ingredient,
           productName: product.name,
           price: Math.round(product.price * 100) / 100,
           unit: product.unit,
           discount: product.discountPercentage,
+          pricePerBase: norm ? Math.round(norm.value * 100) / 100 : null,
+          baseUnit: norm ? norm.baseUnit : null,
         });
       } else {
         missingItems.push(ingredient);

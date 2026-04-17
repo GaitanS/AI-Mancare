@@ -138,6 +138,9 @@ export default function PriceIndexWidget({ data }: Props) {
                             </div>
                             <div className="text-right flex-shrink-0">
                               <div className="font-semibold text-neutral-900">{formatPrice(m.price)} lei</div>
+                              {m.pricePerBase != null && m.baseUnit && (
+                                <div className="text-[10px] text-neutral-500">{formatPrice(m.pricePerBase)} lei/{m.baseUnit}</div>
+                              )}
                               {m.discount != null && m.discount > 0 && (
                                 <div className="text-[10px] font-bold text-red-600">-{m.discount}%</div>
                               )}
