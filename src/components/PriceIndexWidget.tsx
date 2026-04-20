@@ -179,6 +179,16 @@ export default function PriceIndexWidget({ data }: Props) {
             Atenție: unitățile pot diferi între magazine (ex. 500g vs 1kg) — verifică detaliile din listă.
             Actualizat la fiecare oră.
           </p>
+
+          {data.stale && (
+            <div className="mt-3 mx-auto max-w-2xl rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 text-center">
+              ⚠️ Datele din cataloage pot fi învechite
+              {data.hoursSinceUpdate != null && (
+                <> (actualizate acum {Math.round(data.hoursSinceUpdate)}h)</>
+              )}
+              . Verifică prețurile în magazin înainte de cumpărare.
+            </div>
+          )}
         </div>
       </div>
     </section>

@@ -68,7 +68,14 @@ export interface PriceIndexResult {
   mostExpensive: StorePriceIndex | null;
   /** Diferenta in lei intre cel mai ieftin si cel mai scump magazin */
   maxSavings: number;
+  /** Hours since the freshest active product was updated. null when catalog is empty. */
+  hoursSinceUpdate: number | null;
+  /** True when hoursSinceUpdate is null or exceeds STALE_HOURS_THRESHOLD. */
+  stale: boolean;
 }
+
+/** Active-catalog data older than this is considered stale and shown to the user. */
+export const STALE_HOURS_THRESHOLD = 36;
 
 interface CachedProduct {
   name: string;
@@ -194,7 +201,7 @@ function findCheapestForIngredient(
 async function computePriceIndex(): Promise<PriceIndexResult> {
   const now = new Date();
 
-  const [stores, products, mappings] = await Promise.all([
+  const [stores, products, mappings, freshest] = await Promise.all([
     prisma.product.groupBy({
       by: ['store'],
       where: {
@@ -204,7 +211,17 @@ async function computePriceIndex(): Promise<PriceIndexResult> {
     }),
     fetchActiveProducts(now),
     fetchMappings(),
+    prisma.product.findFirst({
+      where: { validFrom: { lte: now }, validUntil: { gte: now } },
+      orderBy: { updatedAt: 'desc' },
+      select: { updatedAt: true },
+    }),
   ]);
+
+  const hoursSinceUpdate = freshest
+    ? (now.getTime() - new Date(freshest.updatedAt).getTime()) / 3_600_000
+    : null;
+  const stale = hoursSinceUpdate === null || hoursSinceUpdate > STALE_HOURS_THRESHOLD;
 
   const storeResults: StorePriceIndex[] = [];
 
@@ -264,6 +281,8 @@ async function computePriceIndex(): Promise<PriceIndexResult> {
     cheapest,
     mostExpensive,
     maxSavings,
+    hoursSinceUpdate: hoursSinceUpdate !== null ? Math.round(hoursSinceUpdate * 10) / 10 : null,
+    stale,
   };
 }
 
@@ -285,6 +304,8 @@ export async function getPriceIndex(): Promise<PriceIndexResult> {
           cheapest: null,
           mostExpensive: null,
           maxSavings: 0,
+          hoursSinceUpdate: null,
+          stale: true,
         };
       }
     },

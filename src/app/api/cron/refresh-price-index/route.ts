@@ -6,77 +6,99 @@
  * Also runs a staleness check against active catalog products and logs a
  * warning when the freshest product is older than STALE_HOURS.
  *
- * Auth: Vercel Cron adds an `Authorization: Bearer $CRON_SECRET` header
- * automatically when CRON_SECRET is set in project env vars.
+ * Auth (checked in order):
+ *   1. `x-vercel-cron: 1` header — set by Vercel's cron runner.
+ *   2. `Authorization: Bearer $CRON_SECRET` — for manual / external triggers.
+ *
+ * In production, CRON_SECRET MUST be set — otherwise all non-Vercel-cron
+ * calls are rejected. In development, missing secret allows any call.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { cache } from '@/lib/cache';
 import { logger } from '@/lib/logger';
-import { getPriceIndex } from '@/lib/price-index';
+import { getPriceIndex, STALE_HOURS_THRESHOLD } from '@/lib/price-index';
 
-const STALE_HOURS = 36;
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
-function isAuthorized(req: NextRequest): boolean {
+const CACHE_KEY = 'price-index:standard-basket';
+
+function isAuthorized(req: NextRequest): { ok: true } | { ok: false; reason: string } {
+  // Vercel Cron sets this header on every scheduled invocation.
+  if (req.headers.get('x-vercel-cron') === '1') return { ok: true };
+
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true; // dev / no secret configured → allow
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      return { ok: false, reason: 'CRON_SECRET not configured' };
+    }
+    return { ok: true }; // dev convenience
+  }
+
   const header = req.headers.get('authorization');
-  return header === `Bearer ${secret}`;
+  if (header === `Bearer ${secret}`) return { ok: true };
+  return { ok: false, reason: 'bad token' };
+}
+
+async function runRefresh() {
+  const startedAt = Date.now();
+  const now = new Date();
+
+  await cache.del(CACHE_KEY);
+
+  const activeCount = await prisma.product.count({
+    where: { validFrom: { lte: now }, validUntil: { gte: now } },
+  });
+
+  const index = await getPriceIndex();
+
+  if (index.stale) {
+    logger.warn(
+      'Price Index data is stale',
+      {
+        hoursSinceUpdate: index.hoursSinceUpdate,
+        activeCount,
+        threshold: STALE_HOURS_THRESHOLD,
+      },
+      'PriceIndexCron'
+    );
+  }
+
+  return {
+    success: true as const,
+    durationMs: Date.now() - startedAt,
+    stale: index.stale,
+    hoursSinceUpdate: index.hoursSinceUpdate,
+    activeProducts: activeCount,
+    stores: index.stores.length,
+    cheapest: index.cheapest?.store ?? null,
+    cheapestTotal: index.cheapest?.total ?? null,
+    generatedAt: index.generatedAt,
+  };
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = isAuthorized(req);
+  if (!auth.ok) {
+    return NextResponse.json({ error: 'Unauthorized', reason: auth.reason }, { status: 401 });
   }
 
-  const startedAt = Date.now();
-
   try {
-    await cache.del('price-index:standard-basket');
-
-    const now = new Date();
-    const freshest = await prisma.product.findFirst({
-      where: { validFrom: { lte: now }, validUntil: { gte: now } },
-      orderBy: { updatedAt: 'desc' },
-      select: { updatedAt: true },
-    });
-
-    const activeCount = await prisma.product.count({
-      where: { validFrom: { lte: now }, validUntil: { gte: now } },
-    });
-
-    const hoursSinceUpdate = freshest
-      ? (now.getTime() - new Date(freshest.updatedAt).getTime()) / 3_600_000
-      : null;
-
-    const stale = hoursSinceUpdate === null || hoursSinceUpdate > STALE_HOURS;
-    if (stale) {
-      logger.warn('Price Index data is stale', {
-        hoursSinceUpdate,
-        activeCount,
-        threshold: STALE_HOURS,
-      }, 'PriceIndexCron');
-    }
-
-    const index = await getPriceIndex();
-
-    return NextResponse.json({
-      success: true,
-      durationMs: Date.now() - startedAt,
-      stale,
-      hoursSinceUpdate,
-      activeProducts: activeCount,
-      stores: index.stores.length,
-      cheapest: index.cheapest?.store ?? null,
-      cheapestTotal: index.cheapest?.total ?? null,
-      generatedAt: index.generatedAt,
-    });
+    const result = await runRefresh();
+    return NextResponse.json(result);
   } catch (error) {
     logger.error('Price Index cron failed', { error }, 'PriceIndexCron');
     return NextResponse.json(
-      { success: false, error: 'refresh failed' },
+      { success: false, error: error instanceof Error ? error.message : 'refresh failed' },
       { status: 500 }
     );
   }
+}
+
+// HEAD for external uptime checks (no body, no auth needed).
+export async function HEAD() {
+  return new NextResponse(null, { status: 200 });
 }
