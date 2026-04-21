@@ -165,7 +165,7 @@ function shouldSkipCatalog(title, validFrom, validUntil) {
 async function scrapeKimbinoHomepage() {
   log.info('Scraping Kimbino.ro homepage...');
 
-  const html = await fetchPage('https://kimbino.ro');
+  const html = await fetchPage('https://www.kimbino.ro');
   if (!html) return [];
 
   const $ = cheerio.load(html);
@@ -185,7 +185,7 @@ async function scrapeKimbinoHomepage() {
       const storeSlug = storeMatch ? storeMatch[1] : 'unknown';
 
       catalogs.push({
-        url: link.startsWith('http') ? link : `https://kimbino.ro${link}`,
+        url: link.startsWith('http') ? link : `https://www.kimbino.ro${link}`,
         storeName: storeSlug,
         dateRange: dateMatch ? `${dateMatch[1]} - ${dateMatch[2]}` : null,
       });
@@ -202,7 +202,8 @@ async function scrapeKimbinoHomepage() {
 async function scrapeStoreCatalogs(storeSlug, storeName) {
   log.info(`Scraping catalogs for ${storeName}...`);
 
-  const url = `https://kimbino.ro/${storeSlug}/`;
+  // Kimbino 301-redirects kimbino.ro → www.kimbino.ro; hit the canonical host directly
+  const url = `https://www.kimbino.ro/${storeSlug}/`;
   const html = await fetchPage(url);
   if (!html) return [];
 
@@ -224,7 +225,7 @@ async function scrapeStoreCatalogs(storeSlug, storeName) {
     if (link) {
       catalogs.push({
         title: title || `Catalog ${storeName}`,
-        url: link.startsWith('http') ? link : `https://kimbino.ro${link}`,
+        url: link.startsWith('http') ? link : `https://www.kimbino.ro${link}`,
         pdfUrl: pdfLink,
         storeName: storeName,
         validFrom: dates.start,
@@ -239,20 +240,24 @@ async function scrapeStoreCatalogs(storeSlug, storeName) {
   // FALLBACK: If Cheerio found nothing, try Regex on raw HTML (Nuxt/JSON hydration)
   if (unique.length === 0) {
     log.info(`No catalogs found via DOM for ${storeName}, trying Regex fallback...`);
-    // Pattern: "catalog-store-slug-date-id"
-    // Example: "catalog-kaufland-de-miercuri-07-01-2026-4627657"
-    const regex = new RegExp(`catalog-${storeSlug}-[a-z0-9-]+-\\d+`, 'g');
-    const matches = html.match(regex);
+    // Kimbino now uses generic slugs like "catalog-de-miercuri-22-04-2026-5047094"
+    // (store is implicit from the page URL), plus older "catalog-{slug}-..." form.
+    // Match both. Require a trailing numeric id (5+ digits) to avoid false positives
+    // like "catalogs" / "catalogue".
+    const genericRe = /catalog[a-z0-9-]*-de-[a-z]+-\d{2}-\d{2}-\d{4}-\d{4,}/g;
+    const legacyRe = new RegExp(`catalog-${storeSlug}-[a-z0-9-]+-\\d{4,}`, 'g');
+    const matches = [
+      ...(html.match(genericRe) || []),
+      ...(html.match(legacyRe) || []),
+    ];
 
-    if (matches) {
+    if (matches.length > 0) {
       const uniqueMatches = [...new Set(matches)];
       log.info(`Found ${uniqueMatches.length} potential matches via Regex`);
 
       for (const match of uniqueMatches) {
-        // Construct URL: https://kimbino.ro/kaufland/catalog-kaufland...
-        // Or just https://kimbino.ro/catalog-kaufland... (Kimbino often redirects)
-        // Actually better: https://kimbino.ro/${storeSlug}/${match}
-        const link = `https://kimbino.ro/${storeSlug}/${match}`;
+        // Link must be scoped to the store path so Kimbino resolves the correct catalog
+        const link = `https://www.kimbino.ro/${storeSlug}/${match}`;
 
         // Extract dates from slug if possible
         // catalog-kaufland-de-miercuri-07-01-2026-4627657
