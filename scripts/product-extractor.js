@@ -362,7 +362,6 @@ async function main() {
         status.running = false;
         status.completedAt = new Date().toISOString();
         saveStatus();
-        saveLog();
         await prisma.$disconnect();
         return;
     }
